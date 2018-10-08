@@ -5,7 +5,7 @@ Content     :   Monospaced bitmap font rendering intended for debugging only.
 Created     :   March 11, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -601,7 +601,7 @@ VertexBlockType DrawTextToVertexBlock( BitmapFont const & font, fontParms_t cons
 	float lineWidths[MAX_LINES];
 	int numLines;
 	AsLocal( font ).CalcTextMetrics( text, len, width, height, ascent, descent, fontHeight, lineWidths, MAX_LINES, numLines );
-//	LOG( "BitmapFontSurfaceLocal::DrawText3D( \"%s\" %s %s ) : width = %.2f, height = %.2f, numLines = %i, fh = %.2f",
+//	OVR_LOG( "BitmapFontSurfaceLocal::DrawText3D( \"%s\" %s %s ) : width = %.2f, height = %.2f, numLines = %i, fh = %.2f",
 //			text, ( fontParms.AlignVert == VERTICAL_CENTER ) ? "cv" : ( ( fontParms.AlignVert == VERTICAL_BOTTOM ) ? "bv" : "tv" ),
 // 			( fontParms.AlignHoriz == HORIZONTAL_CENTER ) ? "ch" : ( ( fontParms.AlignVert == HORIZONTAL_LEFT ) ? "lh" : "rh" ),
 //			width, height, numLines, AsLocal( font ).GetFontInfo().FontHeight );
@@ -612,13 +612,13 @@ VertexBlockType DrawTextToVertexBlock( BitmapFont const & font, fontParms_t cons
 
 	if ( !normal.IsNormalized() )
 	{
-		LOG( "DrawTextToVertexBlock: normal = ( %g, %g, %g ), text = '%s'", normal.x, normal.y, normal.z, text );
-		ASSERT_WITH_TAG( normal.IsNormalized(), "BitmapFont" );
+		OVR_LOG( "DrawTextToVertexBlock: normal = ( %g, %g, %g ), text = '%s'", normal.x, normal.y, normal.z, text );
+		OVR_ASSERT_WITH_TAG( normal.IsNormalized(), "BitmapFont" );
 	}
 	if ( !up.IsNormalized() )
 	{
-		LOG( "DrawTextToVertexBlock: up = ( %g, %g, %g ), text = '%s'", up.x, up.y, up.z, text );
-		ASSERT_WITH_TAG( up.IsNormalized(), "BitmapFont" );
+		OVR_LOG( "DrawTextToVertexBlock: up = ( %g, %g, %g ), text = '%s'", up.x, up.y, up.z, text );
+		OVR_ASSERT_WITH_TAG( up.IsNormalized(), "BitmapFont" );
 	}
 
 	const FontInfoType & fontInfo = AsLocal( font ).GetFontInfo();
@@ -945,7 +945,7 @@ bool FontInfoType::LoadFromBuffer( void const * buffer, size_t const bufferSize 
 	OVR::JSON * jsonRoot = OVR::JSON::Parse( reinterpret_cast< char const * >( buffer ), &errorMsg );
 	if ( jsonRoot == NULL )
 	{
-		WARN( "JSON Error: %s", ( errorMsg != NULL ) ? errorMsg : "<NULL>" );
+		OVR_WARN( "JSON Error: %s", ( errorMsg != NULL ) ? errorMsg : "<NULL>" );
 		return false;
 	}
 
@@ -998,16 +998,16 @@ bool FontInfoType::LoadFromBuffer( void const * buffer, size_t const bufferSize 
 	EdgeWidth = jsonGlyphs.GetChildFloatByName( "EdgeWidth", 32.0f );
 
 #if defined( OVR_BUILD_DEBUG )
-	LOG( "FontName = %s", FontName.ToCStr() );
-	LOG( "CommandLine = %s", CommandLine.ToCStr() );
-	LOG( "HorizontalPad = %.4f", HorizontalPad );
-	LOG( "VerticalPad = %.4f", VerticalPad );
-	LOG( "FontHeight = %.4f", FontHeight );
-	LOG( "CenterOffset = %.4f", CenterOffset );
-	LOG( "TweakScale = %.4f", TweakScale );
-	LOG( "EdgeWidth = %.4f", EdgeWidth );
-	LOG( "ImageFileName = %s", ImageFileName.ToCStr() );
-	LOG( "Loading %i glyphs.", numGlyphs );
+	OVR_LOG( "FontName = %s", FontName.ToCStr() );
+	OVR_LOG( "CommandLine = %s", CommandLine.ToCStr() );
+	OVR_LOG( "HorizontalPad = %.4f", HorizontalPad );
+	OVR_LOG( "VerticalPad = %.4f", VerticalPad );
+	OVR_LOG( "FontHeight = %.4f", FontHeight );
+	OVR_LOG( "CenterOffset = %.4f", CenterOffset );
+	OVR_LOG( "TweakScale = %.4f", TweakScale );
+	OVR_LOG( "EdgeWidth = %.4f", EdgeWidth );
+	OVR_LOG( "ImageFileName = %s", ImageFileName.ToCStr() );
+	OVR_LOG( "Loading %i glyphs.", numGlyphs );
 #endif
 
 /// HACK: this is hard-coded until we do not have a dependcy on reading the font from Home
@@ -1214,7 +1214,7 @@ bool FontInfoType::Save( char const * path )
 
 	char filePath[1024];
 	ovrPathUtils::AppendUriPath( path, FontName.ToCStr(), filePath, sizeof( filePath ) );
-	LOG( "Writing font file '%s'\n...", filePath );
+	OVR_LOG( "Writing font file '%s'\n...", filePath );
 	joFont->Save( filePath );
 
 	joFont->Release();
@@ -1234,7 +1234,7 @@ FontGlyphType const & FontInfoType::GlyphForCharCode( uint32_t const charCode ) 
 	if ( glyphIndex < 0 || glyphIndex >= Glyphs.GetSizeI() )
 	{
 #if defined( OVR_BUILD_DEBUG )		
-		WARN( "FontInfoType::GlyphForCharCode FAILED TO FIND GLYPH FOR CHARACTER! charCode %u => %i [mapsize=%zu] [glyphsize=%i]",
+		OVR_WARN( "FontInfoType::GlyphForCharCode FAILED TO FIND GLYPH FOR CHARACTER! charCode %u => %i [mapsize=%zu] [glyphsize=%i]",
 			charCode, glyphIndex, CharCodeMap.GetSize(), Glyphs.GetSizeI() );
 #endif
 
@@ -1331,21 +1331,21 @@ bool BitmapFontLocal::Load( ovrFileSys & fileSys, char const * uri )
 
 	char imagePath[1024];
 	{
-		LOG( "FontInfo file Uri = %s", uri );
-		LOG( "FontInfo file path = %s", path );
+		OVR_LOG( "FontInfo file Uri = %s", uri );
+		OVR_LOG( "FontInfo file path = %s", path );
 		String imageBaseName = FontInfo.ImageFileName.GetFilename();
-		LOG( "image base name = %s", imageBaseName.ToCStr() );
+		OVR_LOG( "image base name = %s", imageBaseName.ToCStr() );
 
 		ovrPathUtils::StripFilename( path, imagePath, sizeof( imagePath ) );
-		LOG( "FontInfo base path = %s", imagePath );
+		OVR_LOG( "FontInfo base path = %s", imagePath );
 
 		ovrPathUtils::AppendUriPath( imagePath, sizeof( imagePath ), imageBaseName.ToCStr() );
-		LOG( "imagePath = %s", imagePath );
+		OVR_LOG( "imagePath = %s", imagePath );
 	}
 
 	char imageUri[1024];
 	OVR_sprintf( imageUri, sizeof( imageUri ), "%s://%s%s", scheme, host, imagePath );
-	LOG( "imageUri = %s", imageUri );
+	OVR_LOG( "imageUri = %s", imageUri );
 	if ( !LoadImage( fileSys, imageUri ) )
 	{
 		return false;
@@ -1377,7 +1377,7 @@ bool BitmapFontLocal::LoadImage( ovrFileSys & fileSys, char const * uri )
 	bool success = LoadImageFromBuffer( uri, imageBuffer, imageBuffer.GetSize(), ExtensionMatches( uri, ".astc" ) );
 	if ( !success )
 	{
-		LOG( "BitmapFontLocal::LoadImage: failed to load image '%s'", uri );
+		OVR_LOG( "BitmapFontLocal::LoadImage: failed to load image '%s'", uri );
 	}
 	return success;
 }
@@ -1399,7 +1399,7 @@ bool BitmapFontLocal::LoadImageFromBuffer( char const * imageName, unsigned char
 	}
 	if ( FontTexture.IsValid() == false )
 	{
-		WARN( "BitmapFontLocal::Load: failed to load '%s'", imageName );
+		OVR_WARN( "BitmapFontLocal::Load: failed to load '%s'", imageName );
 		return false;
 	}
 
@@ -1411,7 +1411,7 @@ bool BitmapFontLocal::LoadImageFromBuffer( char const * imageName, unsigned char
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
 
-	LOG( "BitmapFontLocal::LoadImageFromBuffer: success" );
+	OVR_LOG( "BitmapFontLocal::LoadImageFromBuffer: success" );
 	return true;
 }
 
@@ -1442,11 +1442,11 @@ bool BitmapFontLocal::WordWrapText( String & inOutText, const float widthMeters,
 	char const * source = inOutText.ToCStr();
 	if ( *source == '\0' )
 	{
-		//LOG( "Tried to word-wrap NULL text!" );
+		//OVR_LOG( "Tried to word-wrap NULL text!" );
 		return false;
 	}
 
-	//LOG( "Word-wrapping '%s'", source );
+	//OVR_LOG( "Word-wrapping '%s'", source );
 
 	// we will change characters in the new string and can potentially add line breaks after some characters
 	// so it may grow larger than the original string.
@@ -1987,7 +1987,7 @@ void BitmapFontSurfaceLocal::Init( const int maxVertices )
 
 	Initialized = true;
 
-	LOG( "BitmapFontSurfaceLocal::Init: success" );
+	OVR_LOG( "BitmapFontSurfaceLocal::Init: success" );
 }
 
 //==============================

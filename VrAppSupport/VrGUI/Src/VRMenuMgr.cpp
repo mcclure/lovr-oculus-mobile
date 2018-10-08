@@ -5,7 +5,7 @@ Content     :   Menuing system for VR apps.
 Created     :   May 23, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -375,7 +375,7 @@ void VRMenuMgrLocal::DebugCollision( void * appPtr, const char * parms )
 	int show;
 	lex.ParseInt( show, 0 );
 	ShowCollision = show != 0;
-	LOG( "DebugCollision( '%s' ): show = %i", parms, show );
+	OVR_LOG( "DebugCollision( '%s' ): show = %i", parms, show );
 }
 
 void VRMenuMgrLocal::DebugMenuBounds( void * appPtr, const char * parms )
@@ -384,7 +384,7 @@ void VRMenuMgrLocal::DebugMenuBounds( void * appPtr, const char * parms )
 	int show;
 	lex.ParseInt( show, 0 );
 	ShowDebugBounds = show != 0;
-	LOG( "DebugMenuBounds( '%s' ): show = %i", parms, show );
+	OVR_LOG( "DebugMenuBounds( '%s' ): show = %i", parms, show );
 }
 
 void VRMenuMgrLocal::DebugMenuHierarchy( void * appPtr, const char * parms )
@@ -393,7 +393,7 @@ void VRMenuMgrLocal::DebugMenuHierarchy( void * appPtr, const char * parms )
 	int show;
 	lex.ParseInt( show, 0 );
 	ShowDebugHierarchy = show != 0;
-	LOG( "DebugMenuHierarchy( '%s' ): show = %i", parms, show );
+	OVR_LOG( "DebugMenuHierarchy( '%s' ): show = %i", parms, show );
 }
 
 void VRMenuMgrLocal::DebugMenuPoses( void * appPtr, const char * parms )
@@ -402,7 +402,7 @@ void VRMenuMgrLocal::DebugMenuPoses( void * appPtr, const char * parms )
 	int show;
 	lex.ParseInt( show, 0 );
 	ShowPoses = show != 0;
-	LOG( "DebugMenuPoses( '%s' ): show = %i", parms, show );
+	OVR_LOG( "DebugMenuPoses( '%s' ): show = %i", parms, show );
 }
 
 void VRMenuMgrLocal::DebugShowStats( void * appPtr, const char * parms )
@@ -411,7 +411,7 @@ void VRMenuMgrLocal::DebugShowStats( void * appPtr, const char * parms )
 	int show;
 	lex.ParseInt( show, 0 );
 	ShowStats = show != 0;
-	LOG( "ShowStats( '%s' ): show = %i", parms, show );
+	OVR_LOG( "ShowStats( '%s' ): show = %i", parms, show );
 }
 
 void VRMenuMgrLocal::DebugWordWrap( void * appPtr, const char * parms )
@@ -420,7 +420,7 @@ void VRMenuMgrLocal::DebugWordWrap( void * appPtr, const char * parms )
 	int show;
 	lex.ParseInt( show, 0 );
 	ShowWrapWidths = show != 0;
-	LOG( "ShowWrapWidths( '%s' ): show = %i", parms, show );
+	OVR_LOG( "ShowWrapWidths( '%s' ): show = %i", parms, show );
 }
 
 //==================================
@@ -446,7 +446,7 @@ VRMenuMgrLocal::~VRMenuMgrLocal()
 // Initialize the VRMenu system
 void VRMenuMgrLocal::Init( OvrGuiSys & guiSys )
 {
-	LOG( "VRMenuMgrLocal::Init" );
+	OVR_LOG( "VRMenuMgrLocal::Init" );
 	if ( Initialized )
 	{
         return;
@@ -527,14 +527,14 @@ menuHandle_t VRMenuMgrLocal::CreateObject( VRMenuObjectParms const & parms )
 
 	if ( !Initialized )
 	{
-		WARN( "VRMenuMgrLocal::CreateObject - manager has not been initialized!" );
+		OVR_WARN( "VRMenuMgrLocal::CreateObject - manager has not been initialized!" );
 		return menuHandle_t();
 	}
 
 	// validate parameters
 	if ( parms.Type >= VRMENU_MAX )
 	{
-		WARN( "VRMenuMgrLocal::CreateObject - Invalid menu object type: %i", parms.Type );
+		OVR_WARN( "VRMenuMgrLocal::CreateObject - Invalid menu object type: %i", parms.Type );
 		return menuHandle_t();
 	}
 
@@ -552,12 +552,12 @@ menuHandle_t VRMenuMgrLocal::CreateObject( VRMenuObjectParms const & parms )
 
 	UInt32 id = ++CurrentId;
 	menuHandle_t handle = ComposeHandle( index, id );
-	//LOG( "VRMenuMgrLocal::CreateObject - handle is %llu", handle.Get() );
+	//OVR_LOG( "VRMenuMgrLocal::CreateObject - handle is %llu", handle.Get() );
 
 	VRMenuObject * obj = new VRMenuObject( parms, handle );
 	if ( obj == NULL )
 	{
-		WARN( "VRMenuMgrLocal::CreateObject - failed to allocate menu object!" );
+		OVR_WARN( "VRMenuMgrLocal::CreateObject - failed to allocate menu object!" );
 		OVR_ASSERT( obj != NULL );	// this would be bad -- but we're likely just going to explode elsewhere
 		return menuHandle_t();
 	}
@@ -676,25 +676,25 @@ VRMenuObject * VRMenuMgrLocal::ToObject( menuHandle_t const handle ) const
 	}
 	if ( !HandleComponentsAreValid( index, id ) )
 	{
-		WARN( "VRMenuMgrLocal::ToObject - invalid handle." );
+		OVR_WARN( "VRMenuMgrLocal::ToObject - invalid handle." );
 		return NULL;
 	}
 	if ( index >= ObjectList.GetSizeI() )
 	{
-		WARN( "VRMenuMgrLocal::ToObject - index out of range." );
+		OVR_WARN( "VRMenuMgrLocal::ToObject - index out of range." );
 		return NULL;
 	}
 	VRMenuObject * object = ObjectList[index];
 	if ( object == NULL )
 	{
-		WARN( "VRMenuMgrLocal::ToObject - slot empty." );
+		OVR_WARN( "VRMenuMgrLocal::ToObject - slot empty." );
 		return NULL;	// this can happen if someone is holding onto the handle of an object that's been freed
 	}
 	if ( object->GetHandle() != handle )
 	{
 		// if the handle of the object in the slot does not match, then the object the handle refers to was deleted
 		// and a new object is in the slot
-		WARN( "VRMenuMgrLocal::ToObject - slot mismatch." );
+		OVR_WARN( "VRMenuMgrLocal::ToObject - slot mismatch." );
 		return NULL;
 	}
 	return object;
@@ -703,7 +703,7 @@ VRMenuObject * VRMenuMgrLocal::ToObject( menuHandle_t const handle ) const
 /*
 static void LogBounds( const char * name, char const * prefix, Bounds3f const & bounds )
 {
-	LOG_WITH_TAG( "Spam", "'%s' %s: min( %.2f, %.2f, %.2f ) - max( %.2f, %.2f, %.2f )",
+	OVR_LOG_WITH_TAG( "Spam", "'%s' %s: min( %.2f, %.2f, %.2f ) - max( %.2f, %.2f, %.2f )",
 		name, prefix,
 		bounds.GetMins().x, bounds.GetMins().y, bounds.GetMins().z,
 		bounds.GetMaxs().x, bounds.GetMaxs().y, bounds.GetMaxs().z );
@@ -724,8 +724,8 @@ void VRMenuMgrLocal::SubmitForRenderingRecursive( OvrGuiSys & guiSys, Matrix4f c
 	{
 		// If this happens we're probably not correctly clearing the submitted surfaces each frame
 		// OR we've got a LOT of surfaces.
-		LOG( "maxIndices = %i, curIndex = %i", maxIndices, curIndex );
-		ASSERT_WITH_TAG( curIndex < maxIndices, "VrMenu" );
+		OVR_LOG( "maxIndices = %i, curIndex = %i", maxIndices, curIndex );
+		OVR_ASSERT_WITH_TAG( curIndex < maxIndices, "VrMenu" );
 		return;
 	}
 
@@ -904,7 +904,7 @@ void VRMenuMgrLocal::SubmitForRenderingRecursive( OvrGuiSys & guiSys, Matrix4f c
 					Vector4f( 0.0f, 1.0f, 0.0f, 1.0f ), Vector4f( 1.0f, 0.0f, 0.0f, 1.0f ), 0, false );
 			}
 		}
-        //LOG_WITH_TAG( "Spam", "AddPoint for '%s'", text.ToCStr() );
+        //OVR_LOG_WITH_TAG( "Spam", "AddPoint for '%s'", text.ToCStr() );
 		//GetDebugLines().AddPoint( curModelPose.Position, 0.05f, 1, true );
 	}
 
@@ -1012,10 +1012,10 @@ void VRMenuMgrLocal::SubmitForRenderingRecursive( OvrGuiSys & guiSys, Matrix4f c
 void VRMenuMgrLocal::SubmitForRendering( OvrGuiSys & guiSys, Matrix4f const & centerViewMatrix,
 		menuHandle_t const handle, Posef const & worldPose, VRMenuRenderFlags_t const & flags )
 {
-	//LOG( "VRMenuMgrLocal::SubmitForRendering" );
+	//OVR_LOG( "VRMenuMgrLocal::SubmitForRendering" );
 	if ( NumSubmitted >= MAX_SUBMITTED )
 	{
-		WARN( "Too many menu objects submitted!" );
+		OVR_WARN( "Too many menu objects submitted!" );
 		return;
 	}
 	VRMenuObject * obj = static_cast< VRMenuObject* >( ToObject( handle ) );
@@ -1138,7 +1138,7 @@ void VRMenuMgrLocal::AppendSurfaceList( Matrix4f const & centerViewMatrix, Array
 
 	if ( ShowStats )
 	{
-		LOG( "VRMenuMgr: submitted %i surfaces", NumToRender );
+		OVR_LOG( "VRMenuMgr: submitted %i surfaces", NumToRender );
 	}
 }
 
@@ -1165,7 +1165,7 @@ GlProgram const * VRMenuMgrLocal::GetGUIGlProgram( eGUIProgramType const program
 		case PROGRAM_ALPHA_DIFFUSE:
 			return &GUIProgramAlphaDiffuse;
         default:
-            ASSERT_WITH_TAG( !"Invalid gui program type", "VrMenu" );
+            OVR_ASSERT_WITH_TAG( !"Invalid gui program type", "VrMenu" );
             break;
     }
     return NULL;

@@ -5,7 +5,7 @@ Content     :   A simple RAII class for timing blocks of code.
 Created     :   1/22/2016
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2016 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -20,7 +20,7 @@ static int AllowGpuTimerQueries = 0;	// 0 = off, 1 = glBeginQuery/glEndQuery, 2 
 
 void SetAllowGpuTimerQueries( int enable )
 {
-	LOG( "SetAllowGpuTimerQueries( %d )", enable );
+	OVR_LOG( "SetAllowGpuTimerQueries( %d )", enable );
 	AllowGpuTimerQueries = enable;
 }
 

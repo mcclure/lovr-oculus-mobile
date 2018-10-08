@@ -5,7 +5,7 @@ Content     :   Progress bar UI component, with an optional description and canc
 Created     :   Mar 11, 2015
 Authors     :   Alex Restrepo
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

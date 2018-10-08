@@ -5,7 +5,7 @@ Content     :   Cross-platform memory-mapped file wrapper.
 Created     :   May 12, 2014
 Authors     :   Chris Taylor
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

@@ -1,6 +1,12 @@
 /*
 ================================================================================================================================
 
+Filename    :   OVR_Signal.cpp
+Content     :   Signal for thread synchronization, similar to a Windows event object.
+Created     :   June 6, 2014
+Authors     :   J.M.P van Waveren and Jonathan E. Wright
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
+
 Signal for thread synchronization, similar to a Windows event object.
 
 Windows event objects come in two types: auto-reset events and manual-reset events. A Windows event object

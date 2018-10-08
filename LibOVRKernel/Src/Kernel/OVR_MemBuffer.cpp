@@ -5,7 +5,7 @@ Content     :	Memory buffer.
 Created     :	May 13, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -34,7 +34,7 @@ namespace OVR
 
 bool MemBuffer::WriteToFile( const char * filename )
 {
-	LOG( "Writing %i bytes to %s\n", Length, filename );
+	OVR_LOG( "Writing %i bytes to %s\n", Length, filename );
 	FILE * f = fopen( filename, "wb" );
 	if ( f != NULL )
 	{
@@ -44,7 +44,7 @@ bool MemBuffer::WriteToFile( const char * filename )
 	}
 	else
 	{
-		LOG( "MemBuffer::WriteToFile failed to write to %s\n", filename );
+		OVR_LOG( "MemBuffer::WriteToFile failed to write to %s\n", filename );
 	}
 	return false;
 }
@@ -79,7 +79,7 @@ bool MemBufferFile::LoadFile( const char * filename )
 	FILE * f = fopen( filename, "rb" );
 	if ( !f )
 	{
-		LOG( "Couldn't open %s\n", filename );
+		OVR_LOG( "Couldn't open %s\n", filename );
 		return false;
 	}
 	fseek( f, 0, SEEK_END );
@@ -90,7 +90,7 @@ bool MemBufferFile::LoadFile( const char * filename )
 	fclose( f );
 	if ( readRet != 1 )
 	{
-		LOG( "Only read %zu of %i bytes in %s\n", readRet, Length, filename );
+		OVR_LOG( "Only read %zu of %i bytes in %s\n", readRet, Length, filename );
 		FreeData();
 		return false;
 	}
@@ -101,14 +101,14 @@ bool MemBufferFile::LoadFile( const char * filename )
 	const int fd = open( filename, O_RDONLY, 0 );
 	if ( fd < 0 )
 	{
-		LOG( "Couldn't open %s\n", filename );
+		OVR_LOG( "Couldn't open %s\n", filename );
 		return false;
 	}
 	struct stat buf;
 	if ( -1 == fstat( fd, &buf ) )
 	{
 		close( fd );
-		LOG( "Couldn't fstat %s\n", filename );
+		OVR_LOG( "Couldn't fstat %s\n", filename );
 		return false;
 	}
 	Length = (int)buf.st_size;
@@ -117,7 +117,7 @@ bool MemBufferFile::LoadFile( const char * filename )
 	close( fd );
 	if ( readRet != (size_t)Length )
 	{
-		LOG( "Only read %zu of %i bytes in %s\n", readRet, Length, filename );
+		OVR_LOG( "Only read %zu of %i bytes in %s\n", readRet, Length, filename );
 		FreeData();
 		return false;
 	}

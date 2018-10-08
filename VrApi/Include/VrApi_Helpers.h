@@ -7,7 +7,7 @@ Created     :   March 2, 2015
 Authors     :   J.M.P. van Waveren
 Language    :   C99
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_VrApi_Helpers_h
@@ -27,6 +27,19 @@ Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
 #else
 #  define   VRAPI_UNUSED(a)   (a)
 #endif
+
+//-----------------------------------------------------------------
+// Misc helper functions.
+//-----------------------------------------------------------------
+static inline float ovrRadiansFromDegrees( float deg )
+{
+	return deg * VRAPI_PI / 180.0f;
+}
+
+static inline float ovrDegreesFromRadians( float rad )
+{
+	return rad * 180.f / VRAPI_PI;
+}
 
 //-----------------------------------------------------------------
 // Matrix helper functions.
@@ -262,6 +275,43 @@ static inline ovrMatrix4f ovrMatrix4f_CreateProjectionFov( const float fovDegree
 	return ovrMatrix4f_CreateProjection( minX, maxX, minY, maxY, nearZ, farZ );
 }
 
+/// Returns a projection matrix based on the given asymmetric FOV.
+static inline ovrMatrix4f ovrMatrix4f_CreateProjectionAsymmetricFov( const float leftDegrees, const float rightDegrees,
+															   const float upDegrees, const float downDegrees,
+															   const float nearZ, const float farZ )
+{
+	const float minX = - nearZ * tanf( leftDegrees * ( VRAPI_PI / 180.0f ) );
+	const float maxX = nearZ * tanf( rightDegrees * ( VRAPI_PI / 180.0f ) );
+
+	const float minY = - nearZ * tanf( downDegrees * ( VRAPI_PI / 180.0f ) );
+	const float maxY = nearZ * tanf( upDegrees * ( VRAPI_PI / 180.0f ) );
+
+	return ovrMatrix4f_CreateProjection( minX, maxX, minY, maxY, nearZ, farZ );
+}
+
+// returns the FOV from the projection matrix
+static inline void ovrMatrix4f_ExtractFov( const ovrMatrix4f * m, float * leftDegrees, float * rightDegrees,
+											float * upDegrees, float * downDegrees )
+{
+	const ovrMatrix4f mt = ovrMatrix4f_Transpose( m );
+
+	static const ovrVector4f leftClip = { 1, 0, 0, 1 };
+	const ovrVector4f leftEye = ovrVector4f_MultiplyMatrix4f( &mt, &leftClip );
+	*leftDegrees = -ovrDegreesFromRadians( atanf( leftEye.z / leftEye.x ) );
+
+	static const ovrVector4f rightClip = { -1, 0, 0, 1 };
+	const ovrVector4f rightEye = ovrVector4f_MultiplyMatrix4f( &mt, &rightClip );
+	*rightDegrees = ovrDegreesFromRadians( atanf( rightEye.z / rightEye.x ) );
+
+	static const ovrVector4f downClip = { 0, 1, 0, 1 };
+	const ovrVector4f downEye = ovrVector4f_MultiplyMatrix4f( &mt, &downClip );
+	*downDegrees = -ovrDegreesFromRadians( atanf( downEye.z / downEye.y ) );
+
+	static const ovrVector4f upClip = { 0, -1, 0, 1 };
+	const ovrVector4f upEye = ovrVector4f_MultiplyMatrix4f( &mt, &upClip );
+	*upDegrees = ovrDegreesFromRadians( atanf( upEye.z / upEye.y ) );
+}
+
 /// Returns the 4x4 rotation matrix for the given quaternion.
 static inline ovrMatrix4f ovrMatrix4f_CreateFromQuaternion( const ovrQuatf * q )
 {
@@ -404,7 +454,7 @@ static inline ovrMatrix4f ovrMatrix4f_TanAngleMatrixFromUnitSquare( const ovrMat
 }
 
 /// Convert a standard view matrix into a TexCoordsFromTanAngles matrix for
-/// the looking into a cube map.
+/// the lookup into a cube map.
 static inline ovrMatrix4f ovrMatrix4f_TanAngleMatrixForCubeMap( const ovrMatrix4f * viewMatrix )
 {
     ovrMatrix4f m = *viewMatrix;
@@ -633,7 +683,7 @@ static inline ovrLayerProjection2 vrapi_DefaultLayerProjection2()
 	layer.Header.ColorScale.w	= 1.0f;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_ONE;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ZERO;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
 
@@ -662,7 +712,7 @@ static inline ovrLayerProjection2 vrapi_DefaultLayerBlackProjection2()
 	layer.Header.ColorScale.w	= 0.0f;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_ONE;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ZERO;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
 
@@ -687,7 +737,7 @@ static inline ovrLayerProjection2 vrapi_DefaultLayerSolidColorProjection2( const
 	layer.Header.ColorScale.w	= colorScale->w;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_ONE;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ZERO;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
 
@@ -715,7 +765,7 @@ static inline ovrLayerCylinder2 vrapi_DefaultLayerCylinder2()
 	layer.Header.ColorScale.w	= 1.0f;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_ONE;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ZERO;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
 
@@ -750,7 +800,7 @@ static inline ovrLayerCube2 vrapi_DefaultLayerCube2()
 	layer.Header.ColorScale.w	= 1.0f;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_ONE;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ZERO;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
 	layer.TexCoordsFromTanAngles = texCoordsFromTanAngles;
@@ -777,7 +827,7 @@ static inline ovrLayerEquirect2 vrapi_DefaultLayerEquirect2()
 	layer.Header.ColorScale.w	= 1.0f;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_ONE;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ZERO;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
 	layer.TexCoordsFromTanAngles = texCoordsFromTanAngles;
@@ -809,7 +859,7 @@ static inline ovrLayerLoadingIcon2 vrapi_DefaultLayerLoadingIcon2()
 	layer.Header.ColorScale.w	= 1.0f;
 	layer.Header.SrcBlend		= VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
 	layer.Header.DstBlend		= VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
-	layer.Header.SurfaceTextureObject_DEPRECATED = NULL;
+	layer.Header.Reserved		= NULL;
 
 	layer.SpinSpeed			= 1.0f;
 	layer.SpinScale			= 16.0f;

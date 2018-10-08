@@ -5,7 +5,7 @@ Content     :   Locale helper functions for native code.
 Created     :   6/22/2015
 Authors     :   Jonathan Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

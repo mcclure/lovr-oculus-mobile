@@ -5,7 +5,7 @@ Content     :   Thread and JNI management for making java calls in the backgroun
 Created     :   February 26, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -29,7 +29,7 @@ void TalkToJava::Init( JavaVM & javaVM_, TalkToJavaInterface & javaIF_ )
 	// spawn the VR thread
 	if ( TtjThread.Start() == false )
 	{
-		FAIL( "TtjThread start failed." );
+		OVR_FAIL( "TtjThread start failed." );
 	}
 }
 
@@ -38,11 +38,11 @@ TalkToJava::~TalkToJava()
 	if ( TtjThread.GetThreadState() != Thread::NotRunning )
 	{
 		// Get the background thread to kill itself.
-		LOG( "TtjMessageQueue.PostPrintf( quit )" );
+		OVR_LOG( "TtjMessageQueue.PostPrintf( quit )" );
 		TtjMessageQueue.PostPrintf( "quit" );
 		if ( TtjThread.Join() == false )
 		{
-			WARN( "failed to join TtjThread" );
+			OVR_WARN( "failed to join TtjThread" );
 		}
 	}
 }
@@ -65,7 +65,7 @@ threadReturn_t TalkToJava::ThreadStarter( Thread * thread, void * parm )
 void TalkToJava::TtjThreadFunction()
 {
 	// The Java VM needs to be attached on each thread that will use it.
-	LOG( "TalkToJava: Jvm->AttachCurrentThread" );
+	OVR_LOG( "TalkToJava: Jvm->AttachCurrentThread" );
 	ovr_AttachCurrentThread( Jvm, &Jni, NULL );
 
 	// Process all queued messages
@@ -97,7 +97,7 @@ void TalkToJava::TtjThreadFunction()
 		if ( Jni->ExceptionOccurred() )
 		{
 			Jni->ExceptionClear();
-			LOG( "JNI exception after: %s", msg );
+			OVR_LOG( "JNI exception after: %s", msg );
 		}
 
 		// Free any local references
@@ -106,7 +106,7 @@ void TalkToJava::TtjThreadFunction()
 		free( (void *)msg );
 	}
 
-	LOG( "TalkToJava: Jvm->DetachCurrentThread" );
+	OVR_LOG( "TalkToJava: Jvm->DetachCurrentThread" );
 	ovr_DetachCurrentThread( Jvm );
 }
 

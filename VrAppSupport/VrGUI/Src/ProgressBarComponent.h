@@ -5,7 +5,7 @@ Content     :   A reusable component implementing a progress bar.
 Created     :   Mar 30, 2015
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2015 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/

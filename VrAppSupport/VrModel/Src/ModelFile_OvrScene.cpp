@@ -5,7 +5,7 @@ Content     :   Model file loading ovrscene elements.
 Created     :   December 2013
 Authors     :   John Carmack, J.M.P. van Waveren
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -32,14 +32,14 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 	const ModelGlPrograms & programs, const MaterialParms & materialParms,
 	ModelGeo * outModelGeo )
 {
-	LOG( "parsing %s", modelFile.FileName.ToCStr() );
+	OVR_LOG( "parsing %s", modelFile.FileName.ToCStr() );
 	OVR_UNUSED( modelsJsonLength );
 
 	const BinaryReader bin( ( const UByte * )modelsBin, modelsBinLength );
 
 	if ( modelsBin != nullptr && bin.ReadUInt32() != 0x6272766F )
 	{
-		WARN( "LoadModelFile_OvrScene_Json: bad binary file for %s", modelFile.FileName.ToCStr() );
+		OVR_WARN( "LoadModelFile_OvrScene_Json: bad binary file for %s", modelFile.FileName.ToCStr() );
 		return false;
 	}
 
@@ -47,7 +47,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 	JSON * json = JSON::Parse( modelsJson, &error );
 	if ( json == nullptr )
 	{
-		WARN( "LoadModelFile_OvrScene_Json: Error loading %s : %s", modelFile.FileName.ToCStr(), error );
+		OVR_WARN( "LoadModelFile_OvrScene_Json: Error loading %s : %s", modelFile.FileName.ToCStr(), error );
 		return false;
 	}
 
@@ -55,7 +55,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 		|| modelFile.Nodes.GetSizeI() > 0
 		|| modelFile.Models.GetSize() > 0 )
 	{
-		WARN( "LoadModelFile_OvrScene_Json: model already has data, replacing with %s", modelFile.FileName.ToCStr() );
+		OVR_WARN( "LoadModelFile_OvrScene_Json: model already has data, replacing with %s", modelFile.FileName.ToCStr() );
 		modelFile.SubScenes.Clear();
 		modelFile.Nodes.Clear();
 		modelFile.Models.Clear();
@@ -119,7 +119,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 						}
 						if ( i == modelFile.Textures.GetSizeI() )
 						{
-							LOG( "texture %s defaulted", name.ToCStr() );
+							OVR_LOG( "texture %s defaulted", name.ToCStr() );
 							// Create a default texture.
 							LoadModelFileTexture( modelFile, name.ToCStr(), nullptr, 0, materialParms );
 						}
@@ -296,7 +296,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 						if ( vertices.IsObject() )
 						{
 							const int vertexCount = Alg::Min( vertices.GetChildInt32ByName( "vertexCount" ), GlGeometry::MAX_GEOMETRY_VERTICES );
-							// LOG( "%5d vertices", vertexCount );
+							// OVR_LOG( "%5d vertices", vertexCount );
 
 							ReadModelArray( attribs.position, vertices.GetChildStringByName( "position" ).ToCStr(), bin, vertexCount );
 							ReadModelArray( attribs.normal, vertices.GetChildStringByName( "normal" ).ToCStr(), bin, vertexCount );
@@ -327,7 +327,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 						if ( triangles.IsObject() )
 						{
 							const int indexCount = Alg::Min( triangles.GetChildInt32ByName( "indexCount" ), GlGeometry::MAX_GEOMETRY_INDICES );
-							// LOG( "%5d indices", indexCount );
+							// OVR_LOG( "%5d indices", indexCount );
 
 							ReadModelArray( indices, triangles.GetChildStringByName( "indices" ).ToCStr(), bin, indexCount );
 						}
@@ -407,7 +407,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 									{
 										if ( programs.ProgSkinnedReflectionMapped == nullptr )
 										{
-											FAIL( "No ProgSkinnedReflectionMapped set" );
+											OVR_FAIL( "No ProgSkinnedReflectionMapped set" );
 										}
 										modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedReflectionMapped;
 										LOGV( "%s skinned reflection mapped material", materialTypeString );
@@ -416,7 +416,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 									{
 										if ( programs.ProgReflectionMapped == nullptr )
 										{
-											FAIL( "No ProgReflectionMapped set" );
+											OVR_FAIL( "No ProgReflectionMapped set" );
 										}
 										modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgReflectionMapped;
 										LOGV( "%s reflection mapped material", materialTypeString );
@@ -430,7 +430,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 									{
 										if ( programs.ProgSkinnedLightMapped == nullptr )
 										{
-											FAIL( "No ProgSkinnedLightMapped set" );
+											OVR_FAIL( "No ProgSkinnedLightMapped set" );
 										}
 										modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedLightMapped;
 										LOGV( "%s skinned light mapped material", materialTypeString );
@@ -439,7 +439,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 									{
 										if ( programs.ProgLightMapped == nullptr )
 										{
-											FAIL( "No ProgLightMapped set" );
+											OVR_FAIL( "No ProgLightMapped set" );
 										}
 										modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgLightMapped;
 										LOGV( "%s light mapped material", materialTypeString );
@@ -454,7 +454,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 								{
 									if ( programs.ProgSkinnedSingleTexture == nullptr )
 									{
-										FAIL( "No ProgSkinnedSingleTexture set" );
+										OVR_FAIL( "No ProgSkinnedSingleTexture set" );
 									}
 									modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedSingleTexture;
 									LOGV( "%s skinned diffuse only material", materialTypeString );
@@ -463,7 +463,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 								{
 									if ( programs.ProgSingleTexture == nullptr )
 									{
-										FAIL( "No ProgSingleTexture set" );
+										OVR_FAIL( "No ProgSingleTexture set" );
 									}
 									modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSingleTexture;
 									LOGV( "%s diffuse only material", materialTypeString );
@@ -478,7 +478,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 							{
 								if ( programs.ProgSkinnedVertexColor == nullptr )
 								{
-									FAIL( "No ProgSkinnedVertexColor set" );
+									OVR_FAIL( "No ProgSkinnedVertexColor set" );
 								}
 								modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedVertexColor;
 								LOGV( "%s skinned vertex color material", materialTypeString );
@@ -487,7 +487,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 							{
 								if ( programs.ProgVertexColor == nullptr )
 								{
-									FAIL( "No ProgVertexColor set" );
+									OVR_FAIL( "No ProgVertexColor set" );
 								}
 								modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgVertexColor;
 								LOGV( "%s vertex color material", materialTypeString );
@@ -502,7 +502,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 							{
 								if ( programs.ProgSkinnedSingleTexture == nullptr )
 								{
-									FAIL( "No ProgSkinnedSingleTexture set" );
+									OVR_FAIL( "No ProgSkinnedSingleTexture set" );
 								}
 								modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedSingleTexture;
 								LOGV( "%s skinned default texture material", materialTypeString );
@@ -511,7 +511,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 							{
 								if ( programs.ProgSingleTexture == nullptr )
 								{
-									FAIL( "No ProgSingleTexture set" );
+									OVR_FAIL( "No ProgSingleTexture set" );
 								}
 								modelSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSingleTexture;
 								LOGV( "%s default texture material", materialTypeString );
@@ -594,7 +594,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 			if ( !traceModel.Validate( true ) )
 			{
 				// this is a fatal error so that a model file from an untrusted source is never able to cause out-of-bounds reads.
-				FAIL( "Invalid model data" );
+				OVR_FAIL( "Invalid model data" );
 			}
 
 			StringUtils::StringTo( traceModel.header.bounds, raytrace_model.GetChildStringByName( "bounds" ).ToCStr() );
@@ -649,7 +649,7 @@ bool LoadModelFile_OvrScene_Json( ModelFile & modelFile,
 
 	if ( !bin.IsAtEnd() )
 	{
-		WARN( "failed to properly read binary file" );
+		OVR_WARN( "failed to properly read binary file" );
 	}
 
 	return true;
@@ -667,7 +667,7 @@ bool LoadModelFile_OvrScene( ModelFile * modelPtr, unzFile zfp, const char * fil
 
 	if ( !zfp )
 	{
-		WARN( "Error: can't load %s", fileName );
+		OVR_WARN( "Error: can't load %s", fileName );
 		return false;
 	}
 
@@ -688,7 +688,7 @@ bool LoadModelFile_OvrScene( ModelFile * modelPtr, unzFile zfp, const char * fil
 
 		if ( unzOpenCurrentFile( zfp ) != UNZ_OK )
 		{
-			WARN( "Failed to open %s from %s", entryName, fileName );
+			OVR_WARN( "Failed to open %s from %s", entryName, fileName );
 			continue;
 		}
 
@@ -706,7 +706,7 @@ bool LoadModelFile_OvrScene( ModelFile * modelPtr, unzFile zfp, const char * fil
 
 			if ( unzReadCurrentFile( zfp, buffer, size ) != size )
 			{
-				WARN( "Failed to read %s from %s", entryName, fileName );
+				OVR_WARN( "Failed to read %s from %s", entryName, fileName );
 				delete[] buffer;
 				continue;
 			}

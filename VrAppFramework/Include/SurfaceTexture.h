@@ -5,7 +5,7 @@ Content     :   Interface to Android SurfaceTexture objects
 Created     :   September 17, 2013
 Authors		:	John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

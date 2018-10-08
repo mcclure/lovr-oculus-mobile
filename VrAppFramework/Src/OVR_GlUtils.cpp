@@ -5,7 +5,7 @@ Content     :   Policy-free OpenGL convenience functions
 Created     :   August 24, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 
@@ -213,7 +213,7 @@ static void LogStringWords( const char * allExtensions )
 		char * word = new char[nameLen+1];
 		memcpy( word, start, nameLen );
 		word[nameLen] = '\0';
-		LOG( "%s", word );
+		OVR_LOG( "%s", word );
 		delete[] word;
 
 		start = end + 1;
@@ -236,7 +236,7 @@ void * GetExtensionProc( const char * functionName )
 #endif
 	if ( ptr == NULL )
 	{
-		LOG( "NOT FOUND: %s", functionName );
+		OVR_LOG( "NOT FOUND: %s", functionName );
 	}
 	return ptr;
 }
@@ -247,20 +247,20 @@ void GL_InitExtensions()
 	const char * extensions = (const char *)glGetString( GL_EXTENSIONS );
 	if ( NULL == extensions )
 	{
-		LOG( "glGetString( GL_EXTENSIONS ) returned NULL" );
+		OVR_LOG( "glGetString( GL_EXTENSIONS ) returned NULL" );
 		return;
 	}
 
 	// Unfortunately, the Android log truncates strings over 1024 bytes long,
 	// even if there are \n inside, so log each word in the string separately.
 #if defined( _DEBUG )
-	LOG( "GL_EXTENSIONS:" );
+	OVR_LOG( "GL_EXTENSIONS:" );
 	LogStringWords( extensions );
 #endif
 
 #if defined( ANDROID )
 	const bool es3 = ( strncmp( (const char *)glGetString( GL_VERSION ), "OpenGL ES 3", 11 ) == 0 );
-	LOG( "es3 = %s", es3 ? "TRUE" : "FALSE" );
+	OVR_LOG( "es3 = %s", es3 ? "TRUE" : "FALSE" );
 
 	if ( GL_ExtensionStringPresent( "GL_EXT_discard_framebuffer", extensions ) )
 	{
@@ -345,15 +345,15 @@ void GL_InitExtensions()
 
 	GLint MaxTextureSize = 0;
 	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &MaxTextureSize );
-	LOG( "GL_MAX_TEXTURE_SIZE = %d", MaxTextureSize );
+	OVR_LOG( "GL_MAX_TEXTURE_SIZE = %d", MaxTextureSize );
 
 	GLint MaxVertexUniformVectors = 0;
 	glGetIntegerv( GL_MAX_VERTEX_UNIFORM_VECTORS, &MaxVertexUniformVectors );
-	LOG( "GL_MAX_VERTEX_UNIFORM_VECTORS = %d", MaxVertexUniformVectors );
+	OVR_LOG( "GL_MAX_VERTEX_UNIFORM_VECTORS = %d", MaxVertexUniformVectors );
 
 	GLint MaxFragmentUniformVectors = 0;
 	glGetIntegerv( GL_MAX_FRAGMENT_UNIFORM_VECTORS, &MaxFragmentUniformVectors );
-	LOG( "GL_MAX_FRAGMENT_UNIFORM_VECTORS = %d", MaxFragmentUniformVectors );
+	OVR_LOG( "GL_MAX_FRAGMENT_UNIFORM_VECTORS = %d", MaxFragmentUniformVectors );
 
 	// ES3 functions we need to getprocaddress to allow linking against ES2 lib
 	glBlitFramebuffer_  = (PFNGLBLITFRAMEBUFFER_)eglGetProcAddress("glBlitFramebuffer");
@@ -506,7 +506,7 @@ EGLConfig EglConfigForConfigID( const EGLDisplay display, const GLint configID )
 	if (EGL_FALSE == eglGetConfigs(display,
 		configs, MAX_CONFIGS, &numConfigs))
 	{
-		WARN("eglGetConfigs() failed");
+		OVR_WARN("eglGetConfigs() failed");
 		return NULL;
 	}
 
@@ -530,12 +530,12 @@ bool GL_ExtensionStringPresent( const char * extension, const char * allExtensio
 {
 	if ( strstr( allExtensions, extension ) )
 	{
-		LOG( "Found: %s", extension );
+		OVR_LOG( "Found: %s", extension );
 		return true;
 	}
 	else
 	{
-		LOG( "Not found: %s", extension );
+		OVR_LOG( "Not found: %s", extension );
 		return false;
 	}
 }
@@ -592,11 +592,11 @@ void GL_Finish()
 		const EGLint wait = GL_FlushSync( 100000000 );
 		if ( wait == EGL_TIMEOUT_EXPIRED_KHR )
 		{
-			LOG( "EGL_TIMEOUT_EXPIRED_KHR" );
+			OVR_LOG( "EGL_TIMEOUT_EXPIRED_KHR" );
 		}
 		if ( wait == EGL_FALSE )
 		{
-			LOG( "eglClientWaitSyncKHR returned EGL_FALSE" );
+			OVR_LOG( "eglClientWaitSyncKHR returned EGL_FALSE" );
 		}
 	}
 #else
@@ -612,7 +612,7 @@ void GL_Flush()
 		const EGLint wait = GL_FlushSync( 0 );
 		if ( wait == EGL_FALSE )
 		{
-			LOG("eglClientWaitSyncKHR returned EGL_FALSE");
+			OVR_LOG("eglClientWaitSyncKHR returned EGL_FALSE");
 		}
 	}
 
@@ -691,10 +691,10 @@ bool GL_CheckErrors( const char * logTitle )
 			break;
 		}
 		hadError = true;
-		WARN( "%s GL Error: %s", ( logTitle != nullptr ) ? logTitle : "<untitled>", GL_ErrorForEnum( err ) );
+		OVR_WARN( "%s GL Error: %s", ( logTitle != nullptr ) ? logTitle : "<untitled>", GL_ErrorForEnum( err ) );
 		if ( err == GL_OUT_OF_MEMORY )
 		{
-			FAIL( "GL_OUT_OF_MEMORY" );
+			OVR_FAIL( "GL_OUT_OF_MEMORY" );
 		}
 	} while ( 1 );
 	return hadError;

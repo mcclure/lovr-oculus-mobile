@@ -5,7 +5,7 @@ Content     :   Data passed to VrAppInterface::Frame().
 Created     :   June 26, 2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -1114,12 +1114,12 @@ ovrKeyCode OSKeyToKeyCode( int const osKey )
 	OVR_UNUSED( fromJoypad );
 
 	ovrInputDevice const desiredDevice = fromJoypad ? OVR_INPUT_DEVICE_JOYPAD : OVR_INPUT_DEVICE_KEYBOARD;
-	//LOG( "OSKeyToKeyCode: desiredDevice is '%s'", ovrInputDeviceNames[desiredDevice] );
+	//OVR_LOG( "OSKeyToKeyCode: desiredDevice is '%s'", ovrInputDeviceNames[desiredDevice] );
 
 	int const k = osKey & ( ~BUTTON_JOYPAD_FLAG );
 	if ( k < 0 || k >= OSKeyToKeyCodeMapSize )
 	{
-		LOG( "OS key %i is outside of map range", k );
+		OVR_LOG( "OS key %i is outside of map range", k );
 		OVR_ASSERT( k >= 0 && k < OSKeyToKeyCodeMapSize );
 		return OVR_KEY_NONE;
 	}
@@ -1132,13 +1132,13 @@ ovrKeyCode OSKeyToKeyCode( int const osKey )
 	}
 	if ( osKeyInfoForDevice == nullptr )
 	{
-		LOG( "No OS key %i for device '%s' - using default device '%s'", k, ovrInputDeviceNames[desiredDevice], ovrInputDeviceNames[osKeyInfo->InputDevice] );
+		OVR_LOG( "No OS key %i for device '%s' - using default device '%s'", k, ovrInputDeviceNames[desiredDevice], ovrInputDeviceNames[osKeyInfo->InputDevice] );
 		osKeyInfoForDevice = osKeyInfo;
 	}
 
 	ovrKeyCode keyCode = osKeyInfoForDevice->KeyCode;
 	ovrInputDevice const device = osKeyInfoForDevice->InputDevice;
-	//LOG( "OSKeyToKeyCode: osKey = %i, k = %i, key '%s' from device '%s'", osKey, k, ovrKeyCodeNames[keyCode], ovrInputDeviceNames[device] );
+	//OVR_LOG( "OSKeyToKeyCode: osKey = %i, k = %i, key '%s' from device '%s'", osKey, k, ovrKeyCodeNames[keyCode], ovrInputDeviceNames[device] );
 
 	if ( fromJoypad && device != OVR_INPUT_DEVICE_JOYPAD && keyCode == OVR_KEY_ESCAPE )
 	{

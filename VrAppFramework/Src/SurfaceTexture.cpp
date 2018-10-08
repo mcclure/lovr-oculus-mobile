@@ -5,7 +5,7 @@ Content     :   Interface to Android SurfaceTexture objects
 Created     :   September 17, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -49,26 +49,26 @@ SurfaceTexture::SurfaceTexture( JNIEnv * jni_ ) :
 	const jclass surfaceTextureClass = jni->FindClass( className );
 	if ( surfaceTextureClass == 0 )
 	{
-		FAIL( "FindClass( %s ) failed", className );
+		OVR_FAIL( "FindClass( %s ) failed", className );
 	}
 
 	// find the constructor that takes an int
 	const jmethodID constructor = jni->GetMethodID( surfaceTextureClass, "<init>", "(I)V" );
 	if ( constructor == 0 )
 	{
-		FAIL( "GetMethodID( <init> ) failed" );
+		OVR_FAIL( "GetMethodID( <init> ) failed" );
 	}
 
 	jobject obj = jni->NewObject( surfaceTextureClass, constructor, GetTextureId() );
 	if ( obj == 0 )
 	{
-		FAIL( "NewObject() failed" );
+		OVR_FAIL( "NewObject() failed" );
 	}
 
 	javaObject = jni->NewGlobalRef( obj );
 	if ( javaObject == 0 )
 	{
-		FAIL( "NewGlobalRef() failed" );
+		OVR_FAIL( "NewGlobalRef() failed" );
 	}
 
 	// Now that we have a globalRef, we can free the localRef
@@ -77,19 +77,19 @@ SurfaceTexture::SurfaceTexture( JNIEnv * jni_ ) :
 	updateTexImageMethodId = jni->GetMethodID( surfaceTextureClass, "updateTexImage", "()V" );
 	if ( !updateTexImageMethodId )
 	{
-		FAIL( "couldn't get updateTexImageMethodId" );
+		OVR_FAIL( "couldn't get updateTexImageMethodId" );
 	}
 
 	getTimestampMethodId = jni->GetMethodID( surfaceTextureClass, "getTimestamp", "()J" );
 	if ( !getTimestampMethodId )
 	{
-		FAIL( "couldn't get getTimestampMethodId" );
+		OVR_FAIL( "couldn't get getTimestampMethodId" );
 	}
 
 	setDefaultBufferSizeMethodId = jni->GetMethodID( surfaceTextureClass, "setDefaultBufferSize", "(II)V" );
 	if ( !setDefaultBufferSizeMethodId )
 	{
-		FAIL( "couldn't get setDefaultBufferSize" );
+		OVR_FAIL( "couldn't get setDefaultBufferSize" );
 	}
 
 	// jclass objects are localRefs that need to be freed

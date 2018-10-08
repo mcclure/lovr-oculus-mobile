@@ -5,7 +5,7 @@ Content     :   Keeps track of textures so they don't need to be loaded more tha
 Created     :   1/22/2016
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

@@ -6,7 +6,7 @@ Created     :   October 2017
 Authors     :   Gloria Kennickell
 Language    :   C99
 
-Copyright   :   Copyright 2017 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_VrApi_Vulkan_h

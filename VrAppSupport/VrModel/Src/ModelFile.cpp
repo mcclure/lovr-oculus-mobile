@@ -5,7 +5,7 @@ Content     :   Model file loading common elements.
 Created     :   December 2013
 Authors     :   John Carmack, J.M.P. van Waveren
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -31,7 +31,7 @@ ModelFile::ModelFile() :
 
 ModelFile::~ModelFile()
 {
-	LOG( "Destroying ModelFileModel %s", FileName.ToCStr() );
+	OVR_LOG( "Destroying ModelFileModel %s", FileName.ToCStr() );
 
 	for ( int i = 0; i < Textures.GetSizeI(); i++ )
 	{
@@ -105,11 +105,11 @@ const ModelTag * ModelFile::FindNamedTag( const char *name ) const
 		const ModelTag & tag = Tags[i];
 		if ( tag.name.CompareNoCase( name ) == 0 )
 		{
-			LOG( "Found named tag %s", name );
+			OVR_LOG( "Found named tag %s", name );
 			return &tag;
 		}
 	}
-	LOG( "Did not find named tag %s", name );
+	OVR_LOG( "Did not find named tag %s", name );
 	return nullptr;
 }
 
@@ -151,7 +151,7 @@ void LoadModelFileTexture( ModelFile & model, const char * textureName,
 			materialParms.UseSrgbTextureFormats ? TextureFlags_t( TEXTUREFLAG_USE_SRGB ) : TextureFlags_t(),
 			width, height );
 
-	// LOG( ( tex.texid.target == GL_TEXTURE_CUBE_MAP ) ? "GL_TEXTURE_CUBE_MAP: %s" : "GL_TEXTURE_2D: %s", textureName );
+	// OVR_LOG( ( tex.texid.target == GL_TEXTURE_CUBE_MAP ) ? "GL_TEXTURE_CUBE_MAP: %s" : "GL_TEXTURE_2D: %s", textureName );
 
 	// file name metadata for enabling clamp mode
 	// Used for sky sides in Tuscany.
@@ -180,7 +180,7 @@ static ModelFile * LoadZippedModelFile( unzFile zfp, const char * fileName,
 
 	if ( !zfp )
 	{
-		WARN( "Error: can't load %s", fileName );
+		OVR_WARN( "Error: can't load %s", fileName );
 	}
 	else if ( strstr( fileName, ".gltf.ovrscene" ) != nullptr )
 	{
@@ -193,7 +193,7 @@ static ModelFile * LoadZippedModelFile( unzFile zfp, const char * fileName,
 
 	if ( !loaded )
 	{
-		WARN( "Error: failed to load %s", fileName );
+		OVR_WARN( "Error: failed to load %s", fileName );
 		delete modelFilePtr;
 		modelFilePtr = nullptr;
 	}
@@ -297,24 +297,24 @@ static bool mmap_open_opaque( const char * fileName, zlib_mmap_opaque & opaque )
 	// If unable to open the ZIP file,
 	if ( !opaque.file.OpenRead( fileName, true, true ) )
 	{
-		WARN( "Couldn't open %s", fileName );
+		OVR_WARN( "Couldn't open %s", fileName );
 		return false;
 	}
 
 	int len = (int)opaque.file.GetLength();
 	if ( len <= 0 )
 	{
-		WARN( "len = %i", len );
+		OVR_WARN( "len = %i", len );
 		return false;
 	}
 	if ( !opaque.view.Open( &opaque.file ) )
 	{
-		WARN( "View open failed" );
+		OVR_WARN( "View open failed" );
 		return false;
 	}
 	if ( !opaque.view.MapView( 0, len ) )
 	{
-		WARN( "MapView failed" );
+		OVR_WARN( "MapView failed" );
 		return false;
 	}
 
@@ -350,7 +350,7 @@ ModelFile * LoadModelFileFromMemory( const char * fileName,
 		ModelGeo * outModelGeo )
 {
 	// Open the .ModelFile file as a zip.
-	LOG( "LoadModelFileFromMemory %s %i", fileName, bufferLength );
+	OVR_LOG( "LoadModelFileFromMemory %s %i", fileName, bufferLength );
 
 	// Determine wether it's a glb binary file, or if it is a zipped up ovrscene.
 	if ( strstr( fileName, ".glb" ) != nullptr )
@@ -365,11 +365,11 @@ ModelFile * LoadModelFileFromMemory( const char * fileName,
 	unzFile zfp = open_opaque( zlib_opaque, fileName );
 	if ( !zfp )
 	{
-		WARN( "could not open file %s", fileName );
+		OVR_WARN( "could not open file %s", fileName );
 		return nullptr;
 	}
 
-	LOG( "LoadModelFileFromMemory zfp = %p", zfp );
+	OVR_LOG( "LoadModelFileFromMemory zfp = %p", zfp );
 
 	return LoadZippedModelFile( zfp, fileName, (char *)buffer, bufferLength, programs, materialParms, outModelGeo );
 }
@@ -378,14 +378,14 @@ ModelFile * LoadModelFile( const char * fileName,
 		const ModelGlPrograms & programs,
 		const MaterialParms & materialParms )
 {
-	LOG( "LoadModelFile %s", fileName );	
+	OVR_LOG( "LoadModelFile %s", fileName );
 
 	zlib_mmap_opaque zlib_opaque;
 
 	// Map and open the zip file
 	if ( !mmap_open_opaque( fileName, zlib_opaque ) )
 	{
-		WARN( "could not map file %s", fileName );
+		OVR_WARN( "could not map file %s", fileName );
 		return nullptr;
 	}
 
@@ -398,7 +398,7 @@ ModelFile * LoadModelFile( const char * fileName,
 	unzFile zfp = open_opaque( zlib_opaque, fileName );
 	if ( !zfp )
 	{
-		WARN( "could not open file %s", fileName );
+		OVR_WARN( "could not open file %s", fileName );
 		return nullptr;
 	}
 
@@ -415,7 +415,7 @@ ModelFile * LoadModelFileFromOtherApplicationPackage( void * zipFile, const char
 	ovr_ReadFileFromOtherApplicationPackage( zipFile, nameInZip, bufferLength, buffer );
 	if ( buffer == nullptr )
 	{
-		WARN( "Failed to load model file '%s' from apk", nameInZip );
+		OVR_WARN( "Failed to load model file '%s' from apk", nameInZip );
 		return nullptr;
 	}
 
@@ -439,7 +439,7 @@ ModelFile * LoadModelFile( ovrFileSys & fileSys, const char * uri, const ModelGl
 	MemBufferT< uint8_t > buffer;
 	if ( !fileSys.ReadFile( uri, buffer ) )
 	{
-		WARN( "Failed to load model uri '%s'", uri );
+		OVR_WARN( "Failed to load model uri '%s'", uri );
 		return nullptr;
 	}
 	ModelFile * scene = LoadModelFileFromMemory( uri, buffer, static_cast<int>( buffer.GetSize() ), programs, materialParms );

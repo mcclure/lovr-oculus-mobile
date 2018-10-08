@@ -5,7 +5,7 @@ Content     :   A reusable component implementing a scroll bar.
 Created     :   Jan 15, 2014
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/

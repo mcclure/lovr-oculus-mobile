@@ -5,7 +5,7 @@ Content     :   Simple helper class to read a binary file.
 Created     :   Jun, 2014
 Authors     :   J.M.P. van Waveren
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/

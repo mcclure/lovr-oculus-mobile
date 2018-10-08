@@ -5,7 +5,7 @@ Content     :   Keeps track of textures so they don't need to be loaded more tha
 Created     :   1/22/2016
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -274,7 +274,7 @@ textureHandle_t ovrTextureManagerImpl::LoadTexture( ovrFileSys & fileSys, char c
 	GlTexture tex = LoadTextureFromUri( fileSys, uri, TextureFlags_t( TEXTUREFLAG_NO_DEFAULT ), w, h );
 	if ( !tex.IsValid() )
 	{
-		LOG( "LoadTextureFromUri( '%s' ) failed!", uri );
+		OVR_LOG( "LoadTextureFromUri( '%s' ) failed!", uri );
 		return textureHandle_t();
 	}
 
@@ -319,7 +319,7 @@ textureHandle_t	ovrTextureManagerImpl::LoadTexture( char const * uri, void const
 
 	if ( !tex.IsValid() )
 	{
-		LOG( "LoadTextureFromBuffer( '%s', %p, %" PRIu64 " ) failed!", uri, buffer, static_cast< uint64_t >( bufferSize ) );
+		OVR_LOG( "LoadTextureFromBuffer( '%s', %p, %" PRIu64 " ) failed!", uri, buffer, static_cast< uint64_t >( bufferSize ) );
 		return textureHandle_t();
 	}
 
@@ -353,7 +353,7 @@ textureHandle_t	ovrTextureManagerImpl::LoadRGBATexture( char const * uri, void c
 {
 	OVR_PERF_TIMER( LoadRGBATexture_uri );
 
-	LOG( "LoadRGBATexture: uri = '%s' ", uri );
+	OVR_LOG( "LoadRGBATexture: uri = '%s' ", uri );
 
 	NumBufferLoads++;
 	if ( imageData == nullptr || imageWidth <= 0 || imageHeight <= 0 )
@@ -373,7 +373,7 @@ textureHandle_t	ovrTextureManagerImpl::LoadRGBATexture( char const * uri, void c
 		tex = LoadRGBATextureFromMemory( static_cast< const unsigned char* >( imageData ), imageWidth, imageHeight, false );
 		if ( !tex.IsValid() )
 		{
-			//LOG( "LoadRGBATextureFromMemory( '%s', %p, %i, %i ) failed!", uri, imageData, imageWidth, imageHeight );
+			//OVR_LOG( "LoadRGBATextureFromMemory( '%s', %p, %i, %i ) failed!", uri, imageData, imageWidth, imageHeight );
 			return textureHandle_t();
 		}
 	}
@@ -424,7 +424,7 @@ textureHandle_t	ovrTextureManagerImpl::LoadRGBATexture( int const iconId, void c
 		tex = LoadRGBATextureFromMemory( static_cast< const unsigned char* >( imageData ), imageWidth, imageHeight, false );
 		if ( !tex.IsValid() )
 		{
-			//LOG( "LoadRGBATextureFromMemory( %d, %p, %i, %i ) failed!", iconId, imageData, imageWidth, imageHeight );
+			//OVR_LOG( "LoadRGBATextureFromMemory( %d, %p, %i, %i ) failed!", iconId, imageData, imageWidth, imageHeight );
 			return textureHandle_t();
 		}
 	}
@@ -605,16 +605,16 @@ textureHandle_t ovrTextureManagerImpl::GetTextureHandle( int const iconId ) cons
 // ovrTextureManagerImpl::PrintStats
 void ovrTextureManagerImpl::PrintStats() const 
 {
-	LOG( "NumUriLoads:          %i",	NumUriLoads );
-	LOG( "NumBufferLoads:       %i",	NumBufferLoads );
-	LOG( "NumActualUriLoads:    %i",	NumActualUriLoads );
-	LOG( "NumActualBufferLoads: %i",	NumActualBufferLoads );
+	OVR_LOG( "NumUriLoads:          %i",	NumUriLoads );
+	OVR_LOG( "NumBufferLoads:       %i",	NumBufferLoads );
+	OVR_LOG( "NumActualUriLoads:    %i",	NumActualUriLoads );
+	OVR_LOG( "NumActualBufferLoads: %i",	NumActualBufferLoads );
 
-	LOG( "NumStringSearches: %i", NumStringSearches );
-	LOG( "NumStringCompares: %i", NumStringCompares );
+	OVR_LOG( "NumStringSearches: %i", NumStringSearches );
+	OVR_LOG( "NumStringCompares: %i", NumStringCompares );
 
-	LOG( "NumSearches: %i", NumSearches );
-	LOG( "NumCompares: %i", NumCompares );
+	OVR_LOG( "NumSearches: %i", NumSearches );
+	OVR_LOG( "NumCompares: %i", NumCompares );
 }
 
 //==============================================================================================

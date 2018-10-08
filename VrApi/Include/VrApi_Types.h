@@ -6,7 +6,7 @@ Created     :   April 30, 2015
 Authors     :   J.M.P. van Waveren
 Language    :   C99
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_VrApi_Types_h
@@ -185,6 +185,7 @@ typedef enum
 	VRAPI_DEVICE_TYPE_S9					= 10,
 	VRAPI_DEVICE_TYPE_S9_PLUS				= 11,
 	VRAPI_DEVICE_TYPE_A8_STAR 				= 12,			//< A8 Star
+	VRAPI_DEVICE_TYPE_NOTE9           		= 13,
 
 	VRAPI_DEVICE_TYPE_GEARVR_END			= 63,
 
@@ -193,6 +194,7 @@ typedef enum
 	VRAPI_DEVICE_TYPE_OCULUSGO				= VRAPI_DEVICE_TYPE_OCULUSGO_START,
 	VRAPI_DEVICE_TYPE_MIVR_STANDALONE		= VRAPI_DEVICE_TYPE_OCULUSGO_START + 1,	//< China-only SKU
 	VRAPI_DEVICE_TYPE_OCULUSGO_END			= 127,
+
 
 
 	VRAPI_DEVICE_TYPE_UNKNOWN				= -1,
@@ -215,7 +217,6 @@ typedef enum
 
 	VRAPI_HEADSET_TYPE_UNKNOWN				= -1,
 } ovrHeadsetType;
-
 
 /// A geographic region authorized for certain hardware and content.
 typedef enum
@@ -311,8 +312,8 @@ typedef enum
 	VRAPI_FOVEATION_LEVEL				= 15,		//< Used by apps that want to control swapchain foveation levels
 	VRAPI_REORIENT_HMD_ON_CONTROLLER_RECENTER	= 17,		//< Used to determine if a controller recenter should also reorient the headset.
 	VRAPI_LATCH_BACK_BUTTON_ENTIRE_FRAME		= 18,		//< Used to determine if the 'short press' back button should lasts an entire frame.
-	VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT	=19,	// < Used to not send the remote back button java events to the apps >
-	VRAPI_EAT_NATIVE_GAMEPAD_EVENTS		= 20,		//< Used to tell the runtime not to eat gamepad events.  If this is false on a native app, the app must be listening for the events.
+	VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT	=19,//< Used to not send the remote back button java events to the apps.
+	VRAPI_EAT_NATIVE_GAMEPAD_EVENTS		= 20,				//< Used to tell the runtime not to eat gamepad events.  If this is false on a native app, the app must be listening for the events.
 } ovrProperty;
 
 
@@ -632,7 +633,7 @@ typedef enum
 
 	/// enum 1 << 5 used to be VRAPI_FRAME_FLAG_TIMEWARP_DEBUG_GRAPH_LATENCY_MODE.
 
-	/// Don't show the volume layer whent set.
+	/// Don't show the volume layer when set.
 	VRAPI_FRAME_FLAG_INHIBIT_VOLUME_LAYER										= 1 << 6,
 
 	/// enum 1 << 7 used to be VRAPI_FRAME_FLAG_SHOW_LAYER_COMPLEXITY.
@@ -747,9 +748,9 @@ typedef struct
 	/// seem to judder "backwards in time" if a frame is dropped.
 	ovrRigidBodyPosef		HeadPose;
 
-	/// If not zero, this fence will be used to determine whether or not
-	/// rendering to the color texture swap chains has completed.
-	unsigned long long		CompletionFence;
+	/// \deprecated
+	/// DEPRECATED: Explicit fences should no longer be used.
+	unsigned long long		CompletionFence_DEPRECATED;
 } ovrFrameLayerTexture;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameLayerTexture, 200 );
@@ -834,10 +835,8 @@ typedef struct
 	/// more than one V-sync.
 	ovrMatrix4f				ExternalVelocity;
 
-	/// \deprecated
-	/// DEPRECATED: Do not use. Instead, create the texture swapchain using vrapi_CreateAndroidSurfaceSwapChain
-	/// which will automatically handle updating the Surface for the layer.
-	jobject					SurfaceTextureObject_DEPRECATED;
+	/// Unused parameter.
+	void *					Reserved;
 
 	/// CPU/GPU performance parameters.
 	ovrPerformanceParms		PerformanceParms;
@@ -877,10 +876,8 @@ typedef struct ovrLayerHeader2_
 	ovrFrameLayerBlend	SrcBlend;
 	ovrFrameLayerBlend	DstBlend;
 
-	/// \deprecated
-	/// DEPRECATED: Do not use. Instead, create the texture swapchain using vrapi_CreateAndroidSurfaceSwapChain
-	/// which will automatically handle updating the Surface for the layer.
-	jobject				SurfaceTextureObject_DEPRECATED;
+	/// Unused parameter.
+	void *				Reserved;
 } ovrLayerHeader2;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerHeader2, 36 );
@@ -1078,7 +1075,9 @@ typedef struct ovrSubmitFrameDescription2_
 	uint32_t			SwapInterval;
 	uint64_t			FrameIndex;
 	double 				DisplayTime;
-	unsigned long long	CompletionFence;
+	/// \deprecated
+	/// DEPRECATED: Explicit fences should no longer be used.
+	unsigned long long	CompletionFence_DEPRECATED;
 	uint32_t			LayerCount;
 	const ovrLayerHeader2 *	const * Layers;
 } ovrSubmitFrameDescription2;

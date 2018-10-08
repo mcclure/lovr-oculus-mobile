@@ -5,7 +5,7 @@ Content     :
 Created     :	11/3/2015
 Authors     :   Eric Duhon
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

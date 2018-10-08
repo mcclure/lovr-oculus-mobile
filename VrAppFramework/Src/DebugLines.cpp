@@ -5,7 +5,7 @@ Content     :   Class that manages and renders debug lines.
 Created     :   April 22, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -161,7 +161,7 @@ void OvrDebugLinesLocal::Shutdown()
 {
 	if ( !Initialized )
 	{
-		ASSERT_WITH_TAG( !Initialized, "DebugLines" );
+		OVR_ASSERT_WITH_TAG( !Initialized, "DebugLines" );
 		return;
 	}
 	DepthTested.Surf.geo.Free();
@@ -195,7 +195,7 @@ void OvrDebugLinesLocal::AddLine( const Vector3f & start, const Vector3f & end,
 		const Vector4f & startColor, const Vector4f & endColor,
 		const long long endFrame, const bool depthTest )
 {
-	//LOG( "OvrDebugLinesLocal::AddDebugLine" );
+	//OVR_LOG( "OvrDebugLinesLocal::AddDebugLine" );
 	DebugLines_t & dl = depthTest ? DepthTested : NonDepthTested;
 	dl.Attr.position.PushBack( start );
 	dl.Attr.position.PushBack( end );

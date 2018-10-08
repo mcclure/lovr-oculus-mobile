@@ -5,7 +5,7 @@ Content     :   Generic collision class supporting ray / triangle intersection.
 Created     :   September 10, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -166,7 +166,7 @@ bool OvrTriCollisionPrimitive::IntersectRay( Vector3f const & localStart, Vector
 		float diff = fabsf( localDir.LengthSq() - 1.0f );
 		if ( diff > Mathf::Tolerance() )
 		{
-			LOG( "!rayDir.IsNormalized() - ( %.4f, %.4f, %.4f ), len = %.8f, diff = %.8f", localDir.x, localDir.y, localDir.z , localDir.Length(), diff );
+			OVR_LOG( "!rayDir.IsNormalized() - ( %.4f, %.4f, %.4f ), len = %.8f, diff = %.8f", localDir.x, localDir.y, localDir.z , localDir.Length(), diff );
 			OVR_ASSERT( !"IsNormalized()" );
 		}
 

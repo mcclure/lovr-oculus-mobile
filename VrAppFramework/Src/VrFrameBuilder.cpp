@@ -5,7 +5,7 @@ Content     :   Builds the input for VrAppInterface::Frame()
 Created     :   April 26, 2015
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -106,7 +106,7 @@ void VrFrameBuilder::InterpretTouchpad( VrInput & input, const double currentTim
 	bool down = false;
 	if ( currentTouchDown && !lastTouchDown )
 	{
-		//LOG( "DOWN" );
+		//OVR_LOG( "DOWN" );
 		down = true;
 		touchOrigin = input.touch;
 	}
@@ -114,7 +114,7 @@ void VrFrameBuilder::InterpretTouchpad( VrInput & input, const double currentTim
 	bool up = false;
 	if ( !currentTouchDown && lastTouchDown )
 	{
-		//LOG( "UP" );
+		//OVR_LOG( "UP" );
 		up = true;
 	}
 
@@ -141,12 +141,12 @@ void VrFrameBuilder::InterpretTouchpad( VrInput & input, const double currentTim
 			{
 				if ( input.touchRelative[0] < 0 )
 				{
-					//LOG( "SWIPE FORWARD" );
+					//OVR_LOG( "SWIPE FORWARD" );
 					dir = BUTTON_SWIPE_FORWARD | BUTTON_TOUCH_WAS_SWIPE;
 				}
 				else
 				{
-					//LOG( "SWIPE BACK" );
+					//OVR_LOG( "SWIPE BACK" );
 					dir = BUTTON_SWIPE_BACK | BUTTON_TOUCH_WAS_SWIPE;
 				}
 			}
@@ -154,12 +154,12 @@ void VrFrameBuilder::InterpretTouchpad( VrInput & input, const double currentTim
 			{
 				if ( input.touchRelative[1] > 0 )
 				{
-					//LOG( "SWIPE DOWN" );
+					//OVR_LOG( "SWIPE DOWN" );
 					dir = BUTTON_SWIPE_DOWN | BUTTON_TOUCH_WAS_SWIPE;
 				}
 				else
 				{
-					//LOG( "SWIPE UP" );
+					//OVR_LOG( "SWIPE UP" );
 					dir = BUTTON_SWIPE_UP | BUTTON_TOUCH_WAS_SWIPE;
 				}
 			}
@@ -234,7 +234,7 @@ void VrFrameBuilder::AddKeyEventToFrame( ovrKeyCode const keyCode, KeyEventType 
 		return;
 	}
 
-	LOG( "AddKeyEventToFrame: keyCode = %i, eventType = %i", keyCode, eventType );
+	OVR_LOG( "AddKeyEventToFrame: keyCode = %i, eventType = %i", keyCode, eventType );
 
 	vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].KeyCode = keyCode;
 	vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].RepeatCount = repeatCount;
@@ -511,7 +511,7 @@ extern "C"
 {
 JNIEXPORT void Java_com_oculus_vrappframework_HeadsetReceiver_headsetStateChanged( JNIEnv * jni, jclass clazz, jint state )
 {
-	LOG( "nativeHeadsetEvent(%i)", state );
+	OVR_LOG( "nativeHeadsetEvent(%i)", state );
 	OVR::HeadPhonesPluggedState = ( state == 1 ) ? OVR::OVR_HEADSET_PLUGGED : OVR::OVR_HEADSET_UNPLUGGED;
 }
 }	// extern "C"

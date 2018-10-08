@@ -5,7 +5,7 @@ Content     :   Native counterpart to VrActivity
 Created     :   September 30, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_AppLocal_h
@@ -157,10 +157,6 @@ private:
 	// configurations for CPU warping, etc.
 	ovrEyeBuffers *		EyeBuffers;
 
-	static const int MAX_FENCES = 4;
-	ovrFence *			CompletionFences;
-	int					CompletionFenceIndex;
-
 	ovrJava				Java;
 	jclass				VrActivityClass;
 
@@ -226,10 +222,6 @@ private:
 	void 				DrawEyeViews( ovrFrameResult & res );
 	void				DrawBlackFrame( const int frameFlags = 0 );
 	void				DrawLoadingIcon( ovrTextureSwapChain * swapChain, const float spinSpeed = 1.0f, const float spinScale = 16.0f );
-
-	void				CreateFence( ovrFence * fence );
-	void				DestroyFence( ovrFence * fence );
-	void				InsertFence( ovrFence * fence );
 
 	static threadReturn_t ThreadStarter( Thread *, void * parm );
 	void *				VrThreadFunction();

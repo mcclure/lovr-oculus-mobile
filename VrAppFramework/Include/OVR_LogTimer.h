@@ -5,7 +5,7 @@ Content     :
 Created     :   
 Authors     :   
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -36,7 +36,7 @@ public:
 	~LogCpuTime()
 	{
 		const double endTimeNanoSec = SystemClock::GetTimeInNanoSeconds();
-		LOG( "%s took %6.4f seconds", Label, ( endTimeNanoSec - StartTimeNanoSec ) * 1e-9 );
+		OVR_LOG( "%s took %6.4f seconds", Label, ( endTimeNanoSec - StartTimeNanoSec ) * 1e-9 );
 	}
 
 private:

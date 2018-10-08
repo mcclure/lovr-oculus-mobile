@@ -5,7 +5,7 @@ Content     :   A menu for browsing a hierarchy of folders with items represente
 Created     :   July 25, 2014
 Authors     :   Jonathan E. Wright, Warsam Osman, Madhu Kalva
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -265,7 +265,7 @@ private:
 				//const float scrollVelocity = ScrollMgr.GetVelocity();
 				if ( !folder->Visible /*&& ( fabsf( scrollVelocity ) < 0.09f )*/ )
 				{
-					LOG( "Revealing %s - loading thumbs", folder->CategoryTag.ToCStr() );
+					OVR_LOG( "Revealing %s - loading thumbs", folder->CategoryTag.ToCStr() );
 					folder->Visible = true;
 					// This loads entire category - instead we load specific thumbs in SwipeComponent
 				}
@@ -283,7 +283,7 @@ private:
 				// If we're just about to hide the folderview, unload the thumbnails
 				if ( folder->Visible )
 				{
-					LOG( "Hiding %s - unloading thumbs", folder->CategoryTag.ToCStr() );
+					OVR_LOG( "Hiding %s - unloading thumbs", folder->CategoryTag.ToCStr() );
 					folder->Visible = false;
 					folder->UnloadThumbnails( guiSys, FolderBrowser.GetDefaultThumbnailTextureId(), FolderBrowser.GetThumbWidth(), FolderBrowser.GetThumbHeight() );
 				}
@@ -849,7 +849,7 @@ OvrFolderBrowser::OvrFolderBrowser(
 
 	if ( ! ThumbnailLoadingThread.Start() )
 	{
-		FAIL( "Thumbnail thread start failed." );
+		OVR_FAIL( "Thumbnail thread start failed." );
 	}
 	ThumbnailLoadingThread.SetThreadName( "FolderBrowser" );
 
@@ -873,7 +873,7 @@ VRMenuComponent* OvrFolderBrowser::CreateFolderBrowserSwipeComponent( OvrFolderB
 
 OvrFolderBrowser::~OvrFolderBrowser()
 {
-	LOG( "OvrFolderBrowser::~OvrFolderBrowser" );
+	OVR_LOG( "OvrFolderBrowser::~OvrFolderBrowser" );
 	// Wake up thumbnail thread if needed and shut it down
 	ThumbnailThreadMutex.DoLock();
 	ThumbnailThreadState.SetState( THUMBNAIL_THREAD_SHUTDOWN );
@@ -904,7 +904,7 @@ OvrFolderBrowser::~OvrFolderBrowser()
 	}
 
 
-	LOG( "OvrFolderBrowser::~OvrFolderBrowser COMPLETE" );
+	OVR_LOG( "OvrFolderBrowser::~OvrFolderBrowser COMPLETE" );
 }
 
 void OvrFolderBrowser::Frame_Impl( OvrGuiSys & guiSys, ovrFrameInput const & vrFrame )
@@ -918,7 +918,7 @@ void OvrFolderBrowser::Frame_Impl( OvrGuiSys & guiSys, ovrFrameInput const & vrF
 			break;
 		}
 
-		//LOG( "TextureCommands: %s", cmd );
+		//OVR_LOG( "TextureCommands: %s", cmd );
 		LoadThumbnailToTexture( guiSys, cmd );
 		free( ( void * )cmd );
 	}
@@ -1116,7 +1116,7 @@ void OvrFolderBrowser::BuildDirtyMenu( OvrGuiSys & guiSys, OvrMetaData & metaDat
 		OvrMetaData::Category & currentCategory = metaData.GetCategory( catIndex );
 		if ( currentCategory.Dirty ) // Only build if dirty
 		{
-			LOG( "Loading folder %i named %s", catIndex, currentCategory.CategoryTag.ToCStr() );
+			OVR_LOG( "Loading folder %i named %s", catIndex, currentCategory.CategoryTag.ToCStr() );
 			FolderView * folder = GetFolderView( currentCategory.CategoryTag );
 
 			// if building for the first time
@@ -1155,7 +1155,7 @@ void OvrFolderBrowser::BuildDirtyMenu( OvrGuiSys & guiSys, OvrMetaData & metaDat
 						}
 						else
 						{
-							LOG( "Failed to get any metaData for folder %i named %s", existingIndex, currentCategory.CategoryTag.ToCStr() );
+							OVR_LOG( "Failed to get any metaData for folder %i named %s", existingIndex, currentCategory.CategoryTag.ToCStr() );
 						}
 						break;
 					}
@@ -1248,7 +1248,7 @@ void OvrFolderBrowser::BuildFolderView( OvrGuiSys & guiSys, OvrMetaData::Categor
 
 	// Create OvrFolderRootComponent for folder root
 	const VRMenuId_t folderId( uniqueId.Get( 1 ) );
-	LOG( "Building Folder %s id: %lld with %d panels", category.CategoryTag.ToCStr(), folderId.Get(), numPanels );
+	OVR_LOG( "Building Folder %s id: %lld with %d panels", category.CategoryTag.ToCStr(), folderId.Get(), numPanels );
 	Array< VRMenuComponent* > comps;
 	comps.PushBack( new OvrFolderRootComponent( *this, folder ) );
 	VRMenuObjectParms folderParms(
@@ -1452,7 +1452,7 @@ void OvrFolderBrowser::RebuildFolderView( OvrGuiSys & guiSys, OvrMetaData & meta
 		FolderView * folder = GetFolderView( folderIndex );
 		if ( folder == NULL )
 		{
-			LOG( "OvrFolderBrowser::RebuildFolder failed to Folder for folderIndex %d", folderIndex );
+			OVR_LOG( "OvrFolderBrowser::RebuildFolder failed to Folder for folderIndex %d", folderIndex );
 			return;
 		}
 
@@ -1553,7 +1553,7 @@ threadReturn_t OvrFolderBrowser::ThumbnailThread( Thread *thread, void * v )
 			break;
 		case THUMBNAIL_THREAD_PAUSE:
 		{
-			LOG( "OvrFolderBrowser::ThumbnailThread PAUSED" );
+			OVR_LOG( "OvrFolderBrowser::ThumbnailThread PAUSED" );
 			folderBrowser->ThumbnailThreadMutex.DoLock();
 			while ( folderBrowser->ThumbnailThreadState.GetState() == THUMBNAIL_THREAD_PAUSE )
 			{
@@ -1563,12 +1563,12 @@ threadReturn_t OvrFolderBrowser::ThumbnailThread( Thread *thread, void * v )
 			continue;
 		}
 		case THUMBNAIL_THREAD_SHUTDOWN:
-			LOG( "OvrFolderBrowser::ThumbnailThread shutting down" );
+			OVR_LOG( "OvrFolderBrowser::ThumbnailThread shutting down" );
 			return NULL;
 		}
 
 		const char * msg = folderBrowser->BackgroundCommands.GetNextMessage();
-		LOG( "BackgroundCommands: %s", msg );
+		OVR_LOG( "BackgroundCommands: %s", msg );
 
 		if ( MatchesHead( "load ", msg ) )
 		{
@@ -1602,7 +1602,7 @@ threadReturn_t OvrFolderBrowser::ThumbnailThread( Thread *thread, void * v )
 						}
 						else
 						{
-							WARN( "Thumbnail load fail for: %s", fileName );
+							OVR_WARN( "Thumbnail load fail for: %s", fileName );
 						}
 					}
 				}
@@ -1645,7 +1645,7 @@ threadReturn_t OvrFolderBrowser::ThumbnailThread( Thread *thread, void * v )
 						}
 						else
 						{
-							WARN( "Thumbnail download fail for: %s", panoUrl );
+							OVR_WARN( "Thumbnail download fail for: %s", panoUrl );
 						}
 					}
 				}
@@ -1653,7 +1653,7 @@ threadReturn_t OvrFolderBrowser::ThumbnailThread( Thread *thread, void * v )
 		}
 		else
 		{
-			LOG( "OvrFolderBrowser::ThumbnailThread received unhandled message: %s", msg );
+			OVR_LOG( "OvrFolderBrowser::ThumbnailThread received unhandled message: %s", msg );
 			OVR_ASSERT( false );
 		}
 
@@ -1680,7 +1680,7 @@ void OvrFolderBrowser::LoadThumbnailToTexture( OvrGuiSys & guiSys, const char * 
 	FolderView * folder = GetFolderView( folderId );
 	if ( folder == NULL )
 	{
-		WARN( "OvrFolderBrowser::LoadThumbnailToTexture failed to find FolderView at %i", folderId );
+		OVR_WARN( "OvrFolderBrowser::LoadThumbnailToTexture failed to find FolderView at %i", folderId );
 		free( data );
 		return;
 	}
@@ -1688,7 +1688,7 @@ void OvrFolderBrowser::LoadThumbnailToTexture( OvrGuiSys & guiSys, const char * 
 	Array<PanelView*> * panels = &folder->Panels;
 	if ( panels == NULL )
 	{
-		WARN( "OvrFolderBrowser::LoadThumbnailToTexture failed to get panels array from folder" );
+		OVR_WARN( "OvrFolderBrowser::LoadThumbnailToTexture failed to get panels array from folder" );
 		free( data );
 		return;
 	}
@@ -1709,14 +1709,14 @@ void OvrFolderBrowser::LoadThumbnailToTexture( OvrGuiSys & guiSys, const char * 
 
 	if ( panel == NULL ) // Panel not found as it was moved. Delete data and bail
 	{
-		WARN( "OvrFolderBrowser::LoadThumbnailToTexture failed to find panel id %d in folder %d", panelId, folderId );
+		OVR_WARN( "OvrFolderBrowser::LoadThumbnailToTexture failed to find panel id %d in folder %d", panelId, folderId );
 		free( data );
 		return;
 	}
 
 	if ( !ApplyThumbAntialiasing( data, width, height ) )
 	{
-		WARN( "OvrFolderBrowser::LoadThumbnailToTexture Failed to apply AA to %s", thumbnailCommand );
+		OVR_WARN( "OvrFolderBrowser::LoadThumbnailToTexture Failed to apply AA to %s", thumbnailCommand );
 	}
 
 	// Grab the Panel from VRMenu
@@ -1747,7 +1747,7 @@ void OvrFolderBrowser::LoadFolderViewPanels( OvrGuiSys & guiSys, const OvrMetaDa
 	Array< const OvrMetaDatum * > categoryPanos;
 	metaData.GetMetaData( category, categoryPanos );
 	const int numPanos = categoryPanos.GetSizeI();
-	LOG( "Building %d panels for %s", numPanos, category.CategoryTag.ToCStr() );
+	OVR_LOG( "Building %d panels for %s", numPanos, category.CategoryTag.ToCStr() );
 	for ( int panoIndex = 0; panoIndex < numPanos; panoIndex++ )
 	{
 		AddPanelToFolder( guiSys, const_cast< OvrMetaDatum * const >( categoryPanos.At( panoIndex ) ), folderIndex, folder, outParms );
@@ -1787,20 +1787,20 @@ void OvrFolderBrowser::QueueAsyncThumbnailLoad( const OvrMetaDatum * panoData, c
 	// Verify input
 	if ( panoData == NULL )
 	{
-		WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error - NULL panoData" );
+		OVR_WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error - NULL panoData" );
 		return;
 	}
 
 	if ( folderIndex < 0 || folderIndex >= Folders.GetSizeI() )
 	{
-		WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error invalid folder index: %d", folderIndex );
+		OVR_WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error invalid folder index: %d", folderIndex );
 		return;
 	}
 
 	FolderView * folder = GetFolderView( folderIndex );
 	if ( folder == NULL )
 	{
-		WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error invalid folder index: %d", folderIndex );
+		OVR_WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error invalid folder index: %d", folderIndex );
 		return;
 	}
 	else
@@ -1808,7 +1808,7 @@ void OvrFolderBrowser::QueueAsyncThumbnailLoad( const OvrMetaDatum * panoData, c
 		const int numPanels = folder->Panels.GetSizeI();
 		if ( panelId < 0 || panelId >= numPanels )
 		{
-			WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error invalid panel id: %d", panelId );
+			OVR_WARN( "OvrFolderBrowser::QueueAsyncThumbnailLoad error invalid panel id: %d", panelId );
 			return;
 		}
 	}
@@ -1856,7 +1856,7 @@ void OvrFolderBrowser::QueueAsyncThumbnailLoad( const OvrMetaDatum * panoData, c
 					int pathLen = panoUrl.GetLengthI();
 					if ( pathLen > 2 && OVR_stricmp( panoUrl.ToCStr() + pathLen - 2, ".x" ) == 0 )
 					{
-						WARN( "Thumbnails cannot be generated from encrypted images." );
+						OVR_WARN( "Thumbnails cannot be generated from encrypted images." );
 						return; // No thumb & can't create 
 					}
 				}
@@ -1868,12 +1868,12 @@ void OvrFolderBrowser::QueueAsyncThumbnailLoad( const OvrMetaDatum * panoData, c
 	{
 		char cmd[ 1024 ];
 		OVR_sprintf( cmd, 1024, "load %i %i:%s", folderIndex, panelId, finalThumb.ToCStr() );
-		LOG( "Thumb cmd: %s", cmd );
+		OVR_LOG( "Thumb cmd: %s", cmd );
 		BackgroundCommands.PostString( cmd );
 	}
 	else
 	{
-		WARN( "Failed to find thumbnail for %s - will be created when selected", panoUrl.ToCStr() );
+		OVR_WARN( "Failed to find thumbnail for %s - will be created when selected", panoUrl.ToCStr() );
 	}
 }
 
@@ -1947,7 +1947,7 @@ bool OvrFolderBrowser::ApplyThumbAntialiasing( unsigned char * inOutBuffer, int 
 			const int thumbPanelBytes = thumbWidth * thumbHeight * 4;
 			if ( numBytes != thumbPanelBytes )
 			{
-				WARN( "OvrFolderBrowser::ApplyAA - Thumbnail image is the wrong size!" );
+				OVR_WARN( "OvrFolderBrowser::ApplyAA - Thumbnail image is the wrong size!" );
 			}
 			else
 			{
@@ -2261,7 +2261,7 @@ void OvrFolderBrowser::PanelView::LoadDefaultThumbnail( OvrGuiSys & guiSys, cons
 	
 	if ( panelObject )
 	{
-		LOG( "Setting thumb to default texture %d", defaultTextureId );
+		OVR_LOG( "Setting thumb to default texture %d", defaultTextureId );
 		panelObject->SetSurfaceTexture( 0, 0, SURFACE_TEXTURE_DIFFUSE, 
 			defaultTextureId, thumbWidth, thumbHeight );
 	}

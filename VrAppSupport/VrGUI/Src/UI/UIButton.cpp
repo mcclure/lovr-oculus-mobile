@@ -5,7 +5,7 @@ Content     :
 Created     :	1/23/2015
 Authors     :   Jim Dose
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -213,7 +213,7 @@ eMsgStatus UIButtonComponent::OnEvent_Impl( OvrGuiSys & guiSys, ovrFrameInput co
 {
 	if ( Button == nullptr ) 
 	{
-		LOG( "UIButtonComponent::OnEvent_Impl - button deleted." );
+		OVR_LOG( "UIButtonComponent::OnEvent_Impl - button deleted." );
 		return MSG_STATUS_ALIVE;
 	}
     switch( event.EventType )

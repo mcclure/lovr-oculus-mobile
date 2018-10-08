@@ -5,7 +5,7 @@ Content     :   Simple RAII class for timing blocks of code.
 Created     :   1/22/2016
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -31,7 +31,7 @@ public:
 	{
 		if ( TotalTime > 0.0 )
 		{
-			LOG_WITH_TAG( "OVRPerf", "%s : ~Total %f seconds\n", Message, TotalTime );
+			OVR_LOG_WITH_TAG( "OVRPerf", "%s : ~Total %f seconds\n", Message, TotalTime );
 			TotalTime = 0.0;
 		}
 	}
@@ -45,11 +45,11 @@ public:
 	{
 		if ( extraMsg == nullptr )
 		{
-			LOG_WITH_TAG( "OVRPerf", "%s : Total %f seconds\n", Message, TotalTime );
+			OVR_LOG_WITH_TAG( "OVRPerf", "%s : Total %f seconds\n", Message, TotalTime );
 		}
 		else
 		{
-			LOG_WITH_TAG( "OVRPerf", "%s( %s ) : Total %f seconds\n", Message, extraMsg, TotalTime );
+			OVR_LOG_WITH_TAG( "OVRPerf", "%s( %s ) : Total %f seconds\n", Message, extraMsg, TotalTime );
 		}
 		TotalTime = 0.0;
 	}
@@ -101,11 +101,11 @@ public:
 		{
 			if ( extraMsg != nullptr )
 			{
-				LOG_WITH_TAG( "OVRPerf", "%s( %s ): %f seconds\n", Message, extraMsg, totalTime );
+				OVR_LOG_WITH_TAG( "OVRPerf", "%s( %s ): %f seconds\n", Message, extraMsg, totalTime );
 			}
 			else
 			{
-				LOG_WITH_TAG( "OVRPerf", "%s : %f seconds\n", Message, totalTime );
+				OVR_LOG_WITH_TAG( "OVRPerf", "%s : %f seconds\n", Message, totalTime );
 			}
 		}
 		return totalTime;

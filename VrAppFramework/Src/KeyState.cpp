@@ -5,7 +5,7 @@ Content     :   Tracking of short-press, long-press and double-tapping of keys
 Created     :   June 18, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -39,7 +39,7 @@ KeyState::KeyState( float const shortPressTime ) :
 // KeyState::HandleEvent
 void KeyState::HandleEvent( double const time, bool const down, int const repeatCount )
 {
-	LOG_WITH_TAG( "KeyState", "(%.4f) HandleEvent: %s, NumEvents %i, RepeatCount %i",
+	OVR_LOG_WITH_TAG( "KeyState", "(%.4f) HandleEvent: %s, NumEvents %i, RepeatCount %i",
 		SystemClock::GetTimeInSeconds(), down ? "DOWN" : "UP", NumEvents, repeatCount );
 
 	bool wasDown = this->Down;
@@ -55,7 +55,7 @@ void KeyState::HandleEvent( double const time, bool const down, int const repeat
 
 	if ( repeatCount > 0 )
 	{
-		ASSERT_WITH_TAG( down == true, "KeyState" );	// only a hold should have a repeat count
+		OVR_ASSERT_WITH_TAG( down == true, "KeyState" );	// only a hold should have a repeat count
 		// key is held
 		PendingEvent = KEY_EVENT_NONE;
 		return;
@@ -63,7 +63,7 @@ void KeyState::HandleEvent( double const time, bool const down, int const repeat
 
 	if ( wasDown == down )
 	{
-		LOG_WITH_TAG( "KeyState", "wasDown != down" );	// this should always be a toggle unless we've missed an event, right?
+		OVR_LOG_WITH_TAG( "KeyState", "wasDown != down" );	// this should always be a toggle unless we've missed an event, right?
 		PendingEvent = KEY_EVENT_NONE;
 		return;
 	}
@@ -88,14 +88,14 @@ void KeyState::HandleEvent( double const time, bool const down, int const repeat
 // KeyState::Update
 KeyEventType KeyState::Update( double const time )
 {
-	//LOG_WITH_TAG( "KeyState", "Update: NumEvents %i", NumEvents );
+	//OVR_LOG_WITH_TAG( "KeyState", "Update: NumEvents %i", NumEvents );
 	if ( NumEvents > 0 )
 	{
 		// if we exceed the max time for key events we care about, reset.
 		if ( NumEvents != 2 && time - EventTimes[0] >= 0.75f )
 		{
 			Reset();
-			LOG_WITH_TAG( "KeyState", "(%.4f) Update() - discarding events (%i) after %.2f seconds.",
+			OVR_LOG_WITH_TAG( "KeyState", "(%.4f) Update() - discarding events (%i) after %.2f seconds.",
 				SystemClock::GetTimeInSeconds(), NumEvents, time - EventTimes[0] );
 			return KEY_EVENT_NONE;
 		}
@@ -106,7 +106,7 @@ KeyEventType KeyState::Update( double const time )
 			if ( EventTimes[1] - EventTimes[0] < ShortPressTime )
 			{
 				// the HMT button always releases a hold at 0.8 seconds right now :(
-				LOG_WITH_TAG( "KeyState", "(%.4f) Update() - press released after %.2f seconds.",
+				OVR_LOG_WITH_TAG( "KeyState", "(%.4f) Update() - press released after %.2f seconds.",
 					SystemClock::GetTimeInSeconds(), time - EventTimes[0] );
 
 				Reset();
@@ -114,7 +114,7 @@ KeyEventType KeyState::Update( double const time )
 			}
 			else
 			{
-				LOG_WITH_TAG( "KeyState", "(%.4f) Update() - discarding short-press after %.2f seconds.",
+				OVR_LOG_WITH_TAG( "KeyState", "(%.4f) Update() - discarding short-press after %.2f seconds.",
 					SystemClock::GetTimeInSeconds(), time - EventTimes[0] );
 
 				Reset();
@@ -127,7 +127,7 @@ KeyEventType KeyState::Update( double const time )
 	PendingEvent = KEY_EVENT_NONE;
 	if ( outEvent != KEY_EVENT_NONE )
 	{
-		LOG_WITH_TAG( "KeyState", "outEvent %s", KeyEventNames[ outEvent ] );
+		OVR_LOG_WITH_TAG( "KeyState", "outEvent %s", KeyEventNames[ outEvent ] );
 	}
 	return outEvent;
 }

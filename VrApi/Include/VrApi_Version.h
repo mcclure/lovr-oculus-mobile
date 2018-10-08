@@ -4,7 +4,7 @@ Filename    :   VrApi_Version.h
 Content     :   API version
 Language    :   C99
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -14,16 +14,16 @@ Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
 // Master version numbers
 #define VRAPI_PRODUCT_VERSION	1
 #define VRAPI_MAJOR_VERSION		1
-#define VRAPI_MINOR_VERSION		16
+#define VRAPI_MINOR_VERSION		18
 #define VRAPI_PATCH_VERSION		0
 
 // Internal build identifier
-#define VRAPI_BUILD_VERSION		117478954
+#define VRAPI_BUILD_VERSION		124967753
 
 // Internal build description
 #define VRAPI_BUILD_DESCRIPTION "Development"
 
 // Minimum version of the driver required for this API
-#define VRAPI_DRIVER_VERSION	117478954
+#define VRAPI_DRIVER_VERSION	124967753
 
 #endif	// OVR_VrApi_Version_h

@@ -5,7 +5,7 @@ Content     :   Utility classes for animation based on alpha values
 Created     :   July 25, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -42,21 +42,21 @@ void Fader::Update( float const fadeRate, double const deltaSeconds )
 		OVR_ASSERT( fabs( fadeDelta ) > MATH_FLOAT_SMALLEST_NON_DENORMAL );
 		if ( fabs( fadeDelta ) < MATH_FLOAT_SMALLEST_NON_DENORMAL )
 		{
-			LOG( "Fader::Update fabs( fadeDelta ) < MATH_FLOAT_SMALLEST_NON_DENORMAL !!!!" );
+			OVR_LOG( "Fader::Update fabs( fadeDelta ) < MATH_FLOAT_SMALLEST_NON_DENORMAL !!!!" );
 		}
         if ( FadeAlpha < MATH_FLOAT_SMALLEST_NON_DENORMAL )
         {
             FadeAlpha = 0.0f;
             FadeState = FADE_NONE;
-            //LOG( "FadeState = FADE_NONE" );
+            //OVR_LOG( "FadeState = FADE_NONE" );
         }
         else if ( FadeAlpha >= 1.0f - MATH_FLOAT_SMALLEST_NON_DENORMAL )
         {
             FadeAlpha = 1.0f;
             FadeState = FADE_NONE;
-            //LOG( "FadeState = FADE_NONE" );
+            //OVR_LOG( "FadeState = FADE_NONE" );
         }
-        //LOG( "fadeState = %s, fadeDelta = %.4f, fadeAlpha = %.4f", GetFadeStateName( FadeState ), fadeDelta, FadeAlpha );
+        //OVR_LOG( "fadeState = %s, fadeDelta = %.4f, fadeAlpha = %.4f", GetFadeStateName( FadeState ), fadeDelta, FadeAlpha );
     }        
 }
 
@@ -64,7 +64,7 @@ void Fader::Update( float const fadeRate, double const deltaSeconds )
 // Fader::StartFadeIn
 void Fader::StartFadeIn()
 {
-    //LOG( "StartFadeIn" );
+    //OVR_LOG( "StartFadeIn" );
     FadeState = FADE_IN;
 }
 
@@ -72,7 +72,7 @@ void Fader::StartFadeIn()
 // Fader::StartFadeOut
 void Fader::StartFadeOut()
 {
-    //LOG( "StartFadeOut" );
+    //OVR_LOG( "StartFadeOut" );
     FadeState = FADE_OUT;
 }
 
@@ -80,7 +80,7 @@ void Fader::StartFadeOut()
 // Fader::PauseFade
 void Fader::PauseFade()
 {
-    //LOG( "PauseFade" );
+    //OVR_LOG( "PauseFade" );
     PrePauseState = FadeState;
     FadeState = FADE_PAUSED;
 }

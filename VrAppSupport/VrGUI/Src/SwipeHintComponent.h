@@ -5,7 +5,7 @@ Content     :
 Created     :   Feb 12, 2015
 Authors     :   Madhu Kalva, Jim Dose
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

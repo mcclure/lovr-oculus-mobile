@@ -5,7 +5,7 @@ Content     :   GL Setup
 Created     :   August 24, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 
@@ -131,7 +131,7 @@ LRESULT APIENTRY WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 					app->GetMessageQueue().PostPrintfIfSpaceAvailable( MIN_SLOTS_AVAILABLE_FOR_INPUT, "key %i %i %i", key, 1, 0 );
 				}
 				window->keyInput[key] = true;
-				LOG( "%s down\n", GetNameForKeyCode( key ) );
+				OVR_LOG( "%s down\n", GetNameForKeyCode( key ) );
 			}
 			break;
 		}
@@ -141,7 +141,7 @@ LRESULT APIENTRY WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 			{
 				const ovrKeyCode key = OSKeyToKeyCode( ( int ) wParam );
 				window->keyInput[key] = false;
-				LOG( "%s up\n", GetNameForKeyCode( key ) );
+				OVR_LOG( "%s up\n", GetNameForKeyCode( key ) );
 				if ( app )
 				{
 					app->GetMessageQueue().PostPrintfIfSpaceAvailable( MIN_SLOTS_AVAILABLE_FOR_INPUT, "key %i %i %i", key, 0, 0 );
@@ -242,12 +242,12 @@ static void GlWindow_Destroy( GlWindow_t * window )
 	{
 		if ( !wglMakeCurrent( NULL, NULL ) )
 		{
-			FAIL( "Failed to release context." );
+			OVR_FAIL( "Failed to release context." );
 		}
 
 		if ( !wglDeleteContext( window->glContext.hGLRC ) )
 		{
-			FAIL( "Failed to delete context." );
+			OVR_FAIL( "Failed to delete context." );
 		}
 		window->glContext.hGLRC = NULL;
 	}
@@ -256,7 +256,7 @@ static void GlWindow_Destroy( GlWindow_t * window )
 	{
 		if ( !ReleaseDC( window->hWnd, window->glContext.hDC ) )
 		{
-			FAIL( "Failed to release device context." );
+			OVR_FAIL( "Failed to release device context." );
 		}
 		window->glContext.hDC = NULL;
 	}
@@ -265,7 +265,7 @@ static void GlWindow_Destroy( GlWindow_t * window )
 	{
 		if ( !DestroyWindow( window->hWnd ) )
 		{
-			FAIL( "Failed to destroy the window." );
+			OVR_FAIL( "Failed to destroy the window." );
 		}
 		window->hWnd = NULL;
 	}
@@ -274,7 +274,7 @@ static void GlWindow_Destroy( GlWindow_t * window )
 	{
 		if ( !UnregisterClass( "OpenGL", window->hInstance ) )
 		{
-			FAIL( "Failed to unregister window class." );
+			OVR_FAIL( "Failed to unregister window class." );
 		}
 		window->hInstance = NULL;
 	}
@@ -311,7 +311,7 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 
 	if ( !RegisterClass( &wc ) )
 	{
-		FAIL( "Failed to register window class." );
+		OVR_FAIL( "Failed to register window class." );
 	}
 	
 	if ( fullscreen )
@@ -326,7 +326,7 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 
 		if ( ChangeDisplaySettings( &dmScreenSettings, CDS_FULLSCREEN ) != DISP_CHANGE_SUCCESSFUL )
 		{
-			FAIL( "The requested fullscreen mode is not supported." );
+			OVR_FAIL( "The requested fullscreen mode is not supported." );
 		}
 	}
 
@@ -394,7 +394,7 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 	if ( !window->hWnd )
 	{
 		GlWindow_Destroy( window );
-		FAIL( "Failed to create window." );
+		OVR_FAIL( "Failed to create window." );
 	}
 
 	SetWindowLongPtr( window->hWnd, GWLP_USERDATA, (LONG_PTR) window );
@@ -403,7 +403,7 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 	if ( !window->glContext.hDC )
 	{
 		GlWindow_Destroy( window );
-		FAIL( "Failed to acquire device context." );
+		OVR_FAIL( "Failed to acquire device context." );
 	}
 
 	PIXELFORMATDESCRIPTOR pfd =
@@ -438,13 +438,13 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 	if ( pixelFormat == 0 )
 	{
 		GlWindow_Destroy( window );
-		FAIL( "Failed to find a suitable PixelFormat." );
+		OVR_FAIL( "Failed to find a suitable PixelFormat." );
 	}
 
 	if ( !SetPixelFormat( window->glContext.hDC, pixelFormat, &pfd ) )
 	{
 		GlWindow_Destroy( window );
-		FAIL( "Failed to set the PixelFormat." );
+		OVR_FAIL( "Failed to set the PixelFormat." );
 	}
 
 	// temporarily create a context to get the extensions
@@ -471,13 +471,13 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 	if ( !window->glContext.hGLRC )
 	{
 		GlWindow_Destroy( window );
-		FAIL( "Failed to create GL context." );
+		OVR_FAIL( "Failed to create GL context." );
 	}
 
 	if ( !wglMakeCurrent( window->glContext.hDC, window->glContext.hGLRC ) )
 	{
 		GlWindow_Destroy( window );
-		FAIL( "Failed to activate GL context." );
+		OVR_FAIL( "Failed to activate GL context." );
 	}
 
 	ShowWindow( window->hWnd, SW_SHOW );
@@ -487,11 +487,11 @@ static bool GlWindow_Create( GlWindow_t * window, const int width, const int hei
 	window->glRenderer = glGetString( GL_RENDERER );
 	window->glVersion = glGetString( GL_VERSION );
 
-	LOG( "--------------------------------\n" );
-	//LOG( "OS     : %s\n", GetOSVersion() );
-	LOG( "GPU    : %s\n", window->glRenderer );
-	LOG( "DRIVER : %s\n", window->glVersion );
-	LOG( "MODE   : %s %dx%d %1.0f Hz\n", fullscreen ? "fullscreen" : "windowed", window->windowWidth, window->windowHeight, window->windowRefreshRate );
+	OVR_LOG( "--------------------------------\n" );
+	//OVR_LOG( "OS     : %s\n", GetOSVersion() );
+	OVR_LOG( "GPU    : %s\n", window->glRenderer );
+	OVR_LOG( "DRIVER : %s\n", window->glVersion );
+	OVR_LOG( "MODE   : %s %dx%d %1.0f Hz\n", fullscreen ? "fullscreen" : "windowed", window->windowWidth, window->windowHeight, window->windowRefreshRate );
 
 	return true;
 }

@@ -5,7 +5,7 @@ Content     :   Implementation of string localization for strings loaded at run-
 Created     :   April 6, 2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the Oculus360Photos/ directory. An additional grant
@@ -173,14 +173,14 @@ bool ovrLocaleInternal::AddStringsFromAndroidFormatXMLBuffer( char const * name,
 	tinyxml2::XMLError error = doc.Parse( buffer, size );
 	if ( error != tinyxml2::XML_NO_ERROR )
 	{
-		LOG( "ERROR: XML parse error %i parsing '%s'!", error, name );
+		OVR_LOG( "ERROR: XML parse error %i parsing '%s'!", error, name );
 		return false;
 	}
 
 	tinyxml2::XMLElement * root = doc.RootElement();
 	if ( OVR_stricmp( root->Value(), "resources" ) != 0 )
 	{
-		LOG( "ERROR: Expected root value of 'resources', found '%s'!\n", root->Value() );
+		OVR_LOG( "ERROR: Expected root value of 'resources', found '%s'!\n", root->Value() );
 		return false;
 	}
 
@@ -189,7 +189,7 @@ bool ovrLocaleInternal::AddStringsFromAndroidFormatXMLBuffer( char const * name,
 	{
 		if ( OVR_stricmp( curElement->Value(), "string" ) != 0 )
 		{
-			LOG( "WARNING: Expected element value 'string', found '%s'!\n", curElement->Value() );
+			OVR_LOG( "WARNING: Expected element value 'string', found '%s'!\n", curElement->Value() );
 			continue;
 		}
 
@@ -238,7 +238,7 @@ bool ovrLocaleInternal::AddStringsFromAndroidFormatXMLBuffer( char const * name,
 					 nextChar != '\'' &&
 					 nextChar != '&' )
 					{
-						LOG( "Unknown escape sequence '\\%x'", nextChar );
+						OVR_LOG( "Unknown escape sequence '\\%x'", nextChar );
 						decodedValue.AppendChar( curChar );
 					}
 					curChar = nextChar;
@@ -261,7 +261,7 @@ bool ovrLocaleInternal::AddStringsFromAndroidFormatXMLBuffer( char const * name,
 
 			curChar = UTF8Util::DecodeNextChar( &in );
 		}
-		//LOG( "Name: '%s' = '%s'\n", key.ToCStr(), value.ToCStr() );
+		//OVR_LOG( "Name: '%s' = '%s'\n", key.ToCStr(), value.ToCStr() );
 
 		int index = -1;
 		if ( !StringHash.Get( key, &index ) )
@@ -271,7 +271,7 @@ bool ovrLocaleInternal::AddStringsFromAndroidFormatXMLBuffer( char const * name,
 		}
 	}
 
-	LOG( "Added %i strings from '%s'", Strings.GetSizeI(), name );
+	OVR_LOG( "Added %i strings from '%s'", Strings.GetSizeI(), name );
 
 	return true;
 }
@@ -295,18 +295,18 @@ bool ovrLocaleInternal::LoadStringsFromAndroidFormatXMLFile( ovrFileSys & fileSy
 bool ovrLocaleInternal::GetStringJNI( char const * key, char const * defaultOut, String & out ) const
 {
 
-	//LOG( "Localizing key '%s'", key );
+	//OVR_LOG( "Localizing key '%s'", key );
 	// if the key doesn't start with KEY_PREFIX then it's not a valid key, just return
 	// the key itself as the output text.
 	if ( strstr( key, LOCALIZED_KEY_PREFIX ) != key )
 	{
 		out = defaultOut;
-		LOG( "no prefix, localized to '%s'", out.ToCStr() );
+		OVR_LOG( "no prefix, localized to '%s'", out.ToCStr() );
 		return true;
 	}
 
 	char const * realKey = key + LOCALIZED_KEY_PREFIX_LEN;
-	//LOG( "realKey = %s", realKey );
+	//OVR_LOG( "realKey = %s", realKey );
 
 	JavaClass vrLocaleClass( &jni, ovr_GetLocalClassReference( &jni, activityObject,
 			"com/oculus/vrlocale/VrLocale" ) );
@@ -323,18 +323,18 @@ bool ovrLocaleInternal::GetStringJNI( char const * key, char const * defaultOut,
 			if ( out.IsEmpty() )
 			{
 				out = defaultOut;
-				LOG( "key not found, localized to '%s'", out.ToCStr() );
+				OVR_LOG( "key not found, localized to '%s'", out.ToCStr() );
 				return false;
 			}
 
-			//LOG( "localized to '%s'", out.ToCStr() );
+			//OVR_LOG( "localized to '%s'", out.ToCStr() );
 			return true;
 		}
-		WARN( "Exception calling VrLocale.getLocalizedString" );
+		OVR_WARN( "Exception calling VrLocale.getLocalizedString" );
 	}
 	else
 	{
-		WARN( "Could not find VrLocale.getLocalizedString()" );
+		OVR_WARN( "Could not find VrLocale.getLocalizedString()" );
 	}
 
 	out = "JAVAERROR";
@@ -467,7 +467,7 @@ void ovrLocaleInternal::ReplaceLocalizedText( char const * inText, char * out, s
 // ovrLocale::Create
 ovrLocale * ovrLocale::Create( JNIEnv & jni_, jobject activity_, char const * name, ovrFileSys * fileSys )
 {
-	LOG( "ovrLocale::Create - entered" );
+	OVR_LOG( "ovrLocale::Create - entered" );
 
 	ovrLocale * localePtr = NULL;
 
@@ -477,7 +477,7 @@ ovrLocale * ovrLocale::Create( JNIEnv & jni_, jobject activity_, char const * na
 			"com/oculus/vrlocale/VrLocale" ) );
 	if ( vrLocaleClass.GetJClass() == NULL )
 	{
-		LOG( "Couldn't find VrLocale class." );
+		OVR_LOG( "Couldn't find VrLocale class." );
 	}
 	jmethodID getCurrentLanguageMethodId = ovr_GetStaticMethodID( &jni_, vrLocaleClass.GetJClass(),
 			"getCurrentLanguage", "()Ljava/lang/String;" );
@@ -487,7 +487,7 @@ ovrLocale * ovrLocale::Create( JNIEnv & jni_, jobject activity_, char const * na
 		JavaUTFChars utfCurrentLanguage( &jni_, (jstring)jni_.CallStaticObjectMethod( vrLocaleClass.GetJClass(), getCurrentLanguageMethodId ) );
 		if ( jni_.ExceptionOccurred() )
 		{
-			WARN( "Exception occurred when calling getCurrentLanguage" );
+			OVR_WARN( "Exception occurred when calling getCurrentLanguage" );
 			jni_.ExceptionClear();
 		}
 		else
@@ -498,7 +498,7 @@ ovrLocale * ovrLocale::Create( JNIEnv & jni_, jobject activity_, char const * na
 	}
 	else
 	{
-		WARN( "Could not find VrLocale.getCurrentLanguage" );
+		OVR_WARN( "Could not find VrLocale.getCurrentLanguage" );
 	}
 #elif defined( OVR_OS_WIN32 )
 	OVR_UNUSED( &jni_ );
@@ -521,7 +521,7 @@ ovrLocale * ovrLocale::Create( JNIEnv & jni_, jobject activity_, char const * na
 
 		if ( fileSys == nullptr )
 		{
-			LOG( "Null fileSys used when creating ovrLocale -- no string tables will be loaded!" );
+			OVR_LOG( "Null fileSys used when creating ovrLocale -- no string tables will be loaded!" );
 		}
 		else
 		{
@@ -548,7 +548,7 @@ ovrLocale * ovrLocale::Create( JNIEnv & jni_, jobject activity_, char const * na
 	localePtr = new ovrLocaleInternal( name, "en" );
 #endif
 
-	LOG( "ovrLocale::Create - exited" );
+	OVR_LOG( "ovrLocale::Create - exited" );
 	return localePtr;
 }
 
@@ -756,7 +756,7 @@ static String private_GetXliffFormattedString( const StringDataPtr inXliffStr, .
 			}
 			else
 			{
-				LOG( "%s has invalid xliff format - has unsupported format specifier.", inXliffStr.ToCStr() );
+				OVR_LOG( "%s has invalid xliff format - has unsupported format specifier.", inXliffStr.ToCStr() );
 				return inXliffStr.ToCStr();
 			}
 		}

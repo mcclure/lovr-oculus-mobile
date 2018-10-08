@@ -5,7 +5,7 @@ Content     :   Shader program compilation.
 Created     :   October 11, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -197,7 +197,7 @@ static GLuint CompileShader( GLenum shaderType, const char * directives, const c
 	const char * postVersion = FindShaderVersionEnd( src );
 	if ( postVersion != src )
 	{
-		WARN( "GlProgram: #version in source is not supported. Specify at program build time." );
+		OVR_WARN( "GlProgram: #version in source is not supported. Specify at program build time." );
 	}
 
 	OVR::String srcString;
@@ -246,7 +246,7 @@ static GLuint CompileShader( GLenum shaderType, const char * directives, const c
 	glGetShaderiv( shader, GL_COMPILE_STATUS, &r );
 	if ( r == GL_FALSE )
 	{
-		WARN( "Compiling %s shader: ****** failed ******\n", shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment" );
+		OVR_WARN( "Compiling %s shader: ****** failed ******\n", shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment" );
 		GLchar msg[1024];
 		const char * sp = src;
 		int charCount = 0;
@@ -262,7 +262,7 @@ static GLuint CompileShader( GLenum shaderType, const char * directives, const c
 			{
 				charCount = 0;
 				line++;
-				WARN( "%03d  %s", line, msg );
+				OVR_WARN( "%03d  %s", line, msg );
 				msg[0] = 0;
 				if ( *sp != '\n' )
 				{
@@ -274,10 +274,10 @@ static GLuint CompileShader( GLenum shaderType, const char * directives, const c
 		if ( charCount != 0 )
 		{
 			line++;
-			WARN( "%03d  %s", line, msg );
+			OVR_WARN( "%03d  %s", line, msg );
 		}
 		glGetShaderInfoLog( shader, sizeof( msg ), 0, msg );
-		WARN( "%s\n", msg );
+		OVR_WARN( "%s\n", msg );
 		glDeleteShader( shader );
 		return 0;
 	}
@@ -310,7 +310,7 @@ GlProgram GlProgram::Build( const char * vertexDirectives, const char * vertexSr
 	int programVersion = requestedProgramVersion;
 	if ( programVersion < GLSL_PROGRAM_VERSION )
 	{
-		WARN( "GlProgram: Program GLSL version requested %d, but does not meet required minimum %d",
+		OVR_WARN( "GlProgram: Program GLSL version requested %d, but does not meet required minimum %d",
 			requestedProgramVersion, GLSL_PROGRAM_VERSION );
 		programVersion = GLSL_PROGRAM_VERSION;
 	}
@@ -333,7 +333,7 @@ GlProgram GlProgram::Build( const char * vertexDirectives, const char * vertexSr
 			( fragmentDirectives != NULL && strstr( fragmentDirectives, "GL_OES_EGL_image_external" ) != NULL ) ||
 			( strstr( fragmentSrc, "GL_OES_EGL_image_external" ) != NULL ) ) )
 	{
-		LOG( "GlProgram: Program GLSL version v100 due to GL_OES_EGL_image_external use." );
+		OVR_LOG( "GlProgram: Program GLSL version v100 due to GL_OES_EGL_image_external use." );
 		programVersion = 100;
 	}
 	// ----IMAGE_EXTERNAL_WORKAROUND
@@ -344,7 +344,7 @@ GlProgram GlProgram::Build( const char * vertexDirectives, const char * vertexSr
 		Free( p );
 		if ( abortOnError )
 		{
-			FAIL( "Failed to compile vertex shader" );
+			OVR_FAIL( "Failed to compile vertex shader" );
 		}
 		return GlProgram();
 	}
@@ -355,7 +355,7 @@ GlProgram GlProgram::Build( const char * vertexDirectives, const char * vertexSr
 		Free( p );
 		if ( abortOnError )
 		{
-			FAIL( "Failed to compile fragment shader" );
+			OVR_FAIL( "Failed to compile fragment shader" );
 		}
 		return GlProgram();
 	}
@@ -392,10 +392,10 @@ GlProgram GlProgram::Build( const char * vertexDirectives, const char * vertexSr
 		GLchar msg[1024];
 		glGetProgramInfoLog( p.Program, sizeof( msg ), 0, msg );
 		Free( p );
-		LOG( "Linking program failed: %s\n", msg );
+		OVR_LOG( "Linking program failed: %s\n", msg );
 		if ( abortOnError )
 		{
-			FAIL( "Failed to link program" );
+			OVR_FAIL( "Failed to link program" );
 		}
 		return GlProgram();
 	}
@@ -482,7 +482,7 @@ GlProgram GlProgram::Build( const char * vertexDirectives, const char * vertexSr
 #ifdef OVR_BUILD_DEBUG
 		if ( p.Uniforms[i].Location < 0 || p.Uniforms[i].Binding < 0 )
 		{
-			LOG( "GlProgram::Build. Invalid shader parm: %s", parms[i].Name );
+			OVR_LOG( "GlProgram::Build. Invalid shader parm: %s", parms[i].Name );
 		}
 #endif
 

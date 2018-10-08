@@ -5,7 +5,7 @@ Content     :   Basic viewing and movement in a scene.
 Created     :   December 19, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -375,20 +375,20 @@ static Vector3f AnimationInterpolateVector3f( float * buffer, int frame, float f
 	else if ( interpolationType == MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE )
 	{
 		// #TODO implement MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE
-		WARN( "MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE not implemented" );
+		OVR_WARN( "MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE not implemented" );
 		firstElement = firstElement.Lerp( secondElement, fraction );
 		return firstElement;
 	}
 	else if ( interpolationType == MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE )
 	{
 		// #TODO implement MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE
-		WARN( "MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE not implemented" );
+		OVR_WARN( "MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE not implemented" );
 		firstElement = firstElement.Lerp( secondElement, fraction );
 		return firstElement;
 	}
 	else
 	{
-		WARN( "inavlid interpolation type on animation" );
+		OVR_WARN( "inavlid interpolation type on animation" );
 		return firstElement;
 	}
 }
@@ -424,19 +424,19 @@ static Quatf AnimationInterpolateQuatf( float * buffer, int frame, float fractio
 	}
 	else if ( interpolationType == MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE )
 	{
-		WARN( "MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE does not make sense for quaternions." );
+		OVR_WARN( "MODEL_ANIMATION_INTERPOLATION_CATMULLROMSPLINE does not make sense for quaternions." );
 		firstElement = firstElement.Lerp( secondElement, fraction );
 		return firstElement;
 	}
 	else if ( interpolationType == MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE )
 	{
-		WARN( "MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE does not make sense for quaternions." );
+		OVR_WARN( "MODEL_ANIMATION_INTERPOLATION_CUBICSPLINE does not make sense for quaternions." );
 		firstElement = firstElement.Lerp( secondElement, fraction );
 		return firstElement;
 	}
 	else
 	{
-		WARN( "inavlid interpolation type on animation" );
+		OVR_WARN( "inavlid interpolation type on animation" );
 		return firstElement;
 	}
 }
@@ -532,11 +532,11 @@ void ModelInScene::AnimateJoints( const double timeInSeconds )
 					}
 					else if ( channel.path == MODEL_ANIMATION_PATH_WEIGHTS )
 					{
-						WARN("Weights animation not currently supported on channel %d '%s'", j, animation.name.ToCStr() );
+						OVR_WARN("Weights animation not currently supported on channel %d '%s'", j, animation.name.ToCStr() );
 					}
 					else
 					{
-						WARN( "Bad animation path on channel %d '%s'", j, animation.name.ToCStr() );
+						OVR_WARN( "Bad animation path on channel %d '%s'", j, animation.name.ToCStr() );
 					}
 
 					nodeState.CalculateLocalTransform();
@@ -624,7 +624,7 @@ ModelGlPrograms OvrSceneView::GetDefaultGLPrograms()
 
 void OvrSceneView::LoadWorldModel( const char * sceneFileName, const MaterialParms & materialParms, const bool fromApk )
 {
-	LOG( "OvrSceneView::LoadScene( %s )", sceneFileName );
+	OVR_LOG( "OvrSceneView::LoadScene( %s )", sceneFileName );
 
 	if ( GlPrograms.ProgSingleTexture == NULL )
 	{
@@ -644,7 +644,7 @@ void OvrSceneView::LoadWorldModel( const char * sceneFileName, const MaterialPar
 
 	if ( model == nullptr )
 	{
-		WARN( "OvrSceneView::LoadScene( %s ) failed", sceneFileName );
+		OVR_WARN( "OvrSceneView::LoadScene( %s ) failed", sceneFileName );
 		return;
 	}
 
@@ -665,7 +665,7 @@ void OvrSceneView::LoadWorldModel( const char * sceneFileName, const MaterialPar
 
 void OvrSceneView::SetWorldModel( ModelFile & world )
 {
-	LOG( "OvrSceneView::SetWorldModel( %s )", world.FileName.ToCStr() );
+	OVR_LOG( "OvrSceneView::SetWorldModel( %s )", world.FileName.ToCStr() );
 
 	if ( FreeWorldModelOnChange && Models.GetSizeI() > 0 )
 	{

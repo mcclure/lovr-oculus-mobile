@@ -5,7 +5,7 @@ Content     :   Framebuffer
 Created     :   July 3rd, 2015
 Authors     :   J.M.P. van Waveren
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_Framebuffer_h

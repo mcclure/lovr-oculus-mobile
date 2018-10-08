@@ -5,7 +5,7 @@ Content     :   GL Setup
 Created     :   August 24, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 
@@ -41,7 +41,7 @@ static void LogStringWords( const char * allExtensions )
 		char * word = new char[nameLen+1];
 		memcpy( word, start, nameLen );
 		word[nameLen] = '\0';
-		LOG( "%s", word );
+		OVR_LOG( "%s", word );
 		delete[] word;
 
 		start = end + 1;
@@ -115,10 +115,10 @@ static EGLConfig ChooseColorConfig( const EGLDisplay display, const int redBits,
 
 	if ( EGL_FALSE == eglGetConfigs( display,
 			configs, MAX_CONFIGS, &numConfigs ) ) {
-		WARN( "eglGetConfigs() failed" );
+		OVR_WARN( "eglGetConfigs() failed" );
 		return NULL;
 	}
-	LOG( "eglGetConfigs() = %i configs", numConfigs );
+	OVR_LOG( "eglGetConfigs() = %i configs", numConfigs );
 
 	// We don't want a depth/stencil buffer
 	const EGLint configAttribs[] = {
@@ -132,51 +132,43 @@ static EGLConfig ChooseColorConfig( const EGLDisplay display, const int redBits,
 			EGL_NONE
 	};
 
-	// look for OpenGL ES 3.0 configs first, then fall back to 2.0
-	for ( int esVersion = 3; esVersion >= 2; esVersion-- )
+	for ( int i = 0; i < numConfigs; i++ )
 	{
-		for ( int i = 0; i < numConfigs; i++ )
+		EGLint	value = 0;
+
+		// EGL_RENDERABLE_TYPE is a bit field
+		eglGetConfigAttrib( display, configs[i], EGL_RENDERABLE_TYPE, &value );
+
+		if ( ( value & EGL_OPENGL_ES3_BIT_KHR ) != EGL_OPENGL_ES3_BIT_KHR )
+		{
+			continue;
+		}
+
+		// For our purposes, the pbuffer config also needs to be compatible with
+		// normal window rendering so it can share textures with the window context.
+		// I am unsure if it would be portable to always request EGL_PBUFFER_BIT, so
+		// I only do it on request.
+		eglGetConfigAttrib( display, configs[i], EGL_SURFACE_TYPE , &value );
+		const int surfs = EGL_WINDOW_BIT | ( pbuffer ? EGL_PBUFFER_BIT : 0 );
+		if ( ( value & surfs ) != surfs )
+		{
+			continue;
+		}
+
+		int	j = 0;
+		for ( ; configAttribs[j] != EGL_NONE; j += 2 )
 		{
 			EGLint	value = 0;
-
-			// EGL_RENDERABLE_TYPE is a bit field
-			eglGetConfigAttrib( display, configs[i], EGL_RENDERABLE_TYPE, &value );
-
-			if ( ( esVersion == 2 ) && ( value & EGL_OPENGL_ES2_BIT ) != EGL_OPENGL_ES2_BIT )
+			eglGetConfigAttrib( display, configs[i], configAttribs[j], &value );
+			if ( value != configAttribs[j+1] )
 			{
-				continue;
+				break;
 			}
-			if ( ( esVersion == 3 ) && ( value & EGL_OPENGL_ES3_BIT_KHR ) != EGL_OPENGL_ES3_BIT_KHR )
-			{
-				continue;
-			}
-
-			// For our purposes, the pbuffer config also needs to be compatible with
-			// normal window rendering so it can share textures with the window context.
-			// I am unsure if it would be portable to always request EGL_PBUFFER_BIT, so
-			// I only do it on request.
-			eglGetConfigAttrib( display, configs[i], EGL_SURFACE_TYPE , &value );
-			const int surfs = EGL_WINDOW_BIT | ( pbuffer ? EGL_PBUFFER_BIT : 0 );
-			if ( ( value & surfs ) != surfs )
-			{
-				continue;
-			}
-
-			int	j = 0;
-			for ( ; configAttribs[j] != EGL_NONE; j += 2 )
-			{
-				EGLint	value = 0;
-				eglGetConfigAttrib( display, configs[i], configAttribs[j], &value );
-				if ( value != configAttribs[j+1] )
-				{
-					break;
-				}
-			}
-			if ( configAttribs[j] == EGL_NONE )
-			{
-				LOG( "Got an ES %i renderable config: %p", esVersion, configs[i] );
-				return configs[i];
-			}
+		}
+		if ( configAttribs[j] == EGL_NONE )
+		{
+			OVR_LOG( "Found a renderable config: %p", configs[i] );
+			return configs[i];
 		}
 	}
 	return NULL;
@@ -187,7 +179,7 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 		const int redBits, const int greenBits, const int blueBits,
 		const int depthBits, const int multisamples, const GLuint contextPriority )
 {
-	LOG( "GL_Setup: requestGlEsVersion(%d), redBits(%d), greenBits(%d), blueBits(%d), depthBits(%d), multisamples(%d), contextPriority(%d)",
+	OVR_LOG( "GL_Setup: requestGlEsVersion(%d), redBits(%d), greenBits(%d), blueBits(%d), depthBits(%d), multisamples(%d), contextPriority(%d)",
 			requestedGlEsVersion, redBits, greenBits, blueBits, depthBits, multisamples, contextPriority );
 
 	glSetup_t egl = {};
@@ -200,23 +192,23 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 	EGLint majorVersion;
 	EGLint minorVersion;
 	eglInitialize( egl.display, &majorVersion, &minorVersion );
-	LOG( "eglInitialize gives majorVersion %i, minorVersion %i", majorVersion, minorVersion);
+	OVR_LOG( "eglInitialize gives majorVersion %i, minorVersion %i", majorVersion, minorVersion);
 
 #if defined( OVR_HAS_OPENGL_LOADER )
 	if ( !GLES3::LoadGLFunctions() )
 	{
-		FAIL( "Failed to load GLES3 core entry points!" );
+		OVR_FAIL( "Failed to load GLES3 core entry points!" );
 	}
 #endif
 
 	const char * eglVendorString = eglQueryString( egl.display, EGL_VENDOR );
-	LOG( "EGL_VENDOR: %s", eglVendorString );
+	OVR_LOG( "EGL_VENDOR: %s", eglVendorString );
 	const char * eglClientApisString = eglQueryString( egl.display, EGL_CLIENT_APIS );
-	LOG( "EGL_CLIENT_APIS: %s", eglClientApisString );
+	OVR_LOG( "EGL_CLIENT_APIS: %s", eglClientApisString );
 	const char * eglVersionString = eglQueryString( egl.display, EGL_VERSION );
-	LOG( "EGL_VERSION: %s", eglVersionString );
+	OVR_LOG( "EGL_VERSION: %s", eglVersionString );
 	const char * eglExtensionString = eglQueryString( egl.display, EGL_EXTENSIONS );
-	LOG( "EGL_EXTENSIONS:" );
+	OVR_LOG( "EGL_EXTENSIONS:" );
 	LogStringWords( eglExtensionString );
 
 	// We do NOT want to use eglChooseConfig, because the Android EGL code pushes in
@@ -225,7 +217,7 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 	egl.config = ChooseColorConfig( egl.display, redBits, greenBits, blueBits, depthBits, multisamples, true /* pBuffer compatible */ );
 	if ( egl.config == 0 )
 	{
-		FAIL( "No acceptable EGL color configs." );
+		OVR_FAIL( "No acceptable EGL color configs." );
 		return egl;
 	}
 
@@ -234,7 +226,7 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 	// MSAA to framebuffer objects on Adreno.
 	for ( int version = requestedGlEsVersion; version >= 2; version-- )
 	{
-		LOG( "Trying for a EGL_CONTEXT_CLIENT_VERSION %i context shared with %p:",
+		OVR_LOG( "Trying for a EGL_CONTEXT_CLIENT_VERSION %i context shared with %p:",
 				version, shareContext );
 		// We want the application context to be lower priority than the TimeWarp context.
 		EGLint contextAttribs[] = {
@@ -253,24 +245,24 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 		egl.context = eglCreateContext( egl.display, egl.config, shareContext, contextAttribs );
 		if ( egl.context != EGL_NO_CONTEXT )
 		{
-			LOG( "Succeeded." );
+			OVR_LOG( "Succeeded." );
 			egl.glEsVersion = version;
 
 			EGLint configIDReadback;
 			if ( !eglQueryContext( egl.display, egl.context, EGL_CONFIG_ID, &configIDReadback ) )
 			{
-			     WARN("eglQueryContext EGL_CONFIG_ID failed" );
+			     OVR_WARN("eglQueryContext EGL_CONFIG_ID failed" );
 			}
 			EGLConfig configCheck = EglConfigForConfigID( egl.display, configIDReadback );
 
-			LOG( "Created context with config %p, query returned ID %i = config %p",
+			OVR_LOG( "Created context with config %p, query returned ID %i = config %p",
 					egl.config, configIDReadback, configCheck );
 			break;
 		}
 	}
 	if ( egl.context == EGL_NO_CONTEXT )
 	{
-		WARN( "eglCreateContext failed: %s", GL_GetErrorString() );
+		OVR_WARN( "eglCreateContext failed: %s", GL_GetErrorString() );
 		return egl;
 	}
 
@@ -281,10 +273,10 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 		eglQueryContext( egl.display, egl.context, EGL_CONTEXT_PRIORITY_LEVEL_IMG, &actualPriorityLevel );
 		switch ( actualPriorityLevel )
 		{
-			case EGL_CONTEXT_PRIORITY_HIGH_IMG: LOG( "Context is EGL_CONTEXT_PRIORITY_HIGH_IMG" ); break;
-			case EGL_CONTEXT_PRIORITY_MEDIUM_IMG: LOG( "Context is EGL_CONTEXT_PRIORITY_MEDIUM_IMG" ); break;
-			case EGL_CONTEXT_PRIORITY_LOW_IMG: LOG( "Context is EGL_CONTEXT_PRIORITY_LOW_IMG" ); break;
-			default: LOG( "Context has unknown priority level" ); break;
+			case EGL_CONTEXT_PRIORITY_HIGH_IMG:		OVR_LOG( "Context is EGL_CONTEXT_PRIORITY_HIGH_IMG" ); break;
+			case EGL_CONTEXT_PRIORITY_MEDIUM_IMG:	OVR_LOG( "Context is EGL_CONTEXT_PRIORITY_MEDIUM_IMG" ); break;
+			case EGL_CONTEXT_PRIORITY_LOW_IMG:		OVR_LOG( "Context is EGL_CONTEXT_PRIORITY_LOW_IMG" ); break;
+			default:								OVR_LOG( "Context has unknown priority level" ); break;
 		}
 	}
 
@@ -307,7 +299,7 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 	egl.pbufferSurface = eglCreatePbufferSurface( egl.display, egl.config, attrib_list );
 	if ( egl.pbufferSurface == EGL_NO_SURFACE )
 	{
-		WARN( "eglCreatePbufferSurface failed: %s", GL_GetErrorString() );
+		OVR_WARN( "eglCreatePbufferSurface failed: %s", GL_GetErrorString() );
 		eglDestroyContext( egl.display, egl.context );
 		egl.context = EGL_NO_CONTEXT;
 		return egl;
@@ -315,7 +307,7 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 
 	if ( eglMakeCurrent( egl.display, egl.pbufferSurface, egl.pbufferSurface, egl.context ) == EGL_FALSE )
 	{
-		WARN( "eglMakeCurrent pbuffer failed: %s", GL_GetErrorString() );
+		OVR_WARN( "eglMakeCurrent pbuffer failed: %s", GL_GetErrorString() );
 		eglDestroySurface( egl.display, egl.pbufferSurface );
 		eglDestroyContext( egl.display, egl.context );
 		egl.context = EGL_NO_CONTEXT;
@@ -323,14 +315,14 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 	}
 
 	const char * glVendorString = (const char *) glGetString(GL_VENDOR);
-	LOG( "GL_VENDOR: %s", glVendorString );
+	OVR_LOG( "GL_VENDOR: %s", glVendorString );
 	const char * glRendererString = (const char *) glGetString(GL_RENDERER);
-	LOG( "GL_RENDERER: %s", glRendererString );
+	OVR_LOG( "GL_RENDERER: %s", glRendererString );
 	const char * glVersionString = (const char *) glGetString(GL_VERSION);
-	LOG( "GL_VERSION: %s", glVersionString );
+	OVR_LOG( "GL_VERSION: %s", glVersionString );
 	const char * glSlVersionString = (const char *) glGetString(
 			GL_SHADING_LANGUAGE_VERSION );
-	LOG( "GL_SHADING_LANGUAGE_VERSION: %s", glSlVersionString );
+	OVR_LOG( "GL_SHADING_LANGUAGE_VERSION: %s", glSlVersionString );
 
 	return egl;
 }
@@ -339,19 +331,19 @@ void GL_Shutdown( glSetup_t & glSetup )
 {
 	if ( eglMakeCurrent( glSetup.display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT ) == EGL_FALSE )
 	{
-		FAIL( "eglMakeCurrent: failed: %s", GL_GetErrorString() );
+		OVR_FAIL( "eglMakeCurrent: failed: %s", GL_GetErrorString() );
 	}
 	if ( eglDestroyContext( glSetup.display, glSetup.context ) == EGL_FALSE )
 	{
-		FAIL( "eglDestroyContext: failed: %s", GL_GetErrorString() );
+		OVR_FAIL( "eglDestroyContext: failed: %s", GL_GetErrorString() );
 	}
 	if ( eglDestroySurface( glSetup.display, glSetup.pbufferSurface ) == EGL_FALSE )
 	{
-		FAIL( "eglDestroySurface: failed: %s", GL_GetErrorString() );
+		OVR_FAIL( "eglDestroySurface: failed: %s", GL_GetErrorString() );
 	}
 	if ( eglTerminate( glSetup.display ) == EGL_FALSE )
 	{
-		FAIL( "eglTerminate(): failed: %s", GL_GetErrorString() );
+		OVR_FAIL( "eglTerminate(): failed: %s", GL_GetErrorString() );
 	}
 
 	glSetup.glEsVersion = 0;

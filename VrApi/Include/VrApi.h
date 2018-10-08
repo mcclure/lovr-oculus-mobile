@@ -6,7 +6,7 @@ Created     :   June 25, 2014
 Authors     :   John Carmack, J.M.P. van Waveren
 Language    :   C99
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_VrApi_h
@@ -152,8 +152,6 @@ while ( !exit )
 				layer.Textures[eye].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection( &tracking.Eye[eye].ProjectionMatrix );
 			}
 
-			// Insert 'fence' using eglCreateSyncKHR.
-
 			const ovrLayerHeader2 * layers[] =
 			{
 				&layer.Header
@@ -162,7 +160,7 @@ while ( !exit )
 			ovrSubmitFrameDescription2 frameDesc = {};
 			frameDesc.FrameIndex = frameIndex;
 			frameDesc.DisplayTime = predictedDisplayTime;
-			frameDesc.CompletionFence = fence;
+			frameDesc.CompletionFence_DEPRECATED = 0;
 			frameDesc.LayerCount = 1;
 			frameDesc.Layers = layers;
 
@@ -683,10 +681,6 @@ OVR_VRAPI_EXPORT int vrapi_GetTextureSwapChainLength( ovrTextureSwapChain * chai
 /// Get the OpenGL name of the texture at the given index.
 OVR_VRAPI_EXPORT unsigned int vrapi_GetTextureSwapChainHandle( ovrTextureSwapChain * chain, int index );
 
-/// Set the OpenGL name of the texture at the given index. \note This is not portable to PC.
-/// vrapi_SetTextureSwapChainHandle is DEPRECATED and should no longer be used as this approach
-/// does not work for out-of-process composition.
-OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_SetTextureSwapChainHandle( ovrTextureSwapChain * chain, int index, unsigned int handle ) );
 
 /// Get the Android Surface object associated with the swap chain.
 OVR_VRAPI_EXPORT jobject vrapi_GetTextureSwapChainAndroidSurface( ovrTextureSwapChain * chain );
@@ -724,8 +718,7 @@ OVR_VRAPI_EXPORT jobject vrapi_GetTextureSwapChainAndroidSurface( ovrTextureSwap
 OVR_VRAPI_EXPORT void vrapi_SubmitFrame( ovrMobile * ovr, const ovrFrameParms * parms );
 
 /// vrapi_SubmitFrame2 takes a frameDescription describing per-frame information such as:
-/// a flexible list of layers which should be drawn this frame, a single fence to signal
-/// frame completion, and a frame index.
+/// a flexible list of layers which should be drawn this frame and a frame index.
 OVR_VRAPI_EXPORT ovrResult vrapi_SubmitFrame2( ovrMobile * ovr, const ovrSubmitFrameDescription2 * frameDescription );
 
 //-----------------------------------------------------------------
@@ -756,7 +749,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_SetExtraLatencyMode( ovrMobile * ovr, const ovr
 /// Set the Display Refresh Rate.
 /// Returns ovrSuccess or an ovrError code.
 /// Returns 'ovrError_InvalidParameter' if requested refresh rate is not supported by the device.
-/// Returns 'ovrError_InvalidOperation' if setting the display refresh rate was not successful.
+/// Returns 'ovrError_InvalidOperation' if setting the display refresh rate was not successful (such as when the device is in low power mode).
 OVR_VRAPI_EXPORT ovrResult vrapi_SetDisplayRefreshRate( ovrMobile * ovr, const float refreshRate );
 
 

@@ -5,7 +5,7 @@ Content     :   Menuing system for VR apps.
 Created     :   May 23, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -88,7 +88,7 @@ bool VRMenuSurfaceTexture::LoadTexture( OvrGuiSys & guiSys, eSurfaceTextureType 
 		Texture = LoadTextureFromBuffer( imageName, MemBuffer( uiDefaultTgaData, uiDefaultTgaSize ),
 							TextureFlags_t(), w, h );
 #endif
-		WARN( "VRMenuSurfaceTexture::CreateFromImage: failed to load image '%s' - default loaded instead!", imageName );
+		OVR_WARN( "VRMenuSurfaceTexture::CreateFromImage: failed to load image '%s' - default loaded instead!", imageName );
 	}
 
 	// if allocated via the texture manager we cannot "own" the texture -- since the texture manager
@@ -137,7 +137,7 @@ void VRMenuSurfaceTexture::Free()
 #if 0
 static void PrintBounds( const char * name, char const * prefix, Bounds3f const & bounds )
 {
-	LOG( "'%s' %s: min( %.2f, %.2f, %.2f ) - max( %.2f, %.2f, %.2f )",
+	OVR_LOG( "'%s' %s: min( %.2f, %.2f, %.2f ) - max( %.2f, %.2f, %.2f )",
 		name, prefix,
 		bounds.GetMins().x, bounds.GetMins().y, bounds.GetMins().z,
 		bounds.GetMaxs().x, bounds.GetMaxs().y, bounds.GetMaxs().z );
@@ -499,7 +499,7 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		case PROGRAM_DIFFUSE_ALPHA_DISCARD:
 		{
 			int diffuseIndex = IndexForTextureType( pt == PROGRAM_DIFFUSE_ONLY ? SURFACE_TEXTURE_DIFFUSE : SURFACE_TEXTURE_DIFFUSE_ALPHA_DISCARD, 1 );
-			ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind the texture
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[diffuseIndex].GetTexture().texture );
@@ -511,9 +511,9 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		{
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			int diffuseIndex = IndexForTextureType( SURFACE_TEXTURE_DIFFUSE, 1 );
-			ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			int diffuse2Index = IndexForTextureType( SURFACE_TEXTURE_DIFFUSE, 2 );
-			ASSERT_WITH_TAG( diffuse2Index >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuse2Index >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind both textures
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[diffuseIndex].GetTexture().texture );
@@ -529,9 +529,9 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		{
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			int alphaIndex = IndexForTextureType( SURFACE_TEXTURE_ALPHA_MASK, 1 );
-			ASSERT_WITH_TAG( alphaIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( alphaIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			int diffuseIndex = IndexForTextureType( SURFACE_TEXTURE_DIFFUSE, 1 );
-			ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind both textures
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[alphaIndex].GetTexture().texture );
@@ -547,7 +547,7 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		{
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 			int additiveIndex = IndexForTextureType( SURFACE_TEXTURE_ADDITIVE, 1 );
-			ASSERT_WITH_TAG( additiveIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( additiveIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind the texture
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[additiveIndex].GetTexture().texture );
@@ -560,9 +560,9 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 			//glBlendFunc( GL_ONE, GL_ONE );
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			int diffuseIndex = IndexForTextureType( SURFACE_TEXTURE_DIFFUSE, 1 );
-			ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			int additiveIndex = IndexForTextureType( SURFACE_TEXTURE_ADDITIVE, 1 );
-			ASSERT_WITH_TAG( additiveIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( additiveIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind both textures
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[diffuseIndex].GetTexture().texture );
@@ -574,9 +574,9 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		{
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			int diffuseIndex = IndexForTextureType( SURFACE_TEXTURE_DIFFUSE, 1 );
-			ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			int rampIndex = IndexForTextureType( SURFACE_TEXTURE_COLOR_RAMP, 1 );
-			ASSERT_WITH_TAG( rampIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( rampIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind both textures
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[diffuseIndex].GetTexture().texture );
@@ -597,14 +597,14 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		}
 		case PROGRAM_DIFFUSE_COLOR_RAMP_TARGET:	// has diffuse, color ramp, and a separate color ramp target
 		{
-			//LOG( "Surface '%s' - PROGRAM_COLOR_RAMP_TARGET", SurfaceName );
+			//OVR_LOG( "Surface '%s' - PROGRAM_COLOR_RAMP_TARGET", SurfaceName );
 			glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			int diffuseIndex = IndexForTextureType( SURFACE_TEXTURE_DIFFUSE, 1 );
-			ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( diffuseIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			int rampIndex = IndexForTextureType( SURFACE_TEXTURE_COLOR_RAMP, 1 );
-			ASSERT_WITH_TAG( rampIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( rampIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			int targetIndex = IndexForTextureType( SURFACE_TEXTURE_COLOR_RAMP_TARGET, 1 );
-			ASSERT_WITH_TAG( targetIndex >= 0, "VrMenu" );	// surface setup should have detected this!
+			OVR_ASSERT_WITH_TAG( targetIndex >= 0, "VrMenu" );	// surface setup should have detected this!
 			// bind both textures
 			glActiveTexture( GL_TEXTURE0 );
 			glBindTexture( GL_TEXTURE_2D, Textures[diffuseIndex].GetTexture().texture );
@@ -627,12 +627,12 @@ void VRMenuSurface::SetTextureSampling( eGUIProgramType const pt )
 		}
 		case PROGRAM_MAX:
 		{
-			WARN( "Unsupported texture map combination." );
+			OVR_WARN( "Unsupported texture map combination." );
 			return;
 		}
 		default:
 		{
-			ASSERT_WITH_TAG( !"Unhandled ProgramType", "Uhandled ProgramType" );
+			OVR_ASSERT_WITH_TAG( !"Unhandled ProgramType", "Uhandled ProgramType" );
 			return;
 		}
 	}
@@ -676,7 +676,7 @@ void VRMenuSurface::CreateFromSurfaceParms( OvrGuiSys & guiSys, VRMenuSurfacePar
 		OVR_PERF_ACCUMULATE( VerifyImageParms );
 		if ( !isValid )
 		{
-			//LOG( "VRMenuSurfaceParms '%s' - no valid images - skipping", parms.SurfaceName.ToCStr() );
+			//OVR_LOG( "VRMenuSurfaceParms '%s' - no valid images - skipping", parms.SurfaceName.ToCStr() );
 			return;
 		}
 	}
@@ -696,7 +696,7 @@ void VRMenuSurface::CreateFromSurfaceParms( OvrGuiSys & guiSys, VRMenuSurfacePar
 		OVR_PERF_ACCUMULATE( FindSurfaceForGeoSizing );
 		if ( surfaceIdx < 0 )
 		{
-			//LOG( "VRMenuSurface::CreateFromImageParms - no suitable image for surface creation" );
+			//OVR_LOG( "VRMenuSurface::CreateFromImageParms - no suitable image for surface creation" );
 			return;
 		}
 	}
@@ -776,7 +776,7 @@ void VRMenuSurface::CreateFromSurfaceParms( OvrGuiSys & guiSys, VRMenuSurfacePar
 		}
 		else
 		{
-			WARN( "Invalid material combination -- either add a shader to support it or fix it." );
+			OVR_WARN( "Invalid material combination -- either add a shader to support it or fix it." );
 			ProgramType = PROGRAM_MAX;
 		}
 		OVR_PERF_ACCUMULATE( SelectProgramType );
@@ -859,7 +859,7 @@ void VRMenuSurface::LoadTexture( OvrGuiSys & guiSys, int const textureIndex, eSu
 {
 	if ( textureIndex < 0 || textureIndex >= VRMENUSURFACE_IMAGE_MAX )
 	{
-		ASSERT_WITH_TAG( textureIndex >= 0 && textureIndex < VRMENUSURFACE_IMAGE_MAX, "VrMenu" );
+		OVR_ASSERT_WITH_TAG( textureIndex >= 0 && textureIndex < VRMENUSURFACE_IMAGE_MAX, "VrMenu" );
 		return;
 	}
 	Textures[textureIndex].LoadTexture( guiSys, type, imageName, true );
@@ -872,7 +872,7 @@ void VRMenuSurface::LoadTexture( int const textureIndex, eSurfaceTextureType con
 {
 	if ( textureIndex < 0 || textureIndex >= VRMENUSURFACE_IMAGE_MAX )
 	{
-		ASSERT_WITH_TAG( textureIndex >= 0 && textureIndex < VRMENUSURFACE_IMAGE_MAX, "VrMenu" );
+		OVR_ASSERT_WITH_TAG( textureIndex >= 0 && textureIndex < VRMENUSURFACE_IMAGE_MAX, "VrMenu" );
 		return;
 	}
 	Textures[textureIndex].LoadTexture( type, texId, width, height );
@@ -1211,7 +1211,7 @@ bool VRMenuObject::HitTest_r( OvrGuiSys const & guiSys, Posef const & parentPose
 	{
 		if ( CullBounds.IsInverted() )
 		{
-			LOG_WITH_TAG( "Spam", "CullBounds are inverted!!" );
+			OVR_LOG_WITH_TAG( "Spam", "CullBounds are inverted!!" );
 			return false;
 		}
 		float cullT0;
@@ -1602,7 +1602,7 @@ void VRMenuObject::AddComponent( VRMenuComponent * component )
 	if ( componentIndex >= 0 )
 	{
 		// cannot add the same component twice!
-		ASSERT_WITH_TAG( componentIndex < 0, "VRMenu" );
+		OVR_ASSERT_WITH_TAG( componentIndex < 0, "VRMenu" );
 		return;
 	}
 	Components.PushBack( component );
@@ -1889,7 +1889,7 @@ void  VRMenuObject::SetSurfaceTexture( OvrGuiSys & guiSys, int const surfaceInde
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 	Surfaces[surfaceIndex].LoadTexture( guiSys, textureIndex, type, imageName );
@@ -1902,7 +1902,7 @@ void  VRMenuObject::SetSurfaceTexture( int const surfaceIndex, int const texture
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 	Surfaces[surfaceIndex].LoadTexture( textureIndex, type, texId, width, height );
@@ -1915,7 +1915,7 @@ void VRMenuObject::SetSurfaceTexture( int const surfaceIndex, int const textureI
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 	Surfaces[surfaceIndex].LoadTexture( textureIndex, type, texture.texture, texture.Width, texture.Height );
@@ -1929,7 +1929,7 @@ void  VRMenuObject::SetSurfaceTextureTakeOwnership( int const surfaceIndex, int 
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 	Surfaces[ surfaceIndex ].LoadTexture( textureIndex, type, texId, width, height );
@@ -1943,7 +1943,7 @@ void VRMenuObject::SetSurfaceTextureTakeOwnership( int const surfaceIndex, int c
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 	Surfaces[ surfaceIndex ].LoadTexture( textureIndex, type, texture.texture, texture.Width, texture.Height );
@@ -1956,7 +1956,7 @@ void VRMenuObject::RegenerateSurfaceGeometry( int const surfaceIndex, const bool
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 
@@ -1974,7 +1974,7 @@ Vector2f const & VRMenuObject::GetSurfaceDims( int const surfaceIndex ) const
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return Vector2f::ZERO;
 	}
 
@@ -1987,7 +1987,7 @@ void VRMenuObject::SetSurfaceDims( int const surfaceIndex, Vector2f const &dims 
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 
@@ -2000,7 +2000,7 @@ Vector4f const & VRMenuObject::GetSurfaceBorder( int const surfaceIndex )
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return Vector4f::ZERO;
 	}
 
@@ -2013,7 +2013,7 @@ void VRMenuObject::SetSurfaceBorder( int const surfaceIndex, Vector4f const & bo
 {
 	if ( surfaceIndex < 0 || surfaceIndex >= Surfaces.GetSizeI() )
 	{
-		ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
+		OVR_ASSERT_WITH_TAG( surfaceIndex >= 0 && surfaceIndex < Surfaces.GetSizeI(), "VrMenu" );
 		return;
 	}
 
@@ -2229,9 +2229,9 @@ void VRMenuObject::FreeTextSurface() const
 static void DumpText( char const * token, char const * text, int const size )
 {
 	// DUMP THE ENITER BUFFER TO THE LOG TO CATCH MEMORY CORRUPTION
-	LOG( "VRGUI PARSE ERROR!" );
-	LOG( "lex token: %s", token );
-	LOG( "lex buffer:" );
+	OVR_LOG( "VRGUI PARSE ERROR!" );
+	OVR_LOG( "lex token: %s", token );
+	OVR_LOG( "lex buffer:" );
 	const int BLOCK_SIZE = 256;
 	int blocks = size / BLOCK_SIZE;
 	char const * bufferStart = text;
@@ -2242,7 +2242,7 @@ static void DumpText( char const * token, char const * text, int const size )
 		char temp[BLOCK_SIZE + 1];
 		memcpy( temp, cur, count );
 		temp[count] = '\0';
-		LOG( "block %i: %s", i, temp );
+		OVR_LOG( "block %i: %s", i, temp );
 	}
 }
 

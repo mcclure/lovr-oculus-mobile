@@ -5,7 +5,7 @@ Content     :
 Created     :   November 26, 2014
 Authors     :   Warsam Osman, Madhu Kalva
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 
@@ -117,7 +117,7 @@ static String GetDir( ovrStorageType storageType, ovrFolderType folderType, jcla
 		}
 		else
 		{
-			LOG( "Unable to locate cache directory" );
+			OVR_LOG( "Unable to locate cache directory" );
 			return String();
 		}
 	}
@@ -155,7 +155,7 @@ OvrStoragePaths::OvrStoragePaths( JNIEnv * jni, jobject activityObj )
 	{
 		for ( int j = 0; j < EFT_COUNT; j++ )
 		{
-			LOG( "StorageFolderPaths[%i][%i] = %s", i, j, StorageFolderPaths[i][j].ToCStr() );
+			OVR_LOG( "StorageFolderPaths[%i][%i] = %s", i, j, StorageFolderPaths[i][j].ToCStr() );
 		}
 	}
 }
@@ -186,12 +186,12 @@ bool OvrStoragePaths::GetPathIfValidPermission( ovrStorageType toStorage, ovrFol
 		}
 		else
 		{
-			WARN( "Failed to get permission for %s storage in %s folder ", StorageName[toStorage], FolderName[toFolder] );
+			OVR_WARN( "Failed to get permission for %s storage in %s folder ", StorageName[toStorage], FolderName[toFolder] );
 		}
 	}
 	else
 	{
-		WARN( "Path not found for %s storage in %s folder ", StorageName[toStorage], FolderName[toFolder] );
+		OVR_WARN( "Path not found for %s storage in %s folder ", StorageName[toStorage], FolderName[toFolder] );
 	}
 	return false;
 }
@@ -441,7 +441,7 @@ static bool ReverseStringAndTest( char const * inStr, char * outStr, size_t cons
 		}
 		if ( inCh != outCh )
 		{
-			LOG( "Failed!" );
+			OVR_LOG( "Failed!" );
 			return false;
 		}
 	}
@@ -751,19 +751,19 @@ void ovrPathUtils::DoUnitTests()
 	if ( CollapsePath( "/test/../../path", testPath, sizeof( testPath ) ) )
 	{
 		OVR_ASSERT( false );
-		WARN( "CollapsePath() failed to detect ill-formed path!" );
+		OVR_WARN( "CollapsePath() failed to detect ill-formed path!" );
 	}
 	bool result = CollapsePath( "/test/../path", testPath, sizeof( testPath ) );
 	if ( !result || OVR_strcmp( testPath, "/path" ) != 0 )
 	{
 		OVR_ASSERT( false );
-		WARN( "CollapsePath() failed!" );
+		OVR_WARN( "CollapsePath() failed!" );
 	}
 
 	if ( !ReverseStringAndTest( "0123456789", testPath, sizeof( testPath ) ) )
 	{
 		OVR_ASSERT( false );
-		WARN( "ReverseString() failed on ASCII text!" );
+		OVR_WARN( "ReverseString() failed on ASCII text!" );
 	}
 	// test walking backwards through UTF-8 strings
 	// VS won't reliably encode UTF-8 so we have to use a byte array
@@ -771,7 +771,7 @@ void ovrPathUtils::DoUnitTests()
 	if ( !ReverseStringAndTest( (char*)&koreanText[0], testPath, sizeof( testPath ) ) )
 	{
 		OVR_ASSERT( false );
-		WARN( "ReverseString() failed on UTF-8 text!" );
+		OVR_WARN( "ReverseString() failed on UTF-8 text!" );
 	}
 
 	AppendUriPath( "file://foo/", "bar/", testPath, sizeof( testPath ) );
@@ -793,14 +793,14 @@ void ovrPathUtils::DoUnitTests()
 	if ( AppendUriPath( "file://foo/", "bar/", shortPath, sizeof( shortPath ) ) )
 	{
 		OVR_ASSERT( false );
-		WARN( "AppendUri() should have failed!" );
+		OVR_WARN( "AppendUri() should have failed!" );
 	}
 	OVR_ASSERT( OVR_strcmp( shortPath, "file://foo/" ) == 0 );
 
 	if ( AppendUriPath( "file://foo/", "/bar/", shortPath, sizeof( shortPath ) ) )
 	{
 		OVR_ASSERT( false );
-		WARN( "AppendUri() should have failed!" );
+		OVR_WARN( "AppendUri() should have failed!" );
 	}
 	OVR_ASSERT( OVR_strcmp( shortPath, "file://foo/" ) == 0 );
 

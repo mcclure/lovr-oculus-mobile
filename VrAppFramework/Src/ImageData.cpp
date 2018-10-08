@@ -5,7 +5,7 @@ Content     :   Operations on byte arrays that don't interact with the GPU.
 Created     :   July 9, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -46,7 +46,7 @@ void Write32BitPvrTexture( const char * fileName, const unsigned char * texture,
 	FILE *f = fopen( fileName, "wb" );
 	if ( !f )
 	{
-		WARN( "Failed to write %s", fileName );
+		OVR_WARN( "Failed to write %s", fileName );
 		return;
 	}
 
@@ -229,7 +229,7 @@ unsigned char * ScaleImageRGBANonLinear( const unsigned char * src, const int wi
 
 	if ( scaled == NULL )
 	{
-		LOG( "Failed to allocate resample buffers!" );
+		OVR_LOG( "Failed to allocate resample buffers!" );
 		free( scaled );
 		return NULL;
 	}
@@ -334,7 +334,7 @@ unsigned char * ScaleImageRGBA( const unsigned char * src, const int width, cons
 
 	if ( scaled == NULL || srcLinear == NULL || scaledLinear == NULL )
 	{
-		LOG( "Failed to allocate resample buffers!" );
+		OVR_LOG( "Failed to allocate resample buffers!" );
 		free( scaled );
 		free( srcLinear );
 		free( scaledLinear );

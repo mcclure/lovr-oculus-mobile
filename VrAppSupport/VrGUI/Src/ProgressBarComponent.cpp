@@ -5,7 +5,7 @@ Content     :   A reusable component implementing a progress bar.
 Created     :   Mar 30, 2015
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2015 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -50,7 +50,7 @@ OvrProgressBarComponent::OvrProgressBarComponent( const VRMenuId_t rootId, const
 
 void OvrProgressBarComponent::SetProgressFrac( OvrVRMenuMgr & menuMgr, VRMenuObject * self, const float frac )
 {
-	//LOG( "OvrProgressBarComponent::SetProgressFrac to %f", Frac  );
+	//OVR_LOG( "OvrProgressBarComponent::SetProgressFrac to %f", Frac  );
 	if ( ( CurrentProgressBarState != PROGRESSBAR_STATE_VISIBLE ) &&
 		( CurrentProgressBarState != PROGRESSBAR_STATE_FADE_IN ) )
 	{
@@ -262,7 +262,7 @@ void OvrProgressBarComponent::SetProgressbarState( VRMenuObject * self, const eP
 	case PROGRESSBAR_STATE_FADE_IN:
 		if ( lastState == PROGRESSBAR_STATE_HIDDEN || lastState == PROGRESSBAR_STATE_FADE_OUT )
 		{
-			LOG( "%s to %s", StateString( lastState ), StateString( CurrentProgressBarState ) );
+			OVR_LOG( "%s to %s", StateString( lastState ), StateString( CurrentProgressBarState ) );
 			Fader.StartFadeIn();
 		}
 		break;
@@ -272,7 +272,7 @@ void OvrProgressBarComponent::SetProgressbarState( VRMenuObject * self, const eP
 	case PROGRESSBAR_STATE_FADE_OUT:
 		if ( lastState == PROGRESSBAR_STATE_VISIBLE || lastState == PROGRESSBAR_STATE_FADE_IN )
 		{
-			LOG( "%s to %s", StateString( lastState ), StateString( CurrentProgressBarState ) );
+			OVR_LOG( "%s to %s", StateString( lastState ), StateString( CurrentProgressBarState ) );
 			Fader.StartFadeOut();
 		}
 		break;

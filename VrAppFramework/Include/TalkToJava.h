@@ -5,7 +5,7 @@ Content     :   Thread and JNI management for making java calls in the backgroun
 Created     :   February 26, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_TalkToJava_h

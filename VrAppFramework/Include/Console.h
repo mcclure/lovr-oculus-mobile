@@ -5,7 +5,7 @@ Content     :   Send commands to an application.
 Created     :   11/21/2014
 Authors     :   Jonathan Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

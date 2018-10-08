@@ -5,7 +5,7 @@ Content     :
 Created     :
 Authors     :
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #include <math.h>
@@ -155,7 +155,7 @@ static Bounds3f BoundsForSurfaceList( const OVR::Array< ovrDrawSurface > & surfa
 		const Vector3f size = surf->surface->geo.localBounds.GetSize();
 		if ( size.x == 0.0f && size.y == 0.0f && size.z == 0.0f )
 		{
-			WARN( "surface[%s]->cullingBounds = (%f %f %f)-(%f %f %f)", surf->surface->surfaceName.ToCStr(),
+			OVR_WARN( "surface[%s]->cullingBounds = (%f %f %f)-(%f %f %f)", surf->surface->surfaceName.ToCStr(),
 				surf->surface->geo.localBounds.GetMins().x, surf->surface->geo.localBounds.GetMins().y, surf->surface->geo.localBounds.GetMins().z,
 				surf->surface->geo.localBounds.GetMaxs().x, surf->surface->geo.localBounds.GetMaxs().y, surf->surface->geo.localBounds.GetMaxs().z );
 			OVR_ASSERT( false );
@@ -166,50 +166,6 @@ static Bounds3f BoundsForSurfaceList( const OVR::Array< ovrDrawSurface > & surfa
 	}
 
 	return surfaceBounds;
-}
-
-void AppLocal::CreateFence( ovrFence * fence )
-{
-	fence->Display = 0;
-	fence->Sync = EGL_NO_SYNC_KHR;
-}
-
-void AppLocal::DestroyFence( ovrFence * fence )
-{
-#if defined( OVR_OS_ANDROID )
-	if ( fence->Sync != EGL_NO_SYNC_KHR )
-	{
-		if ( eglDestroySyncKHR_( fence->Display, fence->Sync ) ==  EGL_FALSE )
-		{
-			WARN( "eglDestroySyncKHR() : EGL_FALSE" );
-			return;
-		}
-		fence->Display = 0;
-		fence->Sync = EGL_NO_SYNC_KHR;
-	}
-#endif
-}
-
-void AppLocal::InsertFence( ovrFence * fence )
-{
-#if defined( OVR_OS_ANDROID )
-	DestroyFence( fence );
-
-	fence->Display = eglGetCurrentDisplay();
-	fence->Sync = eglCreateSyncKHR_( fence->Display, EGL_SYNC_FENCE_KHR, NULL );
-	if ( fence->Sync == EGL_NO_SYNC_KHR )
-	{
-		WARN( "eglCreateSyncKHR() : EGL_NO_SYNC_KHR" );
-		return;
-	}
-	// Force flushing the commands.
-	// Note that some drivers will already flush when calling eglCreateSyncKHR.
-	if ( eglClientWaitSyncKHR_( fence->Display, fence->Sync, EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, 0 ) == EGL_FALSE )
-	{
-		WARN( "eglClientWaitSyncKHR() : EGL_FALSE" );
-		return;
-	}
-#endif
 }
 
 void AppLocal::DrawEyeViews( ovrFrameResult & res )
@@ -320,11 +276,6 @@ void AppLocal::DrawEyeViews( ovrFrameResult & res )
 
 	EyeBuffers->EndFrame();
 
-	// Insert a single fence to indicate the frame is ready to be displayed.
-	ovrFence * fence = &CompletionFences[CompletionFenceIndex];
-	InsertFence( fence );
-	CompletionFenceIndex = ( CompletionFenceIndex + 1 ) % MAX_FENCES;
-
 	OVR_PERF_TIMER_STOP( AppLocal_DrawEyeViews_RenderEyes );
 
 	OVR_PERF_TIMER_STOP( AppLocal_DrawEyeViews );
@@ -343,7 +294,7 @@ void AppLocal::DrawEyeViews( ovrFrameResult & res )
 		frameDesc.Flags = res.FrameFlags;
 		frameDesc.SwapInterval = res.SwapInterval;
 		frameDesc.FrameIndex = res.FrameIndex;
-		frameDesc.CompletionFence = (size_t)fence->Sync;
+		frameDesc.CompletionFence_DEPRECATED = 0;
 		frameDesc.DisplayTime = res.DisplayTime;
 		frameDesc.LayerCount = layerCount;
 		frameDesc.Layers = layers;

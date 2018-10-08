@@ -5,7 +5,7 @@ Content     :
 Created     :   November 26, 2014
 Authors     :   Warsam Osman, Madhu Kalva
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 #ifndef OVR_PathUtils_h

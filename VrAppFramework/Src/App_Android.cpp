@@ -5,7 +5,7 @@ Content     :   Native counterpart to VrActivity and VrApp
 Created     :   September 30, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -46,7 +46,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeOnCreate( JNIEnv *jni, jclass cl
 	int32_t initResult = vrapi_Initialize( &initParms );
 	if ( initResult != VRAPI_INITIALIZE_SUCCESS )
 	{
-		LOG( "vrapi_Initialize failed" );
+		OVR_LOG( "vrapi_Initialize failed" );
 		// If intialization failed, vrapi_* function calls will not be available.
 		exit( 0 );
 	}
@@ -55,7 +55,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeOnCreate( JNIEnv *jni, jclass cl
 void Java_com_oculus_vrappframework_VrApp_nativeOnPause( JNIEnv *jni, jclass clazz,
 		jlong appPtr )
 {
-	LOG( "%p nativePause", (void *)appPtr );
+	OVR_LOG( "%p nativePause", (void *)appPtr );
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 	appLocal->GetMessageQueue().SendPrintf( "pause " );
 }
@@ -63,7 +63,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeOnPause( JNIEnv *jni, jclass cla
 void Java_com_oculus_vrappframework_VrApp_nativeOnResume( JNIEnv *jni, jclass clazz,
 		jlong appPtr )
 {
-	LOG( "%p nativeResume", (void *)appPtr );
+	OVR_LOG( "%p nativeResume", (void *)appPtr );
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 	appLocal->GetMessageQueue().SendPrintf( "resume " );
 }
@@ -71,7 +71,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeOnResume( JNIEnv *jni, jclass cl
 void Java_com_oculus_vrappframework_VrApp_nativeOnDestroy( JNIEnv *jni, jclass clazz,
 		jlong appPtr )
 {
-	LOG( "%p nativeDestroy", (void *)appPtr );
+	OVR_LOG( "%p nativeDestroy", (void *)appPtr );
 
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 	const bool exitOnDestroy = appLocal->ExitOnDestroy;
@@ -84,19 +84,19 @@ void Java_com_oculus_vrappframework_VrApp_nativeOnDestroy( JNIEnv *jni, jclass c
 
 	if ( exitOnDestroy )
 	{
-		LOG( "ExitOnDestroy is true, exiting" );
+		OVR_LOG( "ExitOnDestroy is true, exiting" );
 		exit( 0 );	// FIXME: is this still needed?
 	}
 	else
 	{
-		LOG( "ExitOnDestroy was false, returning normally." );
+		OVR_LOG( "ExitOnDestroy was false, returning normally." );
 	}
 }
 
 void Java_com_oculus_vrappframework_VrApp_nativeSurfaceCreated( JNIEnv *jni, jclass clazz,
 		jlong appPtr, jobject surface )
 {
-	LOG( "%p nativeSurfaceCreated( %p )", (void *)appPtr, surface );
+	OVR_LOG( "%p nativeSurfaceCreated( %p )", (void *)appPtr, surface );
 
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 
@@ -107,10 +107,10 @@ void Java_com_oculus_vrappframework_VrApp_nativeSurfaceCreated( JNIEnv *jni, jcl
 		// the wrong orientation even though android:screenOrientation="landscape" is set in the
 		// manifest. The choreographer callback will also never be called for this surface because
 		// the surface is immediately replaced with a new surface with the correct orientation.
-		WARN( "        Surface not in landscape mode!" );
+		OVR_WARN( "        Surface not in landscape mode!" );
 	}
 
-	LOG( "    pendingNativeWindow = ANativeWindow_fromSurface( jni, surface )" );
+	OVR_LOG( "    pendingNativeWindow = ANativeWindow_fromSurface( jni, surface )" );
 	appLocal->pendingNativeWindow = newNativeWindow;
 	appLocal->GetMessageQueue().SendPrintf( "surfaceCreated " );
 }
@@ -118,7 +118,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeSurfaceCreated( JNIEnv *jni, jcl
 void Java_com_oculus_vrappframework_VrApp_nativeSurfaceChanged( JNIEnv *jni, jclass clazz,
 		jlong appPtr, jobject surface )
 {
-	LOG( "%p nativeSurfaceChanged( %p )", (void *)appPtr, surface );
+	OVR_LOG( "%p nativeSurfaceChanged( %p )", (void *)appPtr, surface );
 
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 
@@ -129,7 +129,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeSurfaceChanged( JNIEnv *jni, jcl
 		// the wrong orientation even though android:screenOrientation="landscape" is set in the
 		// manifest. The choreographer callback will also never be called for this surface because
 		// the surface is immediately replaced with a new surface with the correct orientation.
-		WARN( "        Surface not in landscape mode!" );
+		OVR_WARN( "        Surface not in landscape mode!" );
 	}
 
 	if ( newNativeWindow != appLocal->pendingNativeWindow )
@@ -137,13 +137,13 @@ void Java_com_oculus_vrappframework_VrApp_nativeSurfaceChanged( JNIEnv *jni, jcl
 		if ( appLocal->pendingNativeWindow != NULL )
 		{
 			appLocal->GetMessageQueue().SendPrintf( "surfaceDestroyed " );
-			LOG( "    ANativeWindow_release( pendingNativeWindow )" );
+			OVR_LOG( "    ANativeWindow_release( pendingNativeWindow )" );
 			ANativeWindow_release( appLocal->pendingNativeWindow );
 			appLocal->pendingNativeWindow = NULL;
 		}
 		if ( newNativeWindow != NULL )
 		{
-			LOG( "    pendingNativeWindow = ANativeWindow_fromSurface( jni, surface )" );
+			OVR_LOG( "    pendingNativeWindow = ANativeWindow_fromSurface( jni, surface )" );
 			appLocal->pendingNativeWindow = newNativeWindow;
 			appLocal->GetMessageQueue().SendPrintf( "surfaceCreated " );
 		}
@@ -157,12 +157,12 @@ void Java_com_oculus_vrappframework_VrApp_nativeSurfaceChanged( JNIEnv *jni, jcl
 void Java_com_oculus_vrappframework_VrApp_nativeSurfaceDestroyed( JNIEnv *jni, jclass clazz,
 		jlong appPtr, jobject surface )
 {
-	LOG( "%p nativeSurfaceDestroyed()", (void *)appPtr );
+	OVR_LOG( "%p nativeSurfaceDestroyed()", (void *)appPtr );
 
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 
 	appLocal->GetMessageQueue().SendPrintf( "surfaceDestroyed " );
-	LOG( "    ANativeWindow_release( %p )", appLocal->pendingNativeWindow );
+	OVR_LOG( "    ANativeWindow_release( %p )", appLocal->pendingNativeWindow );
 	ANativeWindow_release( appLocal->pendingNativeWindow );
 	appLocal->pendingNativeWindow = NULL;
 }
@@ -186,7 +186,7 @@ void Java_com_oculus_vrappframework_VrActivity_nativeKeyEvent( JNIEnv *jni, jcla
 	if ( appLocal->IntentType != OVR::INTENT_LAUNCH )
 	{
 		OVR::ovrKeyCode keyCode = OVR::OSKeyToKeyCode( key );
-		//LOG( "nativeKeyEvent: key = %i, keyCode = %i, down = %s, repeatCount = %i", key, keyCode, down ? "true" : "false", repeatCount );
+		//OVR_LOG( "nativeKeyEvent: key = %i, keyCode = %i, down = %s, repeatCount = %i", key, keyCode, down ? "true" : "false", repeatCount );
 		appLocal->GetMessageQueue().PostPrintfIfSpaceAvailable( MIN_SLOTS_AVAILABLE_FOR_INPUT, "key %i %i %i", keyCode, down, repeatCount );
 	}
 }
@@ -194,7 +194,7 @@ void Java_com_oculus_vrappframework_VrActivity_nativeKeyEvent( JNIEnv *jni, jcla
 void Java_com_oculus_vrappframework_VrActivity_nativeNewIntent( JNIEnv *jni, jclass clazz,
 		jlong appPtr, jstring fromPackageName, jstring command, jstring uriString )
 {
-	LOG( "%p nativeNewIntent", (void *)appPtr );
+	OVR_LOG( "%p nativeNewIntent", (void *)appPtr );
 	JavaUTFChars utfPackageName( jni, fromPackageName );
 	JavaUTFChars utfUri( jni, uriString );
 	JavaUTFChars utfJson( jni, command );
@@ -202,7 +202,7 @@ void Java_com_oculus_vrappframework_VrActivity_nativeNewIntent( JNIEnv *jni, jcl
 	char intentMessage[4096];
 	ComposeIntentMessage( utfPackageName.ToStr(), utfUri.ToStr(), utfJson.ToStr(), 
 			intentMessage, sizeof( intentMessage ) );
-	LOG( "nativeNewIntent: %s", intentMessage );
+	OVR_LOG( "nativeNewIntent: %s", intentMessage );
 	OVR::AppLocal * appLocal = (OVR::AppLocal *)appPtr;
 	appLocal->GetMessageQueue().PostString( intentMessage );
 }
@@ -228,7 +228,7 @@ jlong VrAppInterface::SetActivity( JNIEnv * jni, jclass clazz, jobject activity,
 	JavaUTFChars utfFromPackageString( jni, javaFromPackageNameString );
 	JavaUTFChars utfJsonString( jni, javaCommandString );
 	JavaUTFChars utfUriString( jni, javaUriString );
-	LOG( "VrAppInterface::SetActivity: %s %s %s", utfFromPackageString.ToStr(), utfJsonString.ToStr(), utfUriString.ToStr() );
+	OVR_LOG( "VrAppInterface::SetActivity: %s %s %s", utfFromPackageString.ToStr(), utfJsonString.ToStr(), utfUriString.ToStr() );
 
 	AppLocal * appLocal = static_cast< AppLocal * >( app );
 
@@ -236,7 +236,7 @@ jlong VrAppInterface::SetActivity( JNIEnv * jni, jclass clazz, jobject activity,
 	{	// First time initialization
 		// This will set the VrAppInterface app pointer directly,
 		// so it is set when OneTimeInit is called.
-		LOG( "new AppLocal( %p %p %p )", jni, activity, this );
+		OVR_LOG( "new AppLocal( %p %p %p )", jni, activity, this );
 		appLocal = new AppLocal( *jni, activity, *this );
 		app = appLocal;
 
@@ -245,7 +245,7 @@ jlong VrAppInterface::SetActivity( JNIEnv * jni, jclass clazz, jobject activity,
 	}
 	else
 	{	// Just update the activity object.
-		LOG( "Update AppLocal( %p %p %p )", jni, activity, this );
+		OVR_LOG( "Update AppLocal( %p %p %p )", jni, activity, this );
 		appLocal->SetActivity( jni, activity );
 	}
 

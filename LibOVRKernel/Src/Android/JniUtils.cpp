@@ -5,7 +5,7 @@ Content     :   JNI utility functions
 Created     :   October 21, 2014
 Authors     :   J.M.P. van Waveren
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -54,7 +54,7 @@ jint ovr_AttachCurrentThread( JavaVM *vm, JNIEnv **jni, void *args )
 	const jint rtn = vm->AttachCurrentThread( jni, args );
 	if ( rtn != JNI_OK )
 	{
-		FAIL( "AttachCurrentThread returned %i", rtn );
+		OVR_FAIL( "AttachCurrentThread returned %i", rtn );
 	}
 	// Restore the thread name after AttachCurrentThread() overwrites it.
 	if ( threadName[0] != '\0' )
@@ -69,7 +69,7 @@ jint ovr_DetachCurrentThread( JavaVM * vm )
 	const jint rtn = vm->DetachCurrentThread();
 	if ( rtn != JNI_OK )
 	{
-		FAIL( "DetachCurrentThread() returned %i", rtn );
+		OVR_FAIL( "DetachCurrentThread() returned %i", rtn );
 	}
 	return rtn;
 }
@@ -93,7 +93,7 @@ jclass ovr_GetClassLoader( JNIEnv * jni, jobject contextObject )
 
 	if ( localClass == 0 )
 	{
-		FAIL( "getClassLoaderFailed failed" );
+		OVR_FAIL( "getClassLoaderFailed failed" );
 	}
 
 	return localClass;
@@ -109,7 +109,7 @@ jclass ovr_GetLocalClassReferenceWithLoader( JNIEnv * jni, jobject classLoader, 
 
 	if ( localClass == 0 )
 	{
-		FAIL( "FindClass( %s ) failed", className );
+		OVR_FAIL( "FindClass( %s ) failed", className );
 	}
 
 	return localClass;
@@ -147,7 +147,7 @@ jmethodID ovr_GetMethodID( JNIEnv * jni, jclass jniclass, const char * name, con
 	const jmethodID methodId = jni->GetMethodID( jniclass, name, signature );
 	if ( !methodId )
 	{
-		FAIL( "couldn't get %s, %s", name, signature );
+		OVR_FAIL( "couldn't get %s, %s", name, signature );
 	}
 	return methodId;
 }
@@ -157,7 +157,7 @@ jmethodID ovr_GetStaticMethodID( JNIEnv * jni, jclass jniclass, const char * nam
 	const jmethodID method = jni->GetStaticMethodID( jniclass, name, signature );
 	if ( !method )
 	{
-		FAIL( "couldn't get %s, %s", name, signature );
+		OVR_FAIL( "couldn't get %s, %s", name, signature );
 	}
 	return method;
 }
@@ -175,7 +175,7 @@ const char * ovr_GetPackageCodePath( JNIEnv * jni, jobject activityObject, char 
 	jmethodID getPackageCodePathId = jni->GetMethodID( activityClass.GetJClass(), "getPackageCodePath", "()Ljava/lang/String;" );
 	if ( getPackageCodePathId == 0 )
 	{
-		LOG( "Failed to find getPackageCodePath on class %llu, object %llu",
+		OVR_LOG( "Failed to find getPackageCodePath on class %llu, object %llu",
 				(long long unsigned int)activityClass.GetJClass(), (long long unsigned int)activityObject );
 		return packageCodePath;
 	}
@@ -192,10 +192,10 @@ const char * ovr_GetPackageCodePath( JNIEnv * jni, jobject activityObject, char 
 	else 
 	{
 		jni->ExceptionClear();
-		LOG( "Cleared JNI exception" );
+		OVR_LOG( "Cleared JNI exception" );
 	}
 
-	//LOG( "ovr_GetPackageCodePath() = '%s'", packageCodePath );
+	//OVR_LOG( "ovr_GetPackageCodePath() = '%s'", packageCodePath );
 	return packageCodePath;
 }
 
@@ -228,7 +228,7 @@ bool ovr_GetInstalledPackagePath( JNIEnv * jni, jobject activityObject, char con
 		}
 		else
 		{
-			WARN( "Exception occurred when calling getInstalledPackagePathId" );
+			OVR_WARN( "Exception occurred when calling getInstalledPackagePathId" );
 			jni->ExceptionClear();
 		}
 	}
@@ -255,10 +255,10 @@ const char * ovr_GetCurrentPackageName( JNIEnv * jni, jobject activityObject, ch
 		else
 		{
 			jni->ExceptionClear();
-			LOG( "Cleared JNI exception" );
+			OVR_LOG( "Cleared JNI exception" );
 		}
 	}
-	//LOG( "ovr_GetCurrentPackageName() = %s", packageName );
+	//OVR_LOG( "ovr_GetCurrentPackageName() = %s", packageName );
 	return packageName;
 }
 
@@ -285,7 +285,7 @@ const char * ovr_GetCurrentActivityName( JNIEnv * jni, jobject activityObject, c
 		}
 	}
 
-	//LOG( "ovr_GetCurrentActivityName() = %s", activityName );
+	//OVR_LOG( "ovr_GetCurrentActivityName() = %s", activityName );
 	return activityName;
 }
 
@@ -294,7 +294,7 @@ bool ovr_IsCurrentPackage( JNIEnv * jni, jobject activityObject, const char * pa
 	char currentPackageName[128];
 	ovr_GetCurrentPackageName( jni, activityObject, currentPackageName, sizeof( currentPackageName ) );
 	const bool isCurrentPackage = ( strcasecmp( currentPackageName, packageName ) == 0 );
-	//LOG( "ovr_IsCurrentPackage( %s ) = %s", packageName, isCurrentPackage ? "true" : "false" );
+	//OVR_LOG( "ovr_IsCurrentPackage( %s ) = %s", packageName, isCurrentPackage ? "true" : "false" );
 	return isCurrentPackage;
 }
 
@@ -303,7 +303,7 @@ bool ovr_IsCurrentActivity( JNIEnv * jni, jobject activityObject, const char * a
 	char currentClassName[128];
 	ovr_GetCurrentActivityName( jni, activityObject, currentClassName, sizeof( currentClassName ) );
 	const bool isCurrentActivity = ( strcasecmp( currentClassName, activityName ) == 0 );
-	//LOG( "ovr_IsCurrentActivity( %s ) = %s", activityName, isCurrentActivity ? "true" : "false" );
+	//OVR_LOG( "ovr_IsCurrentActivity( %s ) = %s", activityName, isCurrentActivity ? "true" : "false" );
 	return isCurrentActivity;
 }
 

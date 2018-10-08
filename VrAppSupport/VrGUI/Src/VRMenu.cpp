@@ -7,7 +7,7 @@ Content     :   Class that implements the basic framework for a VR menu, holds a
 Created     :   June 30, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -96,7 +96,7 @@ void VRMenu::Init( OvrGuiSys & guiSys, float const menuDistance, VRMenuFlags_t c
 	VRMenuObject * root = guiSys.GetVRMenuMgr().ToObject( RootHandle );
 	if ( root == NULL )
 	{
-		WARN( "RootHandle (%" PRIu64 ") is invalid!", RootHandle.Get() );
+		OVR_WARN( "RootHandle (%" PRIu64 ") is invalid!", RootHandle.Get() );
 		return;
 	}
 
@@ -173,7 +173,7 @@ void VRMenu::AddItems( OvrGuiSys & guiSys,
 		{
 			if ( j != i && parms->Id != VRMenuId_t() && parms->Id == itemParms[j]->Id )
 			{
-				LOG( "Duplicate menu object ids for '%s' and '%s'!",
+				OVR_LOG( "Duplicate menu object ids for '%s' and '%s'!",
 						parms->Text.ToCStr(), itemParms[j]->Text.ToCStr() );
 			}
 		}
@@ -216,8 +216,8 @@ void VRMenu::AddItems( OvrGuiSys & guiSys,
 	}
 
 #if defined( OVR_USE_PERF_TIMER )
-	LOG( "AddItems create took %f seconds", vrapi_GetTimeInSeconds() - createStartTime );
-	LOG( "Creating Objects took %f seconds", createObjectTotal );
+	OVR_LOG( "AddItems create took %f seconds", vrapi_GetTimeInSeconds() - createStartTime );
+	OVR_LOG( "Creating Objects took %f seconds", createObjectTotal );
 #endif
 
 	{
@@ -273,7 +273,7 @@ void VRMenu::AddItems( OvrGuiSys & guiSys,
 // VRMenu::Shutdown
 void VRMenu::Shutdown( OvrGuiSys & guiSys )
 {
-	ASSERT_WITH_TAG( IsInitialized, "VrMenu" );
+	OVR_ASSERT_WITH_TAG( IsInitialized, "VrMenu" );
 
 	Shutdown_Impl( guiSys );
 
@@ -324,7 +324,7 @@ void VRMenu::Frame( OvrGuiSys & guiSys, ovrFrameInput const & vrFrame, Matrix4f 
 	// inside this block is dependent on this.
 	if ( NextMenuState != CurMenuState )
 	{
-		LOG( "NextMenuState for '%s': %s", GetName(), MenuStateNames[NextMenuState] );
+		OVR_LOG( "NextMenuState for '%s': %s", GetName(), MenuStateNames[NextMenuState] );
 		switch( NextMenuState )
 		{
             case MENUSTATE_OPENING:
@@ -344,7 +344,7 @@ void VRMenu::Frame( OvrGuiSys & guiSys, ovrFrameInput const & vrFrame, Matrix4f 
 			case MENUSTATE_OPEN:
 				{
 					OVR_ASSERT( CurMenuState != NextMenuState ); // logic below is dependent on this!!
-					if ( CurMenuState != MENUSTATE_OPENING ) { LOG( "Instant open" ); }
+					if ( CurMenuState != MENUSTATE_OPENING ) { OVR_LOG( "Instant open" ); }
 					OpenSoundLimiter.PlayMenuSound( guiSys, Name.ToCStr(), "sv_release_active", 0.1 );
 					EventHandler->Opened( events );				
 				}
@@ -364,7 +364,7 @@ void VRMenu::Frame( OvrGuiSys & guiSys, ovrFrameInput const & vrFrame, Matrix4f 
 			case MENUSTATE_CLOSED:
 				{
 					OVR_ASSERT( CurMenuState != NextMenuState ); // logic below is dependent on this!!
-					if ( CurMenuState != MENUSTATE_CLOSING ) { LOG( "Instant close" ); }
+					if ( CurMenuState != MENUSTATE_CLOSING ) { OVR_LOG( "Instant close" ); }
 					CloseSoundLimiter.PlayMenuSound( guiSys, Name.ToCStr(), "sv_deselect", 0.1 );
 					EventHandler->Closed( events );
 					Close_Impl( guiSys );
@@ -455,7 +455,7 @@ bool VRMenu::OnKeyEvent( OvrGuiSys & guiSys, int const keyCode, const int repeat
 
 	if ( keyCode == OVR_KEY_BACK )
 	{
-		LOG( "VRMenu '%s' Back key event: %s", GetName(), KeyEventNames[eventType] );
+		OVR_LOG( "VRMenu '%s' Back key event: %s", GetName(), KeyEventNames[eventType] );
 
 		switch( eventType )
 		{
@@ -495,7 +495,7 @@ bool VRMenu::OnKeyEvent( OvrGuiSys & guiSys, int const keyCode, const int repeat
 // VRMenu::Open
 void VRMenu::Open( OvrGuiSys & guiSys )
 {
-	LOG( "VRMenu::Open - '%s', pre - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
+	OVR_LOG( "VRMenu::Open - '%s', pre - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
 	if ( CurMenuState == MENUSTATE_OPENING ) 
 	{ 
 		// this is a NOP, never allow transitioning back to the same state
@@ -503,21 +503,21 @@ void VRMenu::Open( OvrGuiSys & guiSys )
 	}
 	NextMenuState = MENUSTATE_OPENING;
 	guiSys.MakeActive( this );
-	LOG( "VRMenu::Open - %s, post - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
+	OVR_LOG( "VRMenu::Open - %s, post - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
 }
 
 //==============================
 // VRMenu::Close
 void VRMenu::Close( OvrGuiSys & guiSys, bool const instant )
 {
-	LOG( "VRMenu::Close - %s, pre - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
+	OVR_LOG( "VRMenu::Close - %s, pre - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
 	if ( CurMenuState == MENUSTATE_CLOSING )
 	{ 
 		// this is a NOP, never allow transitioning back to the same state
 		return; 
 	}
 	NextMenuState = instant ? MENUSTATE_CLOSED : MENUSTATE_CLOSING;
-	LOG( "VRMenu::Close - %s, post - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
+	OVR_LOG( "VRMenu::Close - %s, post - c: %s n: %s", GetName(), MenuStateNames[CurMenuState], MenuStateNames[NextMenuState] );
 }
 
 //==============================
@@ -693,7 +693,7 @@ menuHandle_t VRMenu::GetFocusedHandle() const
 // VRMenu::ResetMenuOrientation
 void VRMenu::ResetMenuOrientation( Matrix4f const & viewMatrix )
 {
-	LOG( "ResetMenuOrientation for '%s'", GetName() );
+	OVR_LOG( "ResetMenuOrientation for '%s'", GetName() );
 	ResetMenuOrientation_Impl( viewMatrix );
 }
 
@@ -740,7 +740,7 @@ bool VRMenu::InitFromReflectionData( OvrGuiSys & guiSys, ovrFileSys & fileSys, o
 		if ( !fileSys.ReadFile( fileNames[i], parmBuffer ) )
 		{
 			DeletePointerArray( itemParms );
-			LOG( "Failed to load reflection file '%s'.", fileNames[i] );
+			OVR_LOG( "Failed to load reflection file '%s'.", fileNames[i] );
 			return false;
 		}
 
@@ -754,7 +754,7 @@ bool VRMenu::InitFromReflectionData( OvrGuiSys & guiSys, ovrFileSys & fileSys, o
 		if ( !parseResult )
 		{
 			DeletePointerArray( itemParms );
-			LOG( "%s", parseResult.GetErrorText() );
+			OVR_LOG( "%s", parseResult.GetErrorText() );
 			return false;
 		}
 	} 

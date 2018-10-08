@@ -5,7 +5,7 @@ Content     :   URI parser.
 Created     :   July 1, 2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -270,7 +270,7 @@ bool ovrUri::ParseUri( char const * uri,
 					if ( schemeOffset < 1 )
 					{
 						//OVR_ASSERT( schemeOffset >= 1 );
-						LOG( "Uri '%s' has an empty scheme!", uri );
+						OVR_LOG( "Uri '%s' has an empty scheme!", uri );
 						return false;
 					}
 				}
@@ -278,7 +278,7 @@ bool ovrUri::ParseUri( char const * uri,
 				if ( decoder.PeekNext() != '/' || decoder.PeekNextNext() != '/' )
 				{
 					//OVR_ASSERT( false );
-					LOG( "Uri '%s': valid scheme must be followed by a host separator ( '//' ).", uri );
+					OVR_LOG( "Uri '%s': valid scheme must be followed by a host separator ( '//' ).", uri );
 					return false;
 				}
 				// done with scheme
@@ -302,7 +302,7 @@ bool ovrUri::ParseUri( char const * uri,
 				else if ( !isalpha( ch ) )
 				{
 					//OVR_ASSERT( schemeOffset > 0 || isalpha( ch ) );
-					LOG( "Uri '%s': scheme does not start with a letter.", uri );
+					OVR_LOG( "Uri '%s': scheme does not start with a letter.", uri );
 					if ( outScheme != NULL )
 					{
 						outScheme[0] = '\0';
@@ -313,7 +313,7 @@ bool ovrUri::ParseUri( char const * uri,
 
 			if ( !EncodeCharToBuffer( ch, outScheme, outSchemeSize, schemeOffset ) )
 			{
-				LOG( "Uri '%s': scheme buffer overflow!", uri );
+				OVR_LOG( "Uri '%s': scheme buffer overflow!", uri );
 				return false;
 			}
 		}
@@ -358,7 +358,7 @@ bool ovrUri::ParseUri( char const * uri,
 			{
 				if ( parsedUsername )
 				{
-					LOG( "Uri '%s': Malformed authority!", uri );
+					OVR_LOG( "Uri '%s': Malformed authority!", uri );
 					return false;
 				}
 				// start parsing the password now
@@ -374,11 +374,11 @@ bool ovrUri::ParseUri( char const * uri,
 				// continue to parse the host
 				if ( usernameOverflowed )
 				{
-					LOG( "Uri '%s': username buffer overflow!", uri );
+					OVR_LOG( "Uri '%s': username buffer overflow!", uri );
 				}
 				if ( passwordOverflowed )
 				{
-					LOG( "Uri '%s': password buffer overflow!", uri );
+					OVR_LOG( "Uri '%s': password buffer overflow!", uri );
 				}
 				if ( outPassword != NULL )
 				{
@@ -434,12 +434,12 @@ bool ovrUri::ParseUri( char const * uri,
 							if ( outPath != NULL )
 							{
 								//OVR_ASSERT( outPath != NULL && ch != '\0' );
-								LOG( "Uri '%s': found host:port without path when a path was expected!", uri );
+								OVR_LOG( "Uri '%s': found host:port without path when a path was expected!", uri );
 								return false;
 							}
 							else
 							{
-								LOG( "Uri '%s': parsed host:port without a path!", uri );
+								OVR_LOG( "Uri '%s': parsed host:port without a path!", uri );
 							}
 							return true;
 						}
@@ -448,14 +448,14 @@ bool ovrUri::ParseUri( char const * uri,
 					}
 					else if ( !isdigit( ch ) )
 					{
-						LOG( "Uri '%s' has a non-numeric port!", uri );
+						OVR_LOG( "Uri '%s' has a non-numeric port!", uri );
 						//OVR_ASSERT( isdigit( ch ) );
 						return false;
 					}
 
 					if ( !EncodeCharToBuffer( ch, &portString[0], sizeof( portString ), portOffset ) )
 					{
-						LOG( "Uri '%s': port buffer overflow!", uri );
+						OVR_LOG( "Uri '%s': port buffer overflow!", uri );
 						return false;
 					}
 				}
@@ -480,7 +480,7 @@ bool ovrUri::ParseUri( char const * uri,
 #else
 					if ( hostOffset < 1 )
 					{
-						LOG( "Uri '%s': missing host!", uri );
+						OVR_LOG( "Uri '%s': missing host!", uri );
 						//OVR_ASSERT( hostOffset > 0 );
 						return false;
 					}
@@ -493,7 +493,7 @@ bool ovrUri::ParseUri( char const * uri,
 
 			if ( !IsLegalHostCharacter( ch ) )
 			{
-				LOG( "Uri '%s': illegal character 0x%x in host.", uri, ch );
+				OVR_LOG( "Uri '%s': illegal character 0x%x in host.", uri, ch );
 				if ( outHost != NULL )
 				{
 					outHost[0] = '\0';
@@ -502,7 +502,7 @@ bool ovrUri::ParseUri( char const * uri,
 			}
 			if ( !EncodeCharToBuffer( ch, outHost, outHostSize, hostOffset ) )
 			{
-				LOG( "Uri '%s': host buffer overflow!", uri );
+				OVR_LOG( "Uri '%s': host buffer overflow!", uri );
 				return false;
 			}
 		}
@@ -523,7 +523,7 @@ bool ovrUri::ParseUri( char const * uri,
 					outPath[pathOffset] = '\0';
 					if ( pathOffset == 1 && outPath[0] == '/' )
 					{
-						LOG( "Uri '%s': empty path!", uri );
+						OVR_LOG( "Uri '%s': empty path!", uri );
 						return false;
 					}
 				}
@@ -536,7 +536,7 @@ bool ovrUri::ParseUri( char const * uri,
 
 			if ( !EncodeCharToBuffer( ch, outPath, outPathSize, pathOffset ) )
 			{
-				LOG( "Uri '%s': path buffer overflow", uri );
+				OVR_LOG( "Uri '%s': path buffer overflow", uri );
 				return false;
 			}		
 		}
@@ -565,7 +565,7 @@ bool ovrUri::ParseUri( char const * uri,
 
 			if ( !EncodeCharToBuffer( ch, outQuery, outQuerySize, queryOffset ) )
 			{
-				LOG( "Uri '%s': query buffer overflow", uri );
+				OVR_LOG( "Uri '%s': query buffer overflow", uri );
 				return false;
 			}
 		}
@@ -590,7 +590,7 @@ bool ovrUri::ParseUri( char const * uri,
 
 			if ( !EncodeCharToBuffer( ch, outFragment, outFragmentSize, fragmentOffset ) )
 			{
-				LOG( "Uri '%s': fragment buffer overflow", uri );
+				OVR_LOG( "Uri '%s': fragment buffer overflow", uri );
 				return false;
 			}
 		}
@@ -620,14 +620,14 @@ bool ovrUri::IsValidUri( char const * uri )
 static void LogResult( char const * name, char const * value )
 {
 #if defined( OVR_BUILD_DEBUG )
-	LOG( "%s: %s", name, value != NULL ? value : "<NULL>" );
+	OVR_LOG( "%s: %s", name, value != NULL ? value : "<NULL>" );
 #endif
 }
 
 static void LogResult( char const * name, int const value )
 {
 #if defined( OVR_BUILD_DEBUG )
-	LOG( "%s: %i", name, value );
+	OVR_LOG( "%s: %i", name, value );
 #endif
 }
 
@@ -647,9 +647,9 @@ static void ReportTest( char const * testName, char const * uri, bool const isVa
 
 	if ( failMsg != NULL )
 	{
-		LOG( "Test %s", testName );
-		LOG( "URI: %s", uri );
-		LOG( "%s", failMsg );
+		OVR_LOG( "Test %s", testName );
+		OVR_LOG( "URI: %s", uri );
+		OVR_LOG( "%s", failMsg );
 		LogResult( "scheme", scheme );
 		LogResult( "username", username );
 		LogResult( "password", password );

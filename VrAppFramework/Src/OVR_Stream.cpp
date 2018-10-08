@@ -5,7 +5,7 @@ Content     :   Abstraction for file streams.
 Created     :   July 1, 2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #include "OVR_Stream.h"
@@ -60,7 +60,7 @@ bool ovrUriScheme::OpenHost( char const * hostName, char const * sourceUri )
 	OVR_ASSERT( ovrUri::IsValidUri( sourceUri ) );
 	if ( !OpenHost_Internal( hostName, sourceUri ) )
 	{
-		LOG( "Failed to OpenHost for host '%s', uri '%s'", hostName, sourceUri );
+		OVR_LOG( "Failed to OpenHost for host '%s', uri '%s'", hostName, sourceUri );
 		OVR_ASSERT( false );
 		return false;
 	}
@@ -133,7 +133,7 @@ bool ovrStream::Open( char const * uri, ovrStreamMode const mode )
 {
 	if ( IsOpen() )
 	{
-		LOG( "ovrStream::Open: tried to open Uri '%s' when Uri '%s' is already open", uri, Uri.ToCStr() );
+		OVR_LOG( "ovrStream::Open: tried to open Uri '%s' when Uri '%s' is already open", uri, Uri.ToCStr() );
 		OVR_ASSERT( !IsOpen() );
 		return false;
 	}
@@ -170,14 +170,14 @@ bool ovrStream::Read( MemBufferT< uint8_t > & outBuffer, size_t const bytesToRea
 {
 	if ( !IsOpen() )
 	{
-		LOG( "ovrStream::Read: stream is not open!" );
+		OVR_LOG( "ovrStream::Read: stream is not open!" );
 		OVR_ASSERT( IsOpen() );
 		return false;
 	}
 
 	if ( Mode != OVR_STREAM_MODE_READ )
 	{
-		LOG( "ovrStream::Read: stream is not open for reading!" );
+		OVR_LOG( "ovrStream::Read: stream is not open for reading!" );
 		OVR_ASSERT( Mode == OVR_STREAM_MODE_READ );
 		return false;
 	}
@@ -199,14 +199,14 @@ bool ovrStream::Write( void const * inBuffer, size_t const bytesToWrite )
 {
 	if ( !IsOpen() )
 	{
-		LOG( "ovrStream::Read: stream is not open!" );
+		OVR_LOG( "ovrStream::Read: stream is not open!" );
 		OVR_ASSERT( IsOpen() );
 		return false;
 	}
 
 	if ( Mode != OVR_STREAM_MODE_WRITE )
 	{
-		LOG( "ovrStream::Read: stream is not open for writing!" );
+		OVR_LOG( "ovrStream::Read: stream is not open for writing!" );
 		OVR_ASSERT( Mode == OVR_STREAM_MODE_WRITE );
 		return false;
 	}
@@ -401,7 +401,7 @@ bool ovrStream_File::GetLocalPathFromUri_Internal( const char *uri, String &outp
 	if ( !ovrUri::ParseUri( uri, schemeName, sizeof( schemeName ), NULL, 0, NULL, 0, hostName, sizeof( hostName ), 
 			port, uriPath, sizeof( uriPath ), NULL, 0, NULL, 0 ) )
 	{
-		LOG( "ovrStream_File::GetLocalPathFromUri_Internal: invalid uri '%s'", uri );
+		OVR_LOG( "ovrStream_File::GetLocalPathFromUri_Internal: invalid uri '%s'", uri );
 		OVR_ASSERT( false );
 		return false;
 	}
@@ -442,7 +442,7 @@ bool ovrStream_File::GetLocalPathFromUri_Internal( const char *uri, String &outp
 		if ( !ovrUri::ParseUri( sourceUri, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 
 				port, basePath, sizeof( basePath ), NULL, 0, NULL, 0 ) )
 		{
-			LOG( "ovrStream_File::GetLocalPathFromUri_Internal: invalid source uri '%s'", sourceUri );
+			OVR_LOG( "ovrStream_File::GetLocalPathFromUri_Internal: invalid source uri '%s'", sourceUri );
 			OVR_ASSERT( false );
 			return false;
 		}
@@ -468,7 +468,7 @@ bool ovrStream_File::Open_Internal( char const * uri, ovrStreamMode const mode )
 	if ( F != NULL )
 	{
 		OVR_ASSERT( F == NULL );
-		LOG( "Attempted to open file '%s' with an already open file handle.", uri );
+		OVR_LOG( "Attempted to open file '%s' with an already open file handle.", uri );
 		return false;
 	}
 	char const * fmode = NULL;
@@ -498,7 +498,7 @@ bool ovrStream_File::Open_Internal( char const * uri, ovrStreamMode const mode )
 	if ( !ovrUri::ParseUri( uri, schemeName, sizeof( schemeName ), NULL, 0, NULL, 0, hostName, sizeof( hostName ), 
 			port, uriPath, sizeof( uriPath ), NULL, 0, NULL, 0 ) )
 	{
-		LOG( "ovrStream_File::Open_Internal: invalid uri '%s'", uri );
+		OVR_LOG( "ovrStream_File::Open_Internal: invalid uri '%s'", uri );
 		OVR_ASSERT( false );
 		return false;
 	}
@@ -543,7 +543,7 @@ bool ovrStream_File::Open_Internal( char const * uri, ovrStreamMode const mode )
 		if ( !ovrUri::ParseUri( sourceUri, NULL, 0, NULL, 0, NULL, 0, NULL, 0, 
 				port, basePath, sizeof( basePath ), NULL, 0, NULL, 0 ) )
 		{
-			LOG( "ovrStream_File::Open_Internal: invalid source uri '%s'", sourceUri );
+			OVR_LOG( "ovrStream_File::Open_Internal: invalid source uri '%s'", sourceUri );
 			OVR_ASSERT( false );
 			return false;
 		}
@@ -589,7 +589,7 @@ bool ovrStream_File::Read_Internal( MemBufferT< uint8_t > & outBuffer, size_t co
 	outBytesRead = numRead * bytesToRead;
 	if ( numRead != 1 )
 	{
-		LOG( "Tried to read %zu bytes from file '%s', but only read %zu bytes.", bytesToRead, Uri.ToCStr(), outBytesRead );
+		OVR_LOG( "Tried to read %zu bytes from file '%s', but only read %zu bytes.", bytesToRead, Uri.ToCStr(), outBytesRead );
 		return false;
 	}
 	return true;
@@ -612,7 +612,7 @@ bool ovrStream_File::Write_Internal( void const * inBuffer, size_t const bytesTo
 	size_t recsWritten = fwrite( inBuffer, bytesToWrite, 1, F );
 	if ( recsWritten != 1 )
 	{
-		LOG( "Failed to write %zu bytes to file '%s'", bytesToWrite, Uri.ToCStr() );
+		OVR_LOG( "Failed to write %zu bytes to file '%s'", bytesToWrite, Uri.ToCStr() );
 		return false;
 	}
 	return true;
@@ -786,7 +786,7 @@ bool ovrUriScheme_Apk::ovrApkHost::Open()
 	ZipFile = ovr_OpenOtherApplicationPackage( path );
 	if ( ZipFile == NULL )
 	{
-		LOG( "Failed to open apk: '%s'", SourceUri.ToCStr() );
+		OVR_LOG( "Failed to open apk: '%s'", SourceUri.ToCStr() );
 		return false;
 	}
 	return true;
@@ -851,7 +851,7 @@ bool ovrStream_Apk::Open_Internal( char const * uri, ovrStreamMode const mode )
 {
 	if ( IsOpen )
 	{
-		LOG( "ovrStream_Apk: tried to open uri '%s' when '%s' is already open", uri, GetUri() );
+		OVR_LOG( "ovrStream_Apk: tried to open uri '%s' when '%s' is already open", uri, GetUri() );
 		OVR_ASSERT( !IsOpen );
 		return false;
 	}
@@ -859,7 +859,7 @@ bool ovrStream_Apk::Open_Internal( char const * uri, ovrStreamMode const mode )
 	if ( mode != OVR_STREAM_MODE_READ )
 	{
 		OVR_ASSERT( mode == OVR_STREAM_MODE_READ );
-		LOG( "Only OVR_STREAM_MODE_READ is supported for apks! Uri: '%s'", uri );
+		OVR_LOG( "Only OVR_STREAM_MODE_READ is supported for apks! Uri: '%s'", uri );
 		return false;
 	}
 
@@ -869,7 +869,7 @@ bool ovrStream_Apk::Open_Internal( char const * uri, ovrStreamMode const mode )
 	if ( !ovrUri::ParseUri( uri, NULL, 0, NULL, 0, NULL, 0, hostName, sizeof( hostName ), 
 			port, path, sizeof( path ), NULL, 0, NULL, 0 ) )
 	{
-		LOG( "ovrStream_Apk::Open_Internal: invalid Uri '%s'", uri );
+		OVR_LOG( "ovrStream_Apk::Open_Internal: invalid Uri '%s'", uri );
 		return false;
 	}
 
@@ -877,7 +877,7 @@ bool ovrStream_Apk::Open_Internal( char const * uri, ovrStreamMode const mode )
 	void * zipFile = GetApkScheme().GetZipFileForHostName( hostName );
 	if ( zipFile == NULL )
 	{
-		LOG( "ovrStream_Apk::Open_Internal: no zip file for uri '%s', host '%s'", uri, hostName );
+		OVR_LOG( "ovrStream_Apk::Open_Internal: no zip file for uri '%s', host '%s'", uri, hostName );
 		return false;
 	}
 
@@ -912,7 +912,7 @@ bool ovrStream_Apk::ReadFile_Internal( MemBufferT< uint8_t > & outBuffer )
 	if ( !ovrUri::ParseUri( GetUri(), NULL, 0, NULL, 0, NULL, 0, hostName, sizeof( hostName ), 
 				port, path, sizeof( path ), NULL, 0, NULL, 0 ) )
 	{
-		LOG( "ovrStream_Apk::ReadFile_Internal: invalid Uri '%s'", GetUri() );
+		OVR_LOG( "ovrStream_Apk::ReadFile_Internal: invalid Uri '%s'", GetUri() );
 		return false;
 	}
 

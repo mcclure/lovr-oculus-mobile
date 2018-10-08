@@ -5,7 +5,7 @@ Content     :   Global gaze cursor.
 Created     :   June 6, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -176,12 +176,12 @@ OvrGazeCursorLocal::~OvrGazeCursorLocal()
 // OvrGazeCursorLocal::
 void OvrGazeCursorLocal::Init( ovrFileSys & fileSys )
 {
-	LOG( "OvrGazeCursorLocal::Init" );
-	ASSERT_WITH_TAG( Initialized == false, "GazeCursor" );
+	OVR_LOG( "OvrGazeCursorLocal::Init" );
+	OVR_ASSERT_WITH_TAG( Initialized == false, "GazeCursor" );
 
 	if ( Initialized )
 	{
-		LOG( "OvrGazeCursorLocal::Init - already initialized!" );
+		OVR_LOG( "OvrGazeCursorLocal::Init - already initialized!" );
 		return;
 	}
 
@@ -254,8 +254,8 @@ void OvrGazeCursorLocal::Init( ovrFileSys & fileSys )
 // OvrGazeCursorLocal::
 void OvrGazeCursorLocal::Shutdown()
 {
-	LOG( "OvrGazeCursorLocal::Shutdown" );
-	ASSERT_WITH_TAG( Initialized == true, "GazeCursor" );
+	OVR_LOG( "OvrGazeCursorLocal::Shutdown" );
+	OVR_ASSERT_WITH_TAG( Initialized == true, "GazeCursor" );
 
 	ZPassCursorSurface.geo.Free();
 	ZFailCursorSurface.geo.Free();
@@ -271,10 +271,10 @@ void OvrGazeCursorLocal::Shutdown()
 // OvrGazeCursorLocal::UpdateDistance
 void OvrGazeCursorLocal::UpdateDistance( float const d, eGazeCursorStateType const state )
 {
-	//LOG( "OvrGazeCursorLocal::UpdateDistance %.4f", d );
+	//OVR_LOG( "OvrGazeCursorLocal::UpdateDistance %.4f", d );
 	if ( d < Info.Distance )
 	{
-		//LOG( "OvrGazeCursorLocal::UpdateDistance - new closest distace %.2f", d );
+		//OVR_LOG( "OvrGazeCursorLocal::UpdateDistance - new closest distace %.2f", d );
 		Info.Distance = d;
 		Info.State = state;
 	}
@@ -303,7 +303,7 @@ static float frand()
 // OvrGazeCursorLocal::Frame
 void OvrGazeCursorLocal::Frame( Matrix4f const & viewMatrix, Matrix4f const & traceMatrix, float const deltaTime )
 {
-	//LOG( "OvrGazeCursorLocal::Frame" );
+	//OVR_LOG( "OvrGazeCursorLocal::Frame" );
 	HiddenFrames -= 1;
 
 	if ( RotationRateRadians != 0.0f )	// comparison to exactly 0 is intentional
@@ -399,7 +399,7 @@ void OvrGazeCursorLocal::Frame( Matrix4f const & viewMatrix, Matrix4f const & tr
 // OvrGazeCursorLocal::AppendSurfaceList
 void OvrGazeCursorLocal::AppendSurfaceList( Array< ovrDrawSurface > & surfaceList ) const
 {
-	//LOG( "OvrGazeCursorLocal::AppendSurfaceList" );
+	//OVR_LOG( "OvrGazeCursorLocal::AppendSurfaceList" );
 
 	if ( HiddenFrames >= 0 )
 	{
@@ -413,7 +413,7 @@ void OvrGazeCursorLocal::AppendSurfaceList( Array< ovrDrawSurface > & surfaceLis
 
 	if ( CursorScale <= 0.0f )
 	{
-		LOG( "OvrGazeCursorLocal::AppendSurfaceList - scale 0" );
+		OVR_LOG( "OvrGazeCursorLocal::AppendSurfaceList - scale 0" );
 		return;
 	}
 

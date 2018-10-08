@@ -5,7 +5,7 @@ Content     :   Builds the input for VrAppInterface::Frame()
 Created     :   April 26, 2015
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

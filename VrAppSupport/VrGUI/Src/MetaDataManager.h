@@ -5,7 +5,7 @@ Content     :   A class to manage metadata used by FolderBrowser
 Created     :   January 26, 2015
 Authors     :   Jonathan E. Wright, Warsam Osman, Madhu Kalva
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/

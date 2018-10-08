@@ -5,7 +5,7 @@ Content     :	Wave data parsing.
 Created     :	March 6, 2016
 Authors     :   
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -88,7 +88,7 @@ bool ParseWavDataInMemory( const MemBufferT<uint8_t> & inBuff,
 
 	if ( waveBufferSize < ( sizeof( RiffChunk ) * 2 + sizeof( uint32_t ) + ( sizeof( PcmWaveFormat ) - 2 /*waveformat*/) ) )
 	{
-		WARN( "Invalid Wave buffer size %d", waveBufferSize );
+		OVR_WARN( "Invalid Wave buffer size %d", waveBufferSize );
 		return false;
 	}
 
@@ -98,7 +98,7 @@ bool ParseWavDataInMemory( const MemBufferT<uint8_t> & inBuff,
 	const RiffChunk * riffWaveChunk = GetChunkFromStream( waveBuffer, waveBufferSize, WAVE_RIFF_TAG );
 	if ( riffWaveChunk == NULL || riffWaveChunk->ChunkSize < 4 )
 	{
-		WARN( "Invalid RIFF chunk size %d", riffWaveChunk->ChunkSize );
+		OVR_WARN( "Invalid RIFF chunk size %d", riffWaveChunk->ChunkSize );
 		return false;
 	}
 
@@ -106,14 +106,14 @@ bool ParseWavDataInMemory( const MemBufferT<uint8_t> & inBuff,
 	const RiffChunkHeader * riffWaveHeader = reinterpret_cast<const RiffChunkHeader *>( riffWaveChunk );
 	if ( riffWaveHeader->RiffChunk != WAVE_FILE_TAG )
 	{
-		WARN( "Unsupported file type %d", riffWaveHeader->RiffChunk );
+		OVR_WARN( "Unsupported file type %d", riffWaveHeader->RiffChunk );
 		return false;
 	}
 
 	const uint8_t * ptr = reinterpret_cast<const uint8_t *>( riffWaveHeader ) + sizeof( RiffChunkHeader );
 	if ( ( ptr + sizeof( RiffChunk ) ) > waveBufferEnd )
 	{
-		WARN( "End of file when looking for FMT chunk" );
+		OVR_WARN( "End of file when looking for FMT chunk" );
 		return false;
 	}
 
@@ -121,7 +121,7 @@ bool ParseWavDataInMemory( const MemBufferT<uint8_t> & inBuff,
 	const RiffChunk * riffFmtChunk = GetChunkFromStream( ptr, riffWaveHeader->ChunkSize, WAVE_FORMAT_TAG );
 	if ( riffFmtChunk == NULL || riffFmtChunk->ChunkSize < sizeof( PcmWaveFormat ) )
 	{
-		WARN( "Invalid Riff Fmt Chunk" );
+		OVR_WARN( "Invalid Riff Fmt Chunk" );
 		return false;
 	}
 
@@ -149,21 +149,21 @@ bool ParseWavDataInMemory( const MemBufferT<uint8_t> & inBuff,
 	ptr = reinterpret_cast<const uint8_t *>( riffWaveHeader ) + sizeof( RiffChunkHeader );
 	if ( ( ptr + sizeof( RiffChunk ) ) > waveBufferEnd )
 	{
-		WARN( "End of file when looking for wave data" );
+		OVR_WARN( "End of file when looking for wave data" );
 		return false;
 	}
 
 	const RiffChunk * riffDataChunk = GetChunkFromStream( ptr, riffWaveChunk->ChunkSize, WAVE_DATA_TAG );
 	if ( riffDataChunk == NULL || riffDataChunk->ChunkSize == 0 )
 	{
-		WARN( "Invalid Riff Data Chunk" );
+		OVR_WARN( "Invalid Riff Data Chunk" );
 		return false;
 	}
 
 	ptr = reinterpret_cast<const uint8_t *>( riffDataChunk ) + sizeof( RiffChunk );
 	if ( ptr + riffDataChunk->ChunkSize > waveBufferEnd )
 	{
-		WARN( "End of file when looking for Riff data" );
+		OVR_WARN( "End of file when looking for Riff data" );
 		return false;
 	}
 

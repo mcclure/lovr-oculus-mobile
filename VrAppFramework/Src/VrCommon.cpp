@@ -5,7 +5,7 @@ Content     :
 Created     :   
 Authors     :   
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -32,10 +32,10 @@ namespace OVR {
 
 void LogMatrix( const char * title, const Matrix4f & m )
 {
-	LOG( "%s:", title );
+	OVR_LOG( "%s:", title );
 	for ( int i = 0; i < 4; i++ )
 	{
-		LOG("%6.3f %6.3f %6.3f %6.3f", m.M[i][0], m.M[i][1], m.M[i][2], m.M[i][3] );
+		OVR_LOG("%6.3f %6.3f %6.3f %6.3f", m.M[i][0], m.M[i][1], m.M[i][2], m.M[i][3] );
 	}
 }
 

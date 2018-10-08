@@ -5,7 +5,7 @@ Content     :   Handling of different eye buffer formats
 Created     :   March 7, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_EyeBuffers_h

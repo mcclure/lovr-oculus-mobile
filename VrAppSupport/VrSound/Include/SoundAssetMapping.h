@@ -5,7 +5,7 @@ Content     :   Sound asset manager via json definitions
 Created     :   October 22, 2013
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 Description :
 

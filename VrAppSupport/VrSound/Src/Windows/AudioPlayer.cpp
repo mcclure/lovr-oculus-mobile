@@ -5,7 +5,7 @@ Content     :   A Very Basic Sound Player which accounts for Rift Audio Focus.
 Created     :   March 6, 2016
 Authors     :   Gloria Kennickell
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -197,7 +197,7 @@ ovrAudioPlayer::ovrAudioPlayer() :
 											deviceId );
 		if ( FAILED( hr ) )
 		{
-			WARN( "Failed to create XAudio2 Mastering Voice %d", hr );
+			OVR_WARN( "Failed to create XAudio2 Mastering Voice %d", hr );
 
 			if ( AudioEngine != NULL )
 			{
@@ -208,10 +208,10 @@ ovrAudioPlayer::ovrAudioPlayer() :
 	}
 	else
 	{
-		WARN( "Failed to create XAudio2 Engine %d", hr );
+		OVR_WARN( "Failed to create XAudio2 Engine %d", hr );
 		if ( hr == REGDB_E_CLASSNOTREG  )
 		{
-			WARN( "Verify the dxsdk 2010 redistributable is installed" );
+			OVR_WARN( "Verify the dxsdk 2010 redistributable is installed" );
 		}
 	}
 }
@@ -271,7 +271,7 @@ soundData_t * ovrAudioPlayer::CacheSound( const char * soundName, MemBufferT< ui
 											 soundData->waveData );
 	if ( !success )
 	{
-		WARN( "Faild to load wav data for %s", soundName );
+		OVR_WARN( "Faild to load wav data for %s", soundName );
 		delete soundData;
 		return NULL;
 	}
@@ -298,7 +298,7 @@ soundData_t * ovrAudioPlayer::CacheSound( const char * soundName, MemBufferT< ui
 
 		if ( FAILED( hr ) )
 		{
-			WARN( "Failed to create sound voice for %s", soundName );
+			OVR_WARN( "Failed to create sound voice for %s", soundName );
 
 			delete soundData;
 			delete voiceData;

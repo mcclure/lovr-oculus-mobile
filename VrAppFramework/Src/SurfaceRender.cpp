@@ -5,7 +5,7 @@ Content     :   Optimized OpenGL rendering path
 Created     :   August 9, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 
@@ -232,7 +232,7 @@ int ovrSurfaceRender::UpdateSceneMatrices( const Matrix4f * viewMatrix,
 		}
 	}
 
-	//LOG( "UpdateSceneMatrices: RequiresUpdate %d, CurrIdx %d", requiresUpdate, CurrentSceneMatricesIdx );
+	//OVR_LOG( "UpdateSceneMatrices: RequiresUpdate %d, CurrIdx %d", requiresUpdate, CurrentSceneMatricesIdx );
 
 	return CurrentSceneMatricesIdx;
 }
@@ -609,7 +609,7 @@ ovrDrawCounters ovrSurfaceRender::RenderSurfaceList( const Array<ovrDrawSurface>
 
 		if ( LogRenderSurfaces )
 		{
-			LOG( "Drawing %s", surfaceDef.surfaceName.ToCStr() );
+			OVR_LOG( "Drawing %s", surfaceDef.surfaceName.ToCStr() );
 		}
 
 		// Bind all the vertex and element arrays

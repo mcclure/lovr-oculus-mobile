@@ -5,7 +5,7 @@ Content     :   Misc. VRMenu Components to handle actions
 Created     :   September 12, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -20,7 +20,7 @@ eMsgStatus OvrButton_OnUp::OnEvent_Impl( OvrGuiSys & guiSys, ovrFrameInput const
 	VRMenuObject * self, VRMenuEvent const & event )
 {
 	OVR_ASSERT( event.EventType == VRMENU_EVENT_TOUCH_UP );
-	LOG( "Button id %lli clicked", ButtonId.Get() );
+	OVR_LOG( "Button id %lli clicked", ButtonId.Get() );
 	Menu->OnItemEvent( guiSys, vrFrame, ButtonId, event );
 	return MSG_STATUS_CONSUMED;
 }

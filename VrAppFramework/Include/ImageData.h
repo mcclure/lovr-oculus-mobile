@@ -5,7 +5,7 @@ Content     :   Operations on byte arrays that don't interact with the GPU.
 Created     :   July 9, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/

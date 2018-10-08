@@ -5,7 +5,7 @@ Content     :   OpenGL Buffer Management.
 Created     :   
 Authors     :   
 
-Copyright   :   Copyright 2016 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_GlBuffer_h

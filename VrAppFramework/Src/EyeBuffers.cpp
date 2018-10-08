@@ -5,7 +5,7 @@ Content     :   Handling of different eye buffer formats
 Created     :   March 8, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -66,9 +66,9 @@ void ovrEyeBuffers::Initialize( const ovrEyeBufferParms & appBufferParms, const 
 	*
 	* TODO: fall back to simpler cases on failure and mark a flag in bufferData?
 	*/
-	LOG( "Reallocating buffers" );
+	OVR_LOG( "Reallocating buffers" );
 
-	LOG( "Allocate FBO: res=%ix%i color=%i depth=%i ms=%i",
+	OVR_LOG( "Allocate FBO: res=%ix%i color=%i depth=%i ms=%i",
 			bufferParms_.resolutionWidth, bufferParms_.resolutionHeight, 
 			bufferParms_.colorFormat, bufferParms_.depthFormat, bufferParms_.multisamples );
 
@@ -83,7 +83,7 @@ void ovrEyeBuffers::Initialize( const ovrEyeBufferParms & appBufferParms, const 
 		case COLOR_8888:		colorFormat = VRAPI_TEXTURE_FORMAT_8888; break;
 		case COLOR_8888_sRGB:	colorFormat = VRAPI_TEXTURE_FORMAT_8888_sRGB; break;
 		case COLOR_RGBA16F:		colorFormat = VRAPI_TEXTURE_FORMAT_RGBA16F; break;
-		default: 				FAIL( "Unknown colorFormat %i", bufferParms_.colorFormat );
+		default: 				OVR_FAIL( "Unknown colorFormat %i", bufferParms_.colorFormat );
 	}
 
 	ovrTextureFormat depthFormat = VRAPI_TEXTURE_FORMAT_NONE;
@@ -118,7 +118,7 @@ void ovrEyeBuffers::BeginFrame()
 		const double timeNow = floor( SystemClock::GetTimeInSeconds() );
 		if ( timeNow > lastReportTime )
 		{
-			LOG( "Eyes GPU time: %3.1f ms", LogEyeSceneGpuTime.GetTotalTime() );
+			OVR_LOG( "Eyes GPU time: %3.1f ms", LogEyeSceneGpuTime.GetTotalTime() );
 			lastReportTime = timeNow;
 		}
 	}

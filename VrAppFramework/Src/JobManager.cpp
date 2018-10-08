@@ -5,7 +5,7 @@ Content     :   A multi-threaded job manager
 Created     :   12/15/2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -230,7 +230,7 @@ threadReturn_t ovrJob::DoWork( ovrJobThreadContext const & jtc )
 	threadReturn_t tr = DoWork_Impl( jtc );
 
 	clock_t endTime = std::clock();
-	LOG( "Job '%s' took %f seconds.", Name, double( endTime - startTime ) / (double)CLOCKS_PER_SEC );
+	OVR_LOG( "Job '%s' took %f seconds.", Name, double( endTime - startTime ) / (double)CLOCKS_PER_SEC );
 
 	return tr;
 }
@@ -386,7 +386,7 @@ void ovrJobManagerImpl::Init( JavaVM & javaVM )
 
 void ovrJobManagerImpl::Shutdown()
 {
-	LOG( "ovrJobManagerImpl::Shutdown" );
+	OVR_LOG( "ovrJobManagerImpl::Shutdown" );
 
 	Exiting = true;
 
@@ -402,7 +402,7 @@ void ovrJobManagerImpl::Shutdown()
 		{
 			if ( !Threads[threadIndex]->IsAttached() )
 			{
-				LOG( "Exited thread '%s'", Threads[threadIndex]->GetThreadName() );
+				OVR_LOG( "Exited thread '%s'", Threads[threadIndex]->GetThreadName() );
 				ovrJobThread::Destroy( Threads[threadIndex] );
 				Threads.RemoveAtUnordered( threadIndex );
 				break;
@@ -419,12 +419,12 @@ void ovrJobManagerImpl::Shutdown()
 
 	Initialized = false;
 
-	LOG( "ovrJobManagerImpl::Shutdown - complete." );
+	OVR_LOG( "ovrJobManagerImpl::Shutdown - complete." );
 }
 
 void ovrJobManagerImpl::EnqueueJob( ovrJob * job )
 {
-	//LOG( "ovrJobManagerImpl::EnqueueJob" );
+	//OVR_LOG( "ovrJobManagerImpl::EnqueueJob" );
 	PendingJobs.PushBack( job );
 	NewJobSignal->Raise();	// signal a waiting job
 }

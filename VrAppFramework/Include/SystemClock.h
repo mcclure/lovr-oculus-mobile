@@ -5,7 +5,7 @@ Content     :
 Created     :
 Authors     :
 
-Copyright   :   Copyright 2018 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #if !defined( OVR_SystemClock )

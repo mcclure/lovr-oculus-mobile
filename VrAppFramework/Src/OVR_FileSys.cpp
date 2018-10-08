@@ -5,7 +5,7 @@ Content     :   Abraction layer for file systems.
 Created     :   July 1, 2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -113,7 +113,7 @@ ovrFileSysLocal::ovrFileSysLocal( ovrJava const & javaContext ) : Jvm( javaConte
 	OVR_sprintf( curPackageUri, sizeof( curPackageUri ), "file://%s", curPackageCodePath );
 	if ( !scheme->OpenHost( "localhost", curPackageUri ) )
 	{
-		LOG( "Failed to OpenHost for host '%s', uri '%s'", "localhost", curPackageUri );
+		OVR_LOG( "Failed to OpenHost for host '%s', uri '%s'", "localhost", curPackageUri );
 		OVR_ASSERT( false );
 	}
 
@@ -161,7 +161,7 @@ ovrFileSysLocal::ovrFileSysLocal( ovrJava const & javaContext ) : Jvm( javaConte
 		if ( success && buffer.GetSize() > 0 )
 		{
 			OVR::OVR_strncpy( fontPackageName, sizeof( fontPackageName ), ( char const * )( static_cast< uint8_t const * >( buffer ) ), buffer.GetSize() );
-			LOG( "Found font package name '%s'", fontPackageName );
+			OVR_LOG( "Found font package name '%s'", fontPackageName );
 		} else {
 			// default to the SystemActivities apk.
 			OVR::OVR_strcpy( fontPackageName, sizeof( fontPackageName ), PUI_PACKAGE_NAME );
@@ -182,7 +182,7 @@ ovrFileSysLocal::ovrFileSysLocal( ovrJava const & javaContext ) : Jvm( javaConte
 			}
 			scheme->OpenHost( "font", packageUri );
 
-			LOG( "Added host '%s' for fonts @'%s'", fontPackageName, packageUri );
+			OVR_LOG( "Added host '%s' for fonts @'%s'", fontPackageName, packageUri );
 		}
 	}
 #elif defined( OVR_OS_WIN32 )
@@ -210,7 +210,7 @@ ovrFileSysLocal::ovrFileSysLocal( ovrJava const & javaContext ) : Jvm( javaConte
 		ovrPathUtils::FixSlashesForUriInPlace( packageUri );
 		if ( !scheme->OpenHost( "localhost", packageUri ) )
 		{
-			LOG( "Failed to OpenHost for host '%s', uri '%s'", "localhost", packageUri );
+			OVR_LOG( "Failed to OpenHost for host '%s', uri '%s'", "localhost", packageUri );
 			OVR_ASSERT( false );
 		}
 
@@ -226,12 +226,12 @@ ovrFileSysLocal::ovrFileSysLocal( ovrJava const & javaContext ) : Jvm( javaConte
 		// packed into the application's asset package.
 		if ( !scheme->OpenHost( PUI_PACKAGE_NAME, packageUri ) )
 		{
-			LOG( "Failed to OpenHost for host '%s', uri '%s'", PUI_PACKAGE_NAME, packageUri );
+			OVR_LOG( "Failed to OpenHost for host '%s', uri '%s'", PUI_PACKAGE_NAME, packageUri );
 			OVR_ASSERT( false );
 		}
 		if ( !scheme->OpenHost( "font", packageUri ) )
 		{
-			LOG( "Failed to OpenHost for host '%s', uri '%s'", "font", packageUri );
+			OVR_LOG( "Failed to OpenHost for host '%s', uri '%s'", "font", packageUri );
 			OVR_ASSERT( false );
 		}
 
@@ -302,7 +302,7 @@ ovrStream *	ovrFileSysLocal::OpenStream( char const * uri, ovrStreamMode const m
 	ovrUriScheme * uriScheme = FindSchemeForName( scheme );
 	if ( uriScheme == NULL )
 	{
-		LOG( "Uri '%s' missing scheme! Assuming apk scheme!", uri );
+		OVR_LOG( "Uri '%s' missing scheme! Assuming apk scheme!", uri );
 		uriScheme = FindSchemeForName( "apk" );
 		if ( uriScheme == NULL )
 		{
@@ -397,7 +397,7 @@ bool ovrFileSysLocal::GetLocalPathForURI( char const * uri, String &outputPath )
 	ovrUriScheme * uriScheme = FindSchemeForName( scheme );
 	if ( uriScheme == NULL )
 	{
-		LOG( "GetLocalPathForURI: Uri '%s' missing scheme!", uri );
+		OVR_LOG( "GetLocalPathForURI: Uri '%s' missing scheme!", uri );
 		return false;
 	}
 

@@ -4,7 +4,9 @@ PublicHeader:   OVR_Kernel.h
 Filename    :   OVR_BitFlags.h
 Content     :   Template for typesafe number types.
 Created     :   June 5, 2014
-Authors     :   Jonathan E. wright (nelno@oculusvr.com)
+Authors     :   Jonathan E. wright
+
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
  
 *************************************************************************************/
 

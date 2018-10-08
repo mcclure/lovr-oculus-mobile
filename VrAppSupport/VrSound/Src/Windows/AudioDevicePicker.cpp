@@ -5,7 +5,7 @@ Content     :	Pick the audio device.
 Created     :	March 6, 2016
 Authors     :   Gloria Kennickell
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

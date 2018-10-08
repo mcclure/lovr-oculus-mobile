@@ -1,11 +1,11 @@
 /************************************************************************************
 
-Filename    :   Log.h
+Filename    :   OVR_LogUtils.h (Previously Log.h)
 Content     :   Macros and helpers for Android logging.
 Created     :   4/15/2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -32,11 +32,11 @@ void LogWithTag( const int prio, const char * tag, const char * fmt, ... );
 // Strips the directory and extension from fileTag to give a concise log tag
 void LogWithFileTag( const int prio, const char * fileTag, const char * fmt, ... );
 
-#define LOG( ... ) 	LogWithFileTag( 0, __FILE__, __VA_ARGS__ )
-#define WARN( ... ) LogWithFileTag( 0, __FILE__, __VA_ARGS__ )
-#define FAIL( ... ) {LogWithFileTag( 0, __FILE__, __VA_ARGS__ );exit(0);}
-#define LOG_WITH_TAG( __tag__, ... ) LogWithTag( 0, __FILE__, __VA_ARGS__ )
-#define ASSERT_WITH_TAG( __expr__, __tag__ )
+#define OVR_LOG( ... ) 	LogWithFileTag( 0, __FILE__, __VA_ARGS__ )
+#define OVR_WARN( ... ) LogWithFileTag( 0, __FILE__, __VA_ARGS__ )
+#define OVR_FAIL( ... ) {LogWithFileTag( 0, __FILE__, __VA_ARGS__ );exit(0);}
+#define OVR_LOG_WITH_TAG( __tag__, ... ) LogWithTag( 0, __FILE__, __VA_ARGS__ )
+#define OVR_ASSERT_WITH_TAG( __expr__, __tag__ )
 
 #elif defined( OVR_OS_ANDROID )
 
@@ -60,19 +60,19 @@ void LogWithFileTag( const int prio, const char * fileTag, const char * fmt, ...
 // #define LOG_TAG in source file) when available. Fallback to using a massaged
 // __FILE__ macro turning the file base in to a tag -- jni/App.cpp becomes the
 // tag "App".
-#ifdef LOG_TAG
-#define LOG(...) ( (void)LogWithTag( ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__) )
-#define WARN(...) ( (void)LogWithTag( ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__) )
-#define FAIL(...) { (void)LogWithTag( ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__); abort(); }
+#ifdef OVR_LOG_TAG
+#define OVR_LOG(...) ( (void)LogWithTag( ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__) )
+#define OVR_WARN(...) ( (void)LogWithTag( ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__) )
+#define OVR_FAIL(...) { (void)LogWithTag( ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__); abort(); }
 #else
-#define LOG( ... ) LogWithFileTag( ANDROID_LOG_INFO, __FILE__, __VA_ARGS__ )
-#define WARN( ... ) LogWithFileTag( ANDROID_LOG_WARN, __FILE__, __VA_ARGS__ )
-#define FAIL( ... ) {LogWithFileTag( ANDROID_LOG_ERROR, __FILE__, __VA_ARGS__ );abort();}
+#define OVR_LOG( ... ) LogWithFileTag( ANDROID_LOG_INFO, __FILE__, __VA_ARGS__ )
+#define OVR_WARN( ... ) LogWithFileTag( ANDROID_LOG_WARN, __FILE__, __VA_ARGS__ )
+#define OVR_FAIL( ... ) {LogWithFileTag( ANDROID_LOG_ERROR, __FILE__, __VA_ARGS__ );abort();}
 #endif
 
-#define LOG_WITH_TAG( __tag__, ...) ( (void)LogWithTag( ANDROID_LOG_INFO, __tag__, __VA_ARGS__) )
-#define WARN_WITH_TAG( __tag__, ...) ( (void)LogWithTag( ANDROID_LOG_WARN, __tag__, __VA_ARGS__) )
-#define FAIL_WITH_TAG( __tag__, ... ) { (void)LogWithTag( ANDROID_LOG_ERROR, __tag__, __VA_ARGS__); abort(); }
+#define OVR_LOG_WITH_TAG( __tag__, ...) ( (void)LogWithTag( ANDROID_LOG_INFO, __tag__, __VA_ARGS__) )
+#define OVR_WARN_WITH_TAG( __tag__, ...) ( (void)LogWithTag( ANDROID_LOG_WARN, __tag__, __VA_ARGS__) )
+#define OVR_FAIL_WITH_TAG( __tag__, ... ) { (void)LogWithTag( ANDROID_LOG_ERROR, __tag__, __VA_ARGS__); abort(); }
 
 
 // LOG (usually defined on a per-file basis to write to a specific tag) is for logging that can be checked in 
@@ -92,18 +92,13 @@ void LogWithFileTag( const int prio, const char * fileTag, const char * fmt, ...
 // TODO: we need a define for internal builds that will compile in assertion messages but not debug breaks
 // and we need a define for external builds that will do nothing when an assert is hit.
 #if !defined( OVR_BUILD_DEBUG )
-#define ASSERT_WITH_TAG( __expr__, __tag__ ) { if ( !( __expr__ ) ) { WARN_WITH_TAG( __tag__, "ASSERTION FAILED: %s", #__expr__ ); } }
+#define OVR_ASSERT_WITH_TAG( __expr__, __tag__ ) { if ( !( __expr__ ) ) { OVR_WARN_WITH_TAG( __tag__, "ASSERTION FAILED: %s", #__expr__ ); } }
 #else
-#define ASSERT_WITH_TAG( __expr__, __tag__ ) { if ( !( __expr__ ) ) { WARN_WITH_TAG( __tag__, "ASSERTION FAILED: %s", #__expr__ ); OVR_DEBUG_BREAK; } }
+#define OVR_ASSERT_WITH_TAG( __expr__, __tag__ ) { if ( !( __expr__ ) ) { OVR_WARN_WITH_TAG( __tag__, "ASSERTION FAILED: %s", #__expr__ ); OVR_DEBUG_BREAK; } }
 #endif
 
 #else
 #error "unknown platform"
 #endif	
-
-#define LOGD LOG
-#define LOGI LOG
-#define LOGW WARN
-#define LOGE WARN
 
 #endif // OVRLib_Log_h

@@ -5,7 +5,7 @@ Content     :   Read files from the application package zip
 Created     :   August 18, 2014
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -96,14 +96,14 @@ bool ovr_OtherPackageFileExists( void* zipFile, const char * nameInZip )
 	const int locateRet = unzLocateFile( zipFile, nameInZip, 2 /* case insensitive */ );
 	if ( locateRet != UNZ_OK )
 	{
-		LOG( "File '%s' not found in apk!", nameInZip );
+		OVR_LOG( "File '%s' not found in apk!", nameInZip );
 		return false;
 	}
 
 	const int openRet = unzOpenCurrentFile( zipFile );
 	if ( openRet != UNZ_OK )
 	{
-		WARN( "Error opening file '%s' from apk!", nameInZip );
+		OVR_WARN( "Error opening file '%s' from apk!", nameInZip );
 		return false;
 	}
 
@@ -148,7 +148,7 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 
 	if ( locateRet != UNZ_OK )
 	{
-		LOG( "File '%s' not found in apk!", nameInZip );
+		OVR_LOG( "File '%s' not found in apk!", nameInZip );
 		return false;
 	}
 
@@ -157,7 +157,7 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 
 	if ( getRet != UNZ_OK )
 	{
-		WARN( "File info error reading '%s' from apk!", nameInZip );
+		OVR_WARN( "File info error reading '%s' from apk!", nameInZip );
 		return false;
 	}
 
@@ -179,7 +179,7 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 				length = s.st_size;
 				if ( length != (int)info.uncompressed_size )
 				{
-					LOG( "Cached file for %s has length %i != %lu", nameInZip,
+					OVR_LOG( "Cached file for %s has length %i != %lu", nameInZip,
 							length, info.uncompressed_size );
 					// Fall through to normal load.
 				}
@@ -190,7 +190,7 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 					close( fd );
 					if ( r != length )
 					{
-						LOG( "Cached file for %s only read %i != %i", nameInZip,
+						OVR_LOG( "Cached file for %s only read %i != %i", nameInZip,
 								r, length );
 						freeBuffer( buffer, useMalloc );
 						// Fall through to normal load.
@@ -213,7 +213,7 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 	const int openRet = unzOpenCurrentFile( zipFile );
 	if ( openRet != UNZ_OK )
 	{
-		WARN( "Error opening file '%s' from apk!", nameInZip );
+		OVR_WARN( "Error opening file '%s' from apk!", nameInZip );
 		return false;
 	}
 
@@ -223,7 +223,7 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 	const int readRet = unzReadCurrentFile( zipFile, buffer, length );
 	if ( readRet != length )
 	{
-		WARN( "Error reading file '%s' from apk!", nameInZip );
+		OVR_WARN( "Error reading file '%s' from apk!", nameInZip );
 		freeBuffer( buffer, useMalloc );
 		length = 0;
 		buffer = NULL;
@@ -250,21 +250,21 @@ static bool ovr_ReadFileFromOtherApplicationPackageInternal( void * zipFile, con
 			{
 				if ( rename( tempName, cacheName ) == -1 )
 				{
-					LOG( "Failed to rename cache file for %s", nameInZip );
+					OVR_LOG( "Failed to rename cache file for %s", nameInZip );
 				}
 				else
 				{
-					LOG( "Cache file generated for %s", nameInZip );
+					OVR_LOG( "Cache file generated for %s", nameInZip );
 				}
 			}
 			else
 			{
-				LOG( "Only wrote %i of %i for cached %s", r, length, nameInZip );
+				OVR_LOG( "Only wrote %i of %i for cached %s", r, length, nameInZip );
 			}
 		}
 		else
 		{
-			LOG( "Failed to open new cache file for %s: %s", nameInZip, tempName );
+			OVR_LOG( "Failed to open new cache file for %s: %s", nameInZip, tempName );
 		}
 #endif
 	}

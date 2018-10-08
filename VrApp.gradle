@@ -114,7 +114,7 @@ class VrAppPlugin implements Plugin<Project> {
 			  }
 			  ndkBuild {
 				  def numProcs = Runtime.runtime.availableProcessors()
-				  arguments "V=0", "-j$numProcs", "-C$project.buildDir.parent", "APP_PLATFORM=android-21"
+				  arguments "V=0", "-j$numProcs", "-C$project.buildDir.parent", "APP_PLATFORM=android-21", "NDK_TOOLCHAIN_VERSION=clang", "APP_STL=c++_static"
 				  abiFilters 'armeabi-v7a'
 			  }
 		  }

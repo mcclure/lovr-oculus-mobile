@@ -5,7 +5,7 @@ Content     :   Functions and declarations for introspection and reflection of C
 Created     :   11/16/2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

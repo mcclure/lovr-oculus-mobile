@@ -5,7 +5,7 @@ Content     :   Optimized OpenGL rendering path
 Created     :   August 9, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 ************************************************************************************/
 
@@ -203,7 +203,7 @@ void BuildModelSurfaceList(	Array<ovrDrawSurface> & surfaceList,
 						{
 							if ( LogRenderSurfaces )
 							{
-								LOG( "Culled %s", surfaceDef.surfaceName.ToCStr() );
+								OVR_LOG( "Culled %s", surfaceDef.surfaceName.ToCStr() );
 							}
 							cullCount++;
 							continue;
@@ -212,7 +212,7 @@ void BuildModelSurfaceList(	Array<ovrDrawSurface> & surfaceList,
 						{
 							if ( LogRenderSurfaces )
 							{
-								LOG( "Skipped Culling of %s", surfaceDef.surfaceName.ToCStr() );
+								OVR_LOG( "Skipped Culling of %s", surfaceDef.surfaceName.ToCStr() );
 							}
 						}
 					}
@@ -266,7 +266,7 @@ void BuildModelSurfaceList(	Array<ovrDrawSurface> & surfaceList,
 							}
 							else
 							{
-								WARN( "No inverse bind on modle" );
+								OVR_WARN( "No inverse bind on modle" );
 								localJointTransform = tempTransform;
 							}
 
@@ -295,7 +295,7 @@ void BuildModelSurfaceList(	Array<ovrDrawSurface> & surfaceList,
 		{
 			if ( LogRenderSurfaces )
 			{
-				LOG( "Culled %s", surfaceDef.surfaceName.ToCStr() );
+				OVR_LOG( "Culled %s", surfaceDef.surfaceName.ToCStr() );
 			}
 			cullCount++;
 			continue;
@@ -313,7 +313,7 @@ void BuildModelSurfaceList(	Array<ovrDrawSurface> & surfaceList,
 		numSurfaces++;
 	}
 
-	//LOG( "Culled %i, draw %i", cullCount, numSurfaces );
+	//OVR_LOG( "Culled %i, draw %i", cullCount, numSurfaces );
 
 	// sort by the far W and transparency
 	// IMPORTANT: use a stable sort so surfaces with identical bounds

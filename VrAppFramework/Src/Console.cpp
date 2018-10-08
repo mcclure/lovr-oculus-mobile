@@ -5,7 +5,7 @@ Content     :   Allows adb to send commands to an application.
 Created     :   11/21/2014
 Authors     :   Jonathan Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -25,17 +25,17 @@ class OvrConsole
 public:
 	void RegisterConsoleFunction( const char * name, consoleFn_t function )
 	{
-		//LOG( "Registering console function '%s'", name );
+		//OVR_LOG( "Registering console function '%s'", name );
 		for ( int i = 0 ; i < ConsoleFunctions.GetSizeI(); ++i )
 		{
 			if ( OVR_stricmp( ConsoleFunctions[i].GetName(), name ) == 0 )
 			{
-				LOG_WITH_TAG( "OvrConsole", "Console function '%s' is already registered!!", name );
+				OVR_LOG_WITH_TAG( "OvrConsole", "Console function '%s' is already registered!!", name );
 				OVR_ASSERT( false );	// why are you registering the same function twice??
 				return;
 			}
 		}
-		LOG( "Registered console function '%s'", name );
+		OVR_LOG( "Registered console function '%s'", name );
 		ConsoleFunctions.PushBack( OvrConsoleFunction( name, function ) );
 	}
 
@@ -46,7 +46,7 @@ public:
 
 	void ExecuteConsoleFunction( intptr_t appPtr, char const * commandStr ) const
 	{
-		LOG_WITH_TAG( "OvrConsole", "Received console command \"%s\"", commandStr );
+		OVR_LOG_WITH_TAG( "OvrConsole", "Received console command \"%s\"", commandStr );
 	
 		char cmdName[128];
 		char const * parms = "";
@@ -62,19 +62,19 @@ public:
 			OVR_strcpy( cmdName, sizeof( cmdName ), commandStr );
 		}
 
-		LOG( "ExecuteConsoleFunction( %s, %s )", cmdName, parms );
+		OVR_LOG( "ExecuteConsoleFunction( %s, %s )", cmdName, parms );
 		for ( int i = 0 ; i < ConsoleFunctions.GetSizeI(); ++i )
 		{
-			LOG( "Checking console function '%s'", ConsoleFunctions[i].GetName() );
+			OVR_LOG( "Checking console function '%s'", ConsoleFunctions[i].GetName() );
 			if ( OVR_stricmp( ConsoleFunctions[i].GetName(), cmdName ) == 0 )
 			{
-				LOG( "Executing console function '%s'", cmdName );
+				OVR_LOG( "Executing console function '%s'", cmdName );
 				ConsoleFunctions[i].Execute( reinterpret_cast< void* >( appPtr ), parms );
 				return;
 			}
 		}
 
-		LOG_WITH_TAG( "OvrConsole", "ERROR: unknown console command '%s'", cmdName );
+		OVR_LOG_WITH_TAG( "OvrConsole", "ERROR: unknown console command '%s'", cmdName );
 	}
 
 	void GetConsoleCmds( void( *callback )( const char * cmd ) )
@@ -158,7 +158,7 @@ void RegisterConsoleFunction( const char * name, consoleFn_t function )
 void DebugPrint( void * appPtr, const char * cmd )
 {
 	OVR_UNUSED( appPtr );
-	LOG_WITH_TAG( "OvrDebug", "%s", cmd ); 
+	OVR_LOG_WITH_TAG( "OvrDebug", "%s", cmd );
 }
 
 void SendConsoleCmd( void * appPtr, const char * cmd )
@@ -190,14 +190,14 @@ JNIEXPORT void Java_com_oculus_vrappframework_ConsoleReceiver_nativeConsoleComma
 		return;
 	}
 	char const * commandStr = ovr_GetStringUTFChars( jni, command, NULL );
-	LOG( "nativeConsoleCommand: %s", commandStr );
+	OVR_LOG( "nativeConsoleCommand: %s", commandStr );
 	if ( OVR::Console != NULL )
 	{
 		OVR::Console->ExecuteConsoleFunction( appPtr, commandStr );
 	}
 	else
 	{
-		LOG( "Tried to execute console function without a console!" );
+		OVR_LOG( "Tried to execute console function without a console!" );
 	}
 	jni->ReleaseStringUTFChars( command, commandStr );
 #endif	

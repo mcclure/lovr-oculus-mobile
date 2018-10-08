@@ -12,7 +12,7 @@ Content     :   Native counterpart to VrActivity
 Created     :   September 30, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_App_h
@@ -63,13 +63,6 @@ enum ovrRenderMode
 	RENDERMODE_STEREO					= 0x1100,	// Render both eyes views.
 	RENDERMODE_MONO						= 0x1200,	// Render a single eye view and use the same image for both Timewarp eyes.
 	RENDERMODE_MULTIVIEW				= 0x1400,	// Render both eye views simultaneously.
-};
-
-struct ovrFence
-{
-	EGLDisplay	Display;
-	// Note: These sync objects must be EGLSyncKHR because the VrApi still supports OpenGL ES 2.0.
-	EGLSyncKHR	Sync;
 };
 
 #if defined( OVR_OS_WIN32 )

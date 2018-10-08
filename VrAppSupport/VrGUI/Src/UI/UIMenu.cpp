@@ -5,7 +5,7 @@ Content     :
 Created     :	1/5/2015
 Authors     :   Jim Dose
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -83,14 +83,14 @@ VRMenuId_t UIMenu::AllocId()
 
 void UIMenu::Open()
 {
-	LOG( "Open" );
+	OVR_LOG( "Open" );
 	GuiSys.OpenMenu( MenuName.ToCStr() );
 	MenuOpen = true;
 }
 
 void UIMenu::Close()
 {
-	LOG( "Close" );
+	OVR_LOG( "Close" );
 	GuiSys.CloseMenu( Menu, true ); /// FIXME: App is not actually used so we pass NULL, but this interface should change
 	MenuOpen = false;
 }

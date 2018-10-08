@@ -5,7 +5,7 @@ Content     :
 Created     :	1/8/2015
 Authors     :   Jim Dose
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -74,7 +74,7 @@ void UITexture::LoadTextureFromBuffer( const char * fileName, const MemBuffer & 
 
 void UITexture::LoadTextureFromMemory( const uint8_t * data, const int width, const int height )
 {
-	LOG( "UITexture::LoadTextureFromMemory" );
+	OVR_LOG( "UITexture::LoadTextureFromMemory" );
 	Free();
 	Width = width;
 	Height = height;

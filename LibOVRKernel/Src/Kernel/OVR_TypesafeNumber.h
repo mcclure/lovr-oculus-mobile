@@ -4,7 +4,9 @@ PublicHeader:   OVR_Kernel.h
 Filename    :   OVR_TypesafeNumber.h
 Content     :   Template for typesafe number types.
 Created     :   March 2, 2014
-Authors     :   Jonathan E. wright (nelno@oculusvr.com)
+Authors     :   Jonathan E. Wright
+
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
  
 *************************************************************************************/
 

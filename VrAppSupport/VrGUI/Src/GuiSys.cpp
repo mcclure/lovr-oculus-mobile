@@ -5,7 +5,7 @@ Content     :   Manager for native GUIs.
 Created     :   June 6, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -43,7 +43,7 @@ namespace OVR {
 	int v;					\
 	lex.ParseInt( v, 1 );	\
 	var_name = v != 0;		\
-	LOG( #var_name "( '%s' ) = %i", parms, var_name )
+	OVR_LOG( #var_name "( '%s' ) = %i", parms, var_name )
 
 //==============================================================
 // ovrInfoText
@@ -222,7 +222,7 @@ OvrGuiSysLocal::~OvrGuiSysLocal()
 void OvrGuiSysLocal::Init( App * app_, OvrGuiSys::SoundEffectPlayer & soundEffectPlayer, char const * fontName, 
 		BitmapFontSurface * fontSurface, OvrDebugLines * debugLines )
 {
-	LOG( "OvrGuiSysLocal::Init" );
+	OVR_LOG( "OvrGuiSysLocal::Init" );
 
 	Reflection = ovrReflection::Create();
 
@@ -242,7 +242,7 @@ void OvrGuiSysLocal::Init( App * app_, OvrGuiSys::SoundEffectPlayer & soundEffec
 
 	// choose a package to load the font from.
 	// select the System Activities package first
-	LOG( "GuiSys::Init - fontName is '%s'", fontName );
+	OVR_LOG( "GuiSys::Init - fontName is '%s'", fontName );
 
 	if ( OVR_strncmp( fontName, "apk:", 4 ) == 0 ) //if full apk path specified use that
 	{
@@ -338,7 +338,7 @@ void OvrGuiSysLocal::ResetMenuOrientations( Matrix4f const & centerViewMatrix )
 	{
 		if ( VRMenu* menu = Menus.At( i ) )
 		{
-			LOG( "ResetMenuOrientation -> '%s'", menu->GetName() );
+			OVR_LOG( "ResetMenuOrientation -> '%s'", menu->GetName() );
 			menu->ResetMenuOrientation( centerViewMatrix );
 		}
 	}
@@ -350,7 +350,7 @@ void OvrGuiSysLocal::AddMenu( VRMenu * menu )
 {
 	if ( menu == nullptr )
 	{
-		WARN( "Attempted to add null menu!" );
+		OVR_WARN( "Attempted to add null menu!" );
 		return;
 	}
 	if ( !IsInitialized )
@@ -362,7 +362,7 @@ void OvrGuiSysLocal::AddMenu( VRMenu * menu )
 	int menuIndex = FindMenuIndex( menu->GetName() );
 	if ( menuIndex >= 0 )
 	{
-		WARN( "Duplicate menu name '%s'", menu->GetName() );
+		OVR_WARN( "Duplicate menu name '%s'", menu->GetName() );
 		OVR_ASSERT( menuIndex < 0 );
 	}
 	Menus.PushBack( menu );
@@ -546,7 +546,7 @@ void OvrGuiSysLocal::OpenMenu( char const * menuName )
 	int menuIndex = FindMenuIndex( menuName );
 	if ( menuIndex < 0 )
 	{
-		WARN( "No menu named '%s'", menuName );
+		OVR_WARN( "No menu named '%s'", menuName );
 		OVR_ASSERT( menuIndex >= 0 && menuIndex < Menus.GetSizeI() );
 		return;
 	}
@@ -584,7 +584,7 @@ void OvrGuiSysLocal::CloseMenu( char const * menuName, bool const closeInstantly
 	int menuIndex = FindMenuIndex( menuName );
 	if ( menuIndex < 0 )
 	{
-		WARN( "No menu named '%s'", menuName );
+		OVR_WARN( "No menu named '%s'", menuName );
 		OVR_ASSERT( menuIndex >= 0 && menuIndex < Menus.GetSizeI() );
 		return;
 	}
@@ -664,7 +664,7 @@ void OvrGuiSysLocal::Frame( const ovrFrameInput & vrFrame, Matrix4f const & cent
 	const int currentRecenterCount = app->GetSystemStatus( VRAPI_SYS_STATUS_RECENTER_COUNT );
 	if ( currentRecenterCount != RecenterCount )
 	{
-		//LOG( "OvrGuiSysLocal::Frame - reorienting menus" );
+		//OVR_LOG( "OvrGuiSysLocal::Frame - reorienting menus" );
 		app->RecenterLastViewMatrix();
 		ResetMenuOrientations( app->GetLastViewMatrix() );
 		RecenterCount = currentRecenterCount;
@@ -775,12 +775,12 @@ bool OvrGuiSysLocal::OnKeyEvent( int const keyCode, const int repeatCount, KeyEv
 
 		if ( keyCode == OVR_KEY_BACK ) 
 		{
-			LOG( "OvrGuiSysLocal back key event '%s' for menu '%s'", KeyEventNames[eventType], curMenu->GetName() );
+			OVR_LOG( "OvrGuiSysLocal back key event '%s' for menu '%s'", KeyEventNames[eventType], curMenu->GetName() );
 		}
 
 		if ( curMenu->OnKeyEvent( *this, keyCode, repeatCount, eventType ) )
 		{
-			LOG( "VRMenu '%s' consumed key event", curMenu->GetName() );
+			OVR_LOG( "VRMenu '%s' consumed key event", curMenu->GetName() );
 			return true;
 		}
 	}
@@ -821,23 +821,23 @@ void OvrGuiSysLocal::ShowInfoText( float const duration, Vector3f const & offset
 
 bool OvrGuiSys::ovrDummySoundEffectPlayer::Has( const char* name ) const
 {
-	LOG( "ovrDummySoundEffectPlayer::Has( %s )", name );
+	OVR_LOG( "ovrDummySoundEffectPlayer::Has( %s )", name );
 	return false;
 }
 
 void OvrGuiSys::ovrDummySoundEffectPlayer::Play( const char* name )
 {
-	LOG( "ovrDummySoundEffectPlayer::Play( %s )", name );
+	OVR_LOG( "ovrDummySoundEffectPlayer::Play( %s )", name );
 }
 
 void OvrGuiSys::ovrDummySoundEffectPlayer::Stop( const char* name )
 {
-	LOG( "ovrDummySoundEffectPlayer::Stop( %s )", name );
+	OVR_LOG( "ovrDummySoundEffectPlayer::Stop( %s )", name );
 }
 
 void OvrGuiSys::ovrDummySoundEffectPlayer::LoadSoundAsset( const char* name )
 {
-	LOG( "ovrDummySoundEffectPlayer::LoadSoundAsset( %s )", name );
+	OVR_LOG( "ovrDummySoundEffectPlayer::LoadSoundAsset( %s )", name );
 }
 
 //==============================

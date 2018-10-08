@@ -5,7 +5,7 @@ Content     :   Menu component for handling hit tests and dispatching events.
 Created     :   June 23, 2014
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -207,7 +207,7 @@ void VRMenuEventHandler::InitComponents( Array< VRMenuEvent > & events )
 // VRMenuEventHandler::Opening
 void VRMenuEventHandler::Opening( Array< VRMenuEvent > & events )
 {
-	LOG( "Opening" );
+	OVR_LOG( "Opening" );
 	// broadcast the opening event
 	VRMenuEvent event( VRMENU_EVENT_OPENING, EVENT_DISPATCH_BROADCAST, menuHandle_t(), Vector3f( 0.0f ), HitTestResult(), "" );
 	events.PushBack( event );
@@ -217,7 +217,7 @@ void VRMenuEventHandler::Opening( Array< VRMenuEvent > & events )
 // VRMenuEventHandler::Opened
 void VRMenuEventHandler::Opened( Array< VRMenuEvent > & events )
 {
-	LOG( "Opened" );
+	OVR_LOG( "Opened" );
 	// broadcast the opened event
 	VRMenuEvent event( VRMENU_EVENT_OPENED, EVENT_DISPATCH_BROADCAST, menuHandle_t(), Vector3f( 0.0f ), HitTestResult(), "" );
 	events.PushBack( event );
@@ -227,7 +227,7 @@ void VRMenuEventHandler::Opened( Array< VRMenuEvent > & events )
 // VRMenuEventHandler::Closing
 void VRMenuEventHandler::Closing( Array< VRMenuEvent > & events )
 {
-	LOG( "Closing" );
+	OVR_LOG( "Closing" );
 	// broadcast the closing event
 	VRMenuEvent event( VRMENU_EVENT_CLOSING, EVENT_DISPATCH_BROADCAST, menuHandle_t(), Vector3f( 0.0f ), HitTestResult(), "" );
 	events.PushBack( event );
@@ -237,7 +237,7 @@ void VRMenuEventHandler::Closing( Array< VRMenuEvent > & events )
 // VRMenuEventHandler::Closed
 void VRMenuEventHandler::Closed( Array< VRMenuEvent > & events )
 {
-	LOG( "Closed" );
+	OVR_LOG( "Closed" );
 	// broadcast the closed event
 	VRMenuEvent closedEvent( VRMENU_EVENT_CLOSED, EVENT_DISPATCH_BROADCAST, menuHandle_t(), Vector3f( 0.0f ), HitTestResult(), "" );
 	events.PushBack( closedEvent );
@@ -247,7 +247,7 @@ void VRMenuEventHandler::Closed( Array< VRMenuEvent > & events )
 		VRMenuEvent focusLostEvent( VRMENU_EVENT_FOCUS_LOST, EVENT_DISPATCH_TARGET, FocusedHandle, Vector3f( 0.0f ), HitTestResult(), "" );
 		events.PushBack( focusLostEvent );
 		FocusedHandle.Release();
-		LOG( "Released FocusHandle" );
+		OVR_LOG( "Released FocusHandle" );
 	}
 }
 
@@ -352,7 +352,7 @@ void VRMenuEventHandler::HandleEvents( OvrGuiSys & guiSys, ovrFrameInput const &
 bool VRMenuEventHandler::DispatchToComponents( OvrGuiSys & guiSys, ovrFrameInput const & vrFrame,
         VRMenuEvent const & event, VRMenuObject * receiver ) const
 {
-	ASSERT_WITH_TAG( receiver != NULL, "VrMenu" );
+	OVR_ASSERT_WITH_TAG( receiver != NULL, "VrMenu" );
 
 	Array< VRMenuComponent* > const & list = receiver->GetComponentList();
 	for ( int i = 0; i < list.GetSizeI(); ++i )
@@ -386,14 +386,14 @@ bool VRMenuEventHandler::DispatchToPath( OvrGuiSys & guiSys, ovrFrameInput const
 		{
 			if ( log )
 			{
-				LOG( "%sDispatchToPath: %s, object '%s' consumed event.", &indent[64 - i * 2],
+				OVR_LOG( "%sDispatchToPath: %s, object '%s' consumed event.", &indent[64 - i * 2],
 						VRMenuEvent::EventTypeNames[event.EventType], ( obj != NULL ? obj->GetText().ToCStr() : "<null>" ) );
 			}	
 			return true;    // consumed by a component
 		}
 		if ( log )
 		{
-			LOG( "%sDispatchToPath: %s, object '%s' passed event.", &indent[64 - i * 2],
+			OVR_LOG( "%sDispatchToPath: %s, object '%s' passed event.", &indent[64 - i * 2],
 					VRMenuEvent::EventTypeNames[event.EventType], obj != NULL ? obj->GetText().ToCStr() : "<null>" );
 		}
 	}
@@ -405,7 +405,7 @@ bool VRMenuEventHandler::DispatchToPath( OvrGuiSys & guiSys, ovrFrameInput const
 bool VRMenuEventHandler::BroadcastEvent( OvrGuiSys & guiSys, ovrFrameInput const & vrFrame,
         VRMenuEvent const & event, VRMenuObject * receiver ) const
 {
-	ASSERT_WITH_TAG( receiver != NULL, "VrMenu" );
+	OVR_ASSERT_WITH_TAG( receiver != NULL, "VrMenu" );
 
 	// allow parent components to handle first
 	if ( DispatchToComponents( guiSys, vrFrame, event, receiver ) )

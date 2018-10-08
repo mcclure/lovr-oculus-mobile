@@ -5,7 +5,7 @@ Content     :   Lifecycle manager used by the application framework.
 Created     :   5/13/2015
 Authors     :   John Carmack, Rob Arnold
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 package com.oculus.vrappframework;

@@ -5,7 +5,7 @@ Content     :
 Created     :	1/5/2015
 Authors     :   Jim Dose
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -224,7 +224,7 @@ void UILabel::CalculateTextDimensions()
 
 	textBounds.Translate( trans * scale );
 
-	LOG( "textBounds: %f, %f", textBounds.GetSize().x, textBounds.GetSize().y );
+	OVR_LOG( "textBounds: %f, %f", textBounds.GetSize().x, textBounds.GetSize().y );
 	SetDimensions( Vector2f( textBounds.GetSize().x * TEXELS_PER_METER, textBounds.GetSize().y * TEXELS_PER_METER ) );
 
 	CalculateTextOffset();

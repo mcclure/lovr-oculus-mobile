@@ -5,7 +5,7 @@ Content     :
 Created     :	10/04/2015
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #include "UIDiscreteSlider.h"
@@ -106,7 +106,7 @@ void UIDiscreteSlider::ScaleCurrentValue( const float scale )
 	}
 	else
 	{
-		WARN( "UIDiscreteSlider::SetCurrentValue passed non normal value: %f", scale );
+		OVR_WARN( "UIDiscreteSlider::SetCurrentValue passed non normal value: %f", scale );
 	}
 }
 
@@ -190,7 +190,7 @@ void UIDiscreteSliderComponent::SetCurrentValue( unsigned int value )
 	}
 	else
 	{
-		WARN( "UIDiscreteSliderComponent::SetCurrentValue - %d outside range %d -> %zu", value, 0, Cells.GetSize() );
+		OVR_WARN( "UIDiscreteSliderComponent::SetCurrentValue - %d outside range %d -> %zu", value, 0, Cells.GetSize() );
 	}
 }
 

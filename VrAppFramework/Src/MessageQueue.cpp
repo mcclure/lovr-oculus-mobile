@@ -5,7 +5,7 @@ Content     :   Thread communication by string commands
 Created     :   October 15, 2013
 Authors     :   John Carmack
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -47,7 +47,7 @@ ovrMessageQueue::~ovrMessageQueue()
 		if ( !msg ) {
 			break;
 		}
-		LOG( "%p:~ovrMessageQueue: still on queue: %s", this, msg );
+		OVR_LOG( "%p:~ovrMessageQueue: still on queue: %s", this, msg );
 		free( (void *)msg );
 	}
 
@@ -57,7 +57,7 @@ ovrMessageQueue::~ovrMessageQueue()
 
 void ovrMessageQueue::Shutdown()
 {
-	LOG( "%p:ovrMessageQueue shutdown", this );
+	OVR_LOG( "%p:ovrMessageQueue shutdown", this );
 	shutdown = true;
 }
 
@@ -70,12 +70,12 @@ bool ovrMessageQueue::PostMessage( const char * msg, bool sync, bool abortIfFull
 {
 	if ( shutdown )
 	{
-		LOG( "%p:PostMessage( %s ) to shutdown queue", this, msg );
+		OVR_LOG( "%p:PostMessage( %s ) to shutdown queue", this, msg );
 		return false;
 	}
 	if ( debug )
 	{
-		LOG( "%p:PostMessage( %s )", this, msg );
+		OVR_LOG( "%p:PostMessage( %s )", this, msg );
 	}
 
 	mutex.DoLock();
@@ -84,12 +84,12 @@ bool ovrMessageQueue::PostMessage( const char * msg, bool sync, bool abortIfFull
 		mutex.Unlock();
 		if ( abortIfFull )
 		{
-			LOG( "ovrMessageQueue overflow" );
+			OVR_LOG( "ovrMessageQueue overflow" );
 			for ( int i = head; i < tail; i++ )
 			{
-				LOG( "%s", messages[i % maxMessages].string );
+				OVR_LOG( "%s", messages[i % maxMessages].string );
 			}
-			FAIL( "Message buffer overflowed" );
+			OVR_FAIL( "Message buffer overflowed" );
 		}
 		return false;
 	}
@@ -190,7 +190,7 @@ const char * ovrMessageQueue::GetNextMessage()
 
 	if ( debug )
 	{
-		LOG( "%p:GetNextMessage() : %s", this, msg );
+		OVR_LOG( "%p:GetNextMessage() : %s", this, msg );
 	}
 
 	return msg;
@@ -210,7 +210,7 @@ void ovrMessageQueue::SleepUntilMessage()
 
 	if ( debug )
 	{
-		LOG( "%p:SleepUntilMessage() : sleep", this );
+		OVR_LOG( "%p:SleepUntilMessage() : sleep", this );
 	}
 
 	posted.Wait( & mutex );
@@ -218,7 +218,7 @@ void ovrMessageQueue::SleepUntilMessage()
 
 	if ( debug )
 	{
-		LOG( "%p:SleepUntilMessage() : awoke", this );
+		OVR_LOG( "%p:SleepUntilMessage() : awoke", this );
 	}
 }
 
@@ -235,11 +235,11 @@ void ovrMessageQueue::ClearMessages()
 {
 	if ( debug )
 	{
-		LOG( "%p:ClearMessages()", this );
+		OVR_LOG( "%p:ClearMessages()", this );
 	}
 	for ( const char * msg = GetNextMessage(); msg != NULL; msg = GetNextMessage() )
 	{
-		LOG( "%p:ClearMessages: discarding %s", this, msg );
+		OVR_LOG( "%p:ClearMessages: discarding %s", this, msg );
 		free( (void *)msg );
 	}
 }

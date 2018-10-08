@@ -5,7 +5,7 @@ Content     :
 Created     :   
 Authors     :   
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
@@ -78,12 +78,12 @@ void ovrSoundEffectContext::PlayInternal( JNIEnv & env, const char * name )
 	String soundFile;
 	if ( SoundAssetMapping.GetSound( name, soundFile ) )
 	{
-		// LOG( "ovrSoundEffectContext::PlayInternal(%s) : %s", name, soundFile.ToCStr() );
+		// OVR_LOG( "ovrSoundEffectContext::PlayInternal(%s) : %s", name, soundFile.ToCStr() );
 		SoundPool.Play( env, soundFile.ToCStr() );
 	}
 	else
 	{
-		WARN( "ovrSoundEffectContext::Play called with non-asset-mapping-defined sound: %s", name );
+		OVR_WARN( "ovrSoundEffectContext::Play called with non-asset-mapping-defined sound: %s", name );
 		// TODO: PC assumes the sound is defined in a sound-asset mapping table. The incoming
 		// name is a 'key-name' and not the actual file-name. Provide a PlaySoundFromUri for 
 		// non-asset-mapped sounds.
@@ -99,12 +99,12 @@ void ovrSoundEffectContext::StopInternal( JNIEnv & env, const char * name )
 	String soundFile;
 	if ( SoundAssetMapping.GetSound( name, soundFile ) )
 	{
-		// LOG( "ovrSoundEffectContext::PlayInternal(%s) : %s", name, soundFile.ToCStr() );
+		// OVR_LOG( "ovrSoundEffectContext::PlayInternal(%s) : %s", name, soundFile.ToCStr() );
 		SoundPool.Stop( env, soundFile.ToCStr() );
 	}
 	else
 	{
-		WARN( "ovrSoundEffectContext::Play called with non-asset-mapping-defined sound: %s", name );
+		OVR_WARN( "ovrSoundEffectContext::Play called with non-asset-mapping-defined sound: %s", name );
 		// TODO: PC assumes the sound is defined in a sound-asset mapping table. The incoming
 		// name is a 'key-name' and not the actual file-name. Provide a PlaySoundFromUri for 
 		// non-asset-mapped sounds.
@@ -128,7 +128,7 @@ void ovrSoundEffectContext::LoadSoundAssetInternal( JNIEnv & env, const char * n
 	}
 	else
 	{
-		WARN( "ovrSoundEffectContext::LoadSoundAssetInternal called with non-asset-mapping-defined sound: %s", name );
+		OVR_WARN( "ovrSoundEffectContext::LoadSoundAssetInternal called with non-asset-mapping-defined sound: %s", name );
 		SoundPool.LoadSoundAsset( env, name );
 	}
 #else

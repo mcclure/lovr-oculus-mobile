@@ -5,7 +5,7 @@ Content     :   JNI utility functions
 Created     :   October 21, 2014
 Authors     :   J.M.P. van Waveren, Jonathan E. Wright
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_JniUtils_h
@@ -101,14 +101,14 @@ public:
 	{
 		if ( JNI_OK != Vm->GetEnv( reinterpret_cast<void**>( &Jni ), JNI_VERSION_1_6 ) )
 		{
-			LOG( "Creating temporary JNIEnv. This is a heavy operation and should be infrequent. To optimize, use JNI AttachCurrentThread on calling thread" );
+			OVR_LOG( "Creating temporary JNIEnv. This is a heavy operation and should be infrequent. To optimize, use JNI AttachCurrentThread on calling thread" );
 			ovr_AttachCurrentThread( Vm, &Jni, NULL );
 			PrivateEnv = true;
 		}
 		else
 		{
 			// Current thread is attached to the VM.
-			//LOG( "Using caller's JNIEnv" );
+			//OVR_LOG( "Using caller's JNIEnv" );
 		}
 	}
 	~TempJniEnv()
@@ -148,14 +148,14 @@ public:
 #if defined( OVR_OS_ANDROID )
 		if ( Jni->ExceptionOccurred() )
 		{
-			LOG( "JNI exception before DeleteLocalRef!" );
+			OVR_LOG( "JNI exception before DeleteLocalRef!" );
 			Jni->ExceptionClear();
 		}
 		OVR_ASSERT( Jni != NULL && Object != NULL );
 		Jni->DeleteLocalRef( Object );
 		if ( Jni->ExceptionOccurred() )
 		{
-			LOG( "JNI exception occurred calling DeleteLocalRef!" );
+			OVR_LOG( "JNI exception occurred calling DeleteLocalRef!" );
 			Jni->ExceptionClear();
 		}
 #endif
@@ -240,7 +240,7 @@ public:
 		SetJObject( GetJNI()->NewStringUTF( string_ ) );
 		if ( GetJNI()->ExceptionOccurred() )
 		{
-			LOG( "JNI exception occurred calling NewStringUTF!" );
+			OVR_LOG( "JNI exception occurred calling NewStringUTF!" );
 		}
 #else
 		OVR_UNUSED( string_ );
@@ -276,7 +276,7 @@ public:
 		UTFString = GetJNI()->GetStringUTFChars( GetJString(), NULL );
 		if ( GetJNI()->ExceptionOccurred() )
 		{
-			LOG( "JNI exception occurred calling GetStringUTFChars!" );
+			OVR_LOG( "JNI exception occurred calling GetStringUTFChars!" );
 		}
 #endif
 	}
@@ -288,7 +288,7 @@ public:
 		GetJNI()->ReleaseStringUTFChars( GetJString(), UTFString );
 		if ( GetJNI()->ExceptionOccurred() )
 		{
-			LOG( "JNI exception occurred calling ReleaseStringUTFChars!" );
+			OVR_LOG( "JNI exception occurred calling ReleaseStringUTFChars!" );
 		}
 #endif
 	}

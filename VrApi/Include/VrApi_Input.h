@@ -6,7 +6,7 @@ Created     :   Feb 9, 2016
 Authors     :   Jonathan E. Wright
 Language    :   C99
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 #ifndef OVR_VrApi_Input_h

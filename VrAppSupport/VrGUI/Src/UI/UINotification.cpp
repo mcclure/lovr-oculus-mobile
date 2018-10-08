@@ -5,7 +5,7 @@ Content     :   A pop up Notification object
 Created     :   Apr 23, 2015
 Authors     :   Clint Brewer
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

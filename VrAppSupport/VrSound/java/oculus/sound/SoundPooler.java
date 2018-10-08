@@ -1,4 +1,4 @@
-// Copyright 2014 Oculus VR, LLC. All Rights reserved.
+// Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 package com.oculus.sound;
 
 import java.io.IOException;

@@ -5,7 +5,7 @@ Content     :   Header file for string localization interface.
 Created     :   April 6, 2015
 Authors     :   Jonathan E. Wright
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 This source code is licensed under the BSD-style license found in the
 LICENSE file in the Oculus360Photos/ directory. An additional grant 

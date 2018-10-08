@@ -9,9 +9,9 @@ APP_PLATFORM := android-21
 
 APP_ABI := armeabi-v7a
 
-# Statically link the GNU STL. This may not be safe for multi-so libraries but
+# Statically link the C++_STATIC STL. This may not be safe for multi-so libraries but
 # we don't know of any problems yet.
-APP_STL := gnustl_static
+APP_STL := c++_static
 
 # Make sure every shared lib includes a .note.gnu.build-id header, for crash reporting
 APP_LDFLAGS := -Wl,--build-id

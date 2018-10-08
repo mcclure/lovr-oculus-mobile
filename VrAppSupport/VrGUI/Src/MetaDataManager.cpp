@@ -5,7 +5,7 @@ Content     :   A class to manage metadata used by FolderBrowser
 Created     :   January 26, 2015
 Authors     :   Jonathan E. Wright, Warsam Osman, Madhu Kalva
 
-Copyright   :   Copyright 2015 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -41,7 +41,7 @@ static bool OvrMetaDatumIdComparator( const OvrMetaDatum * a, const OvrMetaDatum
 
 void OvrMetaData::InitFromDirectory( const char * relativePath, const Array< String > & searchPaths, const OvrMetaDataFileExtensions & fileExtensions )
 {
-	LOG( "OvrMetaData::InitFromDirectory( %s )", relativePath );
+	OVR_LOG( "OvrMetaData::InitFromDirectory( %s )", relativePath );
 
 	// Find all the files - checks all search paths
 	StringHash< String > uniqueFileList = RelativeDirectoryFileList( searchPaths, relativePath );
@@ -57,7 +57,7 @@ void OvrMetaData::InitFromDirectory( const char * relativePath, const Array< Str
 	//Will be replaced if definition found in loaded metadata
 	currentCategory.LocaleKey = currentCategory.CategoryTag;
 
-	LOG( "OvrMetaData start category: %s", currentCategory.CategoryTag.ToCStr() );
+	OVR_LOG( "OvrMetaData start category: %s", currentCategory.CategoryTag.ToCStr() );
 	Array< String > subDirs;
 	// Grab the categories and loose files
 	for ( int i = 0; i < fileList.GetSizeI(); i++ )
@@ -91,18 +91,18 @@ void OvrMetaData::InitFromDirectory( const char * relativePath, const Array< Str
 				{
 					UrlToIndex.Add( datum->Url, dataIndex );
 					MetaData.PushBack( datum );
-					LOG( "OvrMetaData adding datum %s with index %d to %s", datum->Url.ToCStr(), dataIndex, currentCategory.CategoryTag.ToCStr() );
+					OVR_LOG( "OvrMetaData adding datum %s with index %d to %s", datum->Url.ToCStr(), dataIndex, currentCategory.CategoryTag.ToCStr() );
 					// Register with category
 					currentCategory.DatumIndicies.PushBack( dataIndex );
 				}
 				else
 				{
-					WARN( "OvrMetaData::InitFromDirectory found duplicate url %s", datum->Url.ToCStr() );
+					OVR_WARN( "OvrMetaData::InitFromDirectory found duplicate url %s", datum->Url.ToCStr() );
 				}
 			}
 			else
 			{
-				WARN( "OvrMetaData::InitFromDirectory failed to find %s", s.ToCStr() );
+				OVR_WARN( "OvrMetaData::InitFromDirectory failed to find %s", s.ToCStr() );
 			}
 		}
 	}
@@ -132,7 +132,7 @@ void OvrMetaData::InitFromFileList( const Array< String > & fileList, const OvrM
 		int catIndex = -1;
 		if ( iter == uniqueCategoryList.End() )
 		{
-			LOG( " category: %s", categoryTag.ToCStr() );
+			OVR_LOG( " category: %s", categoryTag.ToCStr() );
 			Category cat;
 			cat.CategoryTag = categoryTag;
 			// The label is the same as the tag by default. 
@@ -170,14 +170,14 @@ void OvrMetaData::InitFromFileList( const Array< String > & fileList, const OvrM
 			{
 				UrlToIndex.Add( datum->Url, dataIndex );
 				MetaData.PushBack( datum );
-				LOG( "OvrMetaData::InitFromFileList adding datum %s with index %d to %s", datum->Url.ToCStr(),
+				OVR_LOG( "OvrMetaData::InitFromFileList adding datum %s with index %d to %s", datum->Url.ToCStr(),
 					dataIndex, currentCategory.CategoryTag.ToCStr() );
 				// Register with category
 				currentCategory.DatumIndicies.PushBack( dataIndex );
 			}
 			else
 			{
-				WARN( "OvrMetaData::InitFromFileList found duplicate url %s", datum->Url.ToCStr() );
+				OVR_WARN( "OvrMetaData::InitFromFileList found duplicate url %s", datum->Url.ToCStr() );
 			}
 		}
 	}
@@ -230,7 +230,7 @@ JSON * LoadPackageMetaFile( const char * metaFile )
 	ovr_ReadFileFromApplicationPackage( assetsMetaFile.ToCStr(), bufferLength, buffer );
 	if ( !buffer )
 	{
-		WARN( "LoadPackageMetaFile failed to read %s", assetsMetaFile.ToCStr() );
+		OVR_WARN( "LoadPackageMetaFile failed to read %s", assetsMetaFile.ToCStr() );
 	}
 	return JSON::Parse( static_cast< const char * >( buffer ) );
 }
@@ -240,7 +240,7 @@ JSON * OvrMetaData::CreateOrGetStoredMetaFile( const char * appFileStoragePath, 
 	FilePath = appFileStoragePath;
 	FilePath += metaFile;
 
-	LOG( "CreateOrGetStoredMetaFile FilePath: %s", FilePath.ToCStr() );
+	OVR_LOG( "CreateOrGetStoredMetaFile FilePath: %s", FilePath.ToCStr() );
 
 	JSON * dataFile = JSON::Load( FilePath.ToCStr() );
 	if ( dataFile == NULL )
@@ -252,19 +252,19 @@ JSON * OvrMetaData::CreateOrGetStoredMetaFile( const char * appFileStoragePath, 
 		dataFile = JSON::Load( FilePath.ToCStr() );
 		if ( dataFile == NULL )
 		{
-			WARN( "OvrMetaData failed to load JSON meta file: %s", metaFile );
+			OVR_WARN( "OvrMetaData failed to load JSON meta file: %s", metaFile );
 		}
 	}
 	else
 	{
-		LOG( "OvrMetaData::CreateOrGetStoredMetaFile found %s", FilePath.ToCStr() );
+		OVR_LOG( "OvrMetaData::CreateOrGetStoredMetaFile found %s", FilePath.ToCStr() );
 	}
 	return dataFile;
 }
 
 void OvrMetaData::WriteMetaFile( const char * metaFile ) const
 {
-	LOG( "Writing metafile from apk" );
+	OVR_LOG( "Writing metafile from apk" );
 
 	if ( FILE * newMetaFile = fopen( FilePath.ToCStr(), "w" ) )
 	{
@@ -275,14 +275,14 @@ void OvrMetaData::WriteMetaFile( const char * metaFile ) const
 		ovr_ReadFileFromApplicationPackage( assetsMetaFile.ToCStr(), bufferLength, buffer );
 		if ( !buffer )
 		{
-			WARN( "OvrMetaData failed to read %s", assetsMetaFile.ToCStr() );
+			OVR_WARN( "OvrMetaData failed to read %s", assetsMetaFile.ToCStr() );
 		}
 		else
 		{
 			size_t writtenCount = fwrite( buffer, 1, bufferLength, newMetaFile );
 			if ( writtenCount != static_cast<size_t>( bufferLength ) )
 			{
-				FAIL( "OvrMetaData::WriteMetaFile failed to write %s", metaFile );
+				OVR_FAIL( "OvrMetaData::WriteMetaFile failed to write %s", metaFile );
 			}
 			free( buffer );
 		}
@@ -290,14 +290,14 @@ void OvrMetaData::WriteMetaFile( const char * metaFile ) const
 	}
 	else
 	{
-		FAIL( "OvrMetaData failed to create %s - check app permissions", FilePath.ToCStr() );
+		OVR_FAIL( "OvrMetaData failed to create %s - check app permissions", FilePath.ToCStr() );
 	}
 }
 
 void OvrMetaData::InitFromDirectoryMergeMeta( const char * relativePath, const Array< String > & searchPaths,
 	const OvrMetaDataFileExtensions & fileExtensions, const char * metaFile, const char * packageName )
 {
-	LOG( "OvrMetaData::InitFromDirectoryMergeMeta" );
+	OVR_LOG( "OvrMetaData::InitFromDirectoryMergeMeta" );
 
 	String appFileStoragePath = "/data/data/";
 	appFileStoragePath += packageName;
@@ -316,7 +316,7 @@ void OvrMetaData::InitFromDirectoryMergeMeta( const char * relativePath, const A
 void OvrMetaData::InitFromFileListMergeMeta( const Array< String > & fileList, const Array< String > & searchPaths,
 	const OvrMetaDataFileExtensions & fileExtensions, const char * appFileStoragePath, const char * metaFile, JSON * storedMetaData )
 {
-	LOG( "OvrMetaData::InitFromFileListMergeMeta" );
+	OVR_LOG( "OvrMetaData::InitFromFileListMergeMeta" );
 
 	InitFromFileList( fileList, fileExtensions );
 	ProcessMetaData( storedMetaData, searchPaths, metaFile );
@@ -352,7 +352,7 @@ void OvrMetaData::InsertCategoryList( const int startIndex, const Array< Categor
 		const Category & newCategory = categoryList.At( remoteIndex );
 
 		const int targetIndex = startIndex + remoteIndex;
-		LOG( "OvrMetaData::InsertCategoryList merging %s into category index %d", newCategory.CategoryTag.ToCStr(), targetIndex );
+		OVR_LOG( "OvrMetaData::InsertCategoryList merging %s into category index %d", newCategory.CategoryTag.ToCStr(), targetIndex );
 		if ( startIndex >= 0 && startIndex < Categories.GetSizeI() )
 		{
 			finalCategoryList.InsertAt( targetIndex, newCategory );
@@ -403,17 +403,17 @@ void OvrMetaData::ProcessRemoteMetaFile( const char * metaFileString, const int 
 		JSON * dataFile = MetaDataToJson();
 		if ( dataFile == NULL )
 		{
-			FAIL( "OvrMetaData::ProcessMetaData failed to generate JSON meta file" );
+			OVR_FAIL( "OvrMetaData::ProcessMetaData failed to generate JSON meta file" );
 		}
 
 		dataFile->Save( FilePath.ToCStr() );
 
-		LOG( "OvrMetaData::ProcessRemoteMetaFile updated %s", FilePath.ToCStr() );
+		OVR_LOG( "OvrMetaData::ProcessRemoteMetaFile updated %s", FilePath.ToCStr() );
 		dataFile->Release();
 	}
 	else 
 	{
-		LOG( "Meta file parse error '%s'", errorMsg != NULL ? "<NULL>" : errorMsg );
+		OVR_LOG( "Meta file parse error '%s'", errorMsg != NULL ? "<NULL>" : errorMsg );
 	}
 }
 
@@ -447,7 +447,7 @@ void OvrMetaData::ProcessMetaData( JSON * dataFile, const Array< String > & sear
 		}
 		else
 		{
-			WARN( "ProcessMetaData LoadPackageMetaFile failed for %s", metaFile );
+			OVR_WARN( "ProcessMetaData LoadPackageMetaFile failed for %s", metaFile );
 		}
 
 		// Read in the stored data - overriding any found in the package
@@ -474,7 +474,7 @@ void OvrMetaData::ProcessMetaData( JSON * dataFile, const Array< String > & sear
 				}
 				else
 				{
-					WARN( "OvrMetaData::ProcessMetaData discarding empty %s", cat.CategoryTag.ToCStr() );
+					OVR_WARN( "OvrMetaData::ProcessMetaData discarding empty %s", cat.CategoryTag.ToCStr() );
 				}
 			}
 			Alg::Swap( finalCategories, Categories );
@@ -483,19 +483,19 @@ void OvrMetaData::ProcessMetaData( JSON * dataFile, const Array< String > & sear
 	}
 	else
 	{
-		WARN( "OvrMetaData::ProcessMetaData NULL dataFile" );
+		OVR_WARN( "OvrMetaData::ProcessMetaData NULL dataFile" );
 	}
 
 	// Rewrite new data
 	dataFile = MetaDataToJson();
 	if ( dataFile == NULL )
 	{
-		FAIL( "OvrMetaData::ProcessMetaData failed to generate JSON meta file" );
+		OVR_FAIL( "OvrMetaData::ProcessMetaData failed to generate JSON meta file" );
 	}
 
 	dataFile->Save( FilePath.ToCStr() );
 
-	LOG( "OvrMetaData::ProcessMetaData created %s", FilePath.ToCStr() );
+	OVR_LOG( "OvrMetaData::ProcessMetaData created %s", FilePath.ToCStr() );
 	dataFile->Release();
 }
 
@@ -516,7 +516,7 @@ void OvrMetaData::ReconcileMetaData( StringHash< OvrMetaDatum * > & storedMetaDa
 		OvrMetaDatum * storedDatum = storedIter->Second;
 		if ( IsRemote( storedDatum ) )
 		{
-			LOG( "ReconcileMetaData metadata adding remote %s", storedDatum->Url.ToCStr() );
+			OVR_LOG( "ReconcileMetaData metadata adding remote %s", storedDatum->Url.ToCStr() );
 			sortedEntries.PushBack( storedDatum );
 		}
 	}
@@ -541,7 +541,7 @@ void OvrMetaData::DedupMetaData( Array< OvrMetaDatum * > & existingData, StringH
         if ( iter != newData.End() )
         {
             OvrMetaDatum * storedDatum = iter->Second;
-            LOG( "DedupMetaData metadata for %s", storedDatum->Url.ToCStr() );
+            OVR_LOG( "DedupMetaData metadata for %s", storedDatum->Url.ToCStr() );
             Alg::Swap( storedDatum->Tags, metaDatum->Tags );
             SwapExtendedData( storedDatum, metaDatum );
             newData.Remove( iter->First );
@@ -565,7 +565,7 @@ void OvrMetaData::ReconcileCategories( Array< Category > & storedCategories )
 	Category favorites = storedCategories.At( 0 );
 	if ( favorites.CategoryTag != FAVORITES_TAG )
 	{
-		WARN( "OvrMetaData::ReconcileCategories failed to find expected category order -- missing assets/meta.json?" );
+		OVR_WARN( "OvrMetaData::ReconcileCategories failed to find expected category order -- missing assets/meta.json?" );
 	}
 
 	finalCategories.PushBack( favorites );
@@ -574,7 +574,7 @@ void OvrMetaData::ReconcileCategories( Array< Category > & storedCategories )
 	for ( int i = 0; i < storedCategories.GetSizeI(); ++i )
 	{
 		const Category & storedCategory = storedCategories.At( i );
-		LOG( "OvrMetaData::ReconcileCategories storedCategory: %s", storedCategory.CategoryTag.ToCStr() );
+		OVR_LOG( "OvrMetaData::ReconcileCategories storedCategory: %s", storedCategory.CategoryTag.ToCStr() );
 		StoredCategoryMap.Add( storedCategory.CategoryTag, true );
 	}
 
@@ -586,7 +586,7 @@ void OvrMetaData::ReconcileCategories( Array< Category > & storedCategories )
 
 		if ( iter == StoredCategoryMap.End() )
 		{
-			LOG( "OvrMetaData::ReconcileCategories adding %s", readInCategory.CategoryTag.ToCStr() );
+			OVR_LOG( "OvrMetaData::ReconcileCategories adding %s", readInCategory.CategoryTag.ToCStr() );
 			finalCategories.PushBack( readInCategory );
 		}
 	}
@@ -595,7 +595,7 @@ void OvrMetaData::ReconcileCategories( Array< Category > & storedCategories )
 	for ( int i = 1; i < storedCategories.GetSizeI(); ++i )
 	{
 		const  Category & storedCat = storedCategories.At( i );
-		LOG( "OvrMetaData::ReconcileCategories adding stored category %s", storedCat.CategoryTag.ToCStr() );
+		OVR_LOG( "OvrMetaData::ReconcileCategories adding stored category %s", storedCat.CategoryTag.ToCStr() );
 		finalCategories.PushBack( storedCat );
 	}
 
@@ -651,7 +651,7 @@ void OvrMetaData::ExtractCategories( JSON * dataFile, Array< Category > & outCat
 
 				if ( !exists )
 				{
-					LOG( "Extracting category: %s", extractedCategory.CategoryTag.ToCStr() );
+					OVR_LOG( "Extracting category: %s", extractedCategory.CategoryTag.ToCStr() );
 					outCategories.PushBack( extractedCategory );
 				}
 			}
@@ -720,7 +720,7 @@ void OvrMetaData::ExtractMetaData( JSON * dataFile, const Array< String > & sear
 				}
 
 				ExtractExtendedData( datum, *metaDatum );
-				LOG( "OvrMetaData::ExtractMetaData adding datum %s", metaDatum->Url.ToCStr() );
+				OVR_LOG( "OvrMetaData::ExtractMetaData adding datum %s", metaDatum->Url.ToCStr() );
 
 				StringHash< OvrMetaDatum * >::Iterator iter = outMetaData.FindCaseInsensitive( metaDatum->Url );
 				if ( iter == outMetaData.End() )
@@ -797,12 +797,12 @@ void OvrMetaData::Serialize()
 	JSON * dataFile = MetaDataToJson();
 	if ( dataFile == NULL )
 	{
-		FAIL( "OvrMetaData::Serialize failed to generate JSON meta file" );
+		OVR_FAIL( "OvrMetaData::Serialize failed to generate JSON meta file" );
 	}
 
 	dataFile->Save( FilePath.ToCStr() );
 
-	LOG( "OvrMetaData::Serialize updated %s", FilePath.ToCStr() );
+	OVR_LOG( "OvrMetaData::Serialize updated %s", FilePath.ToCStr() );
 	dataFile->Release();
 }
 
@@ -826,7 +826,7 @@ void OvrMetaData::RegenerateCategoryIndices()
 		{
 			if ( tags.At( 0 ) == FAVORITES_TAG )
 			{
-				LOG( "Removing broken metadatum %s", metaDatum.Url.ToCStr() );
+				OVR_LOG( "Removing broken metadatum %s", metaDatum.Url.ToCStr() );
 				MetaData.RemoveAtUnordered( metaDataIndex );
 			}
 		}
@@ -857,7 +857,7 @@ void OvrMetaData::RegenerateCategoryIndices()
 			{
 				if ( Category * category = GetCategory( tag ) )
 				{
-					LOG( "OvrMetaData inserting index %d for datum %s to %s", metaDataIndex, datum.Url.ToCStr(), category->CategoryTag.ToCStr() );
+					OVR_LOG( "OvrMetaData inserting index %d for datum %s to %s", metaDataIndex, datum.Url.ToCStr(), category->CategoryTag.ToCStr() );
 
 					// fix the metadata index itself
 					datum.Id = metaDataIndex;
@@ -868,7 +868,7 @@ void OvrMetaData::RegenerateCategoryIndices()
 				}
 				else
 				{
-					WARN( "OvrMetaData::RegenerateCategoryIndices failed to find category with tag %s for datum %s at index %d", 
+					OVR_WARN( "OvrMetaData::RegenerateCategoryIndices failed to find category with tag %s for datum %s at index %d",
 						tag.ToCStr(), datum.Url.ToCStr(), metaDataIndex );
 				}
 			}
@@ -893,7 +893,7 @@ JSON * OvrMetaData::MetaDataToJson() const
 			const Category & cat = Categories.At( c );
 			catObject->AddStringItem( TAG, cat.CategoryTag.ToCStr() );
 			catObject->AddStringItem( LABEL, cat.LocaleKey.ToCStr() );
-			LOG( "OvrMetaData::MetaDataToJson adding category %s", cat.CategoryTag.ToCStr() );
+			OVR_LOG( "OvrMetaData::MetaDataToJson adding category %s", cat.CategoryTag.ToCStr() );
 			newCategoriesObject->AddArrayElement( catObject );
 		}
 	}
@@ -910,7 +910,7 @@ JSON * OvrMetaData::MetaDataToJson() const
 		{
 			ExtendedDataToJson( metaDatum, datumObject );
 			datumObject->AddStringItem( URL_INNER, metaDatum.Url.ToCStr() );
-			LOG( "OvrMetaData::MetaDataToJson adding datum url %s", metaDatum.Url.ToCStr() );
+			OVR_LOG( "OvrMetaData::MetaDataToJson adding datum url %s", metaDatum.Url.ToCStr() );
 			if ( JSON * newTagsObject = JSON::CreateArray() )
 			{
 				for ( int t = 0; t < metaDatum.Tags.GetSizeI(); ++t )
@@ -937,7 +937,7 @@ TagAction OvrMetaData::ToggleTag( OvrMetaDatum * metaDatum, const String & newTa
 	JSON * DataFile = JSON::Load( FilePath.ToCStr() );
 	if ( DataFile == NULL )
 	{
-		FAIL( "OvrMetaData failed to load JSON meta file: %s", FilePath.ToCStr() );
+		OVR_FAIL( "OvrMetaData failed to load JSON meta file: %s", FilePath.ToCStr() );
 	}
 
 	OVR_ASSERT( DataFile );
@@ -952,10 +952,10 @@ TagAction OvrMetaData::ToggleTag( OvrMetaDatum * metaDatum, const String & newTa
 			// Handle case which leaves us with no tags - ie. broken state
 			if ( metaDatum->Tags.GetSizeI() < 2 )
 			{
-				WARN( "ToggleTag attempt to remove only tag: %s on %s", newTag.ToCStr(), metaDatum->Url.ToCStr() );
+				OVR_WARN( "ToggleTag attempt to remove only tag: %s on %s", newTag.ToCStr(), metaDatum->Url.ToCStr() );
 				return TAG_ERROR;
 			}
-			LOG( "ToggleTag TAG_REMOVED tag: %s on %s", newTag.ToCStr(), metaDatum->Url.ToCStr() );
+			OVR_LOG( "ToggleTag TAG_REMOVED tag: %s on %s", newTag.ToCStr(), metaDatum->Url.ToCStr() );
 			action = TAG_REMOVED;
 			metaDatum->Tags.RemoveAt( t );
 			break;
@@ -964,7 +964,7 @@ TagAction OvrMetaData::ToggleTag( OvrMetaDatum * metaDatum, const String & newTa
 
 	if ( action == TAG_ERROR )
 	{
-		LOG( "ToggleTag TAG_ADDED tag: %s on %s", newTag.ToCStr(), metaDatum->Url.ToCStr() );
+		OVR_LOG( "ToggleTag TAG_ADDED tag: %s on %s", newTag.ToCStr(), metaDatum->Url.ToCStr() );
 		metaDatum->Tags.PushBack( newTag );
 		action = TAG_ADDED;
 	}
@@ -1061,7 +1061,7 @@ bool OvrMetaData::GetMetaData( const Category & category, Array< const OvrMetaDa
 		const int metaDataIndex = category.DatumIndicies.At( i );
 		OVR_ASSERT( metaDataIndex >= 0 && metaDataIndex < MetaData.GetSizeI() );
 		//const OvrMetaDatum * panoData = &MetaData.At( metaDataIndex );
-		//LOG( "Getting MetaData %d title %s from category %s", metaDataIndex, panoData->Title.ToCStr(), category.CategoryName.ToCStr() );
+		//OVR_LOG( "Getting MetaData %d title %s from category %s", metaDataIndex, panoData->Title.ToCStr(), category.CategoryName.ToCStr() );
 		outMetaData.PushBack( MetaData.At( metaDataIndex ) );
 	}
 	return true;
@@ -1109,10 +1109,10 @@ void OvrMetaData::DumpToLog( bool const verbose ) const
 	{
 		for ( int i = 0; i < MetaData.GetSizeI(); ++i )
 		{
-			LOG_WITH_TAG( "MetaData", "Url: %s", MetaData[i]->Url.ToCStr() );
+			OVR_LOG_WITH_TAG( "MetaData", "Url: %s", MetaData[i]->Url.ToCStr() );
 		}
 	}
-	LOG_WITH_TAG( "MetaData", "Total: %i urls", MetaData.GetSizeI() );
+	OVR_LOG_WITH_TAG( "MetaData", "Total: %i urls", MetaData.GetSizeI() );
 }
 
 }

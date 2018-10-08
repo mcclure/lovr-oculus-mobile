@@ -5,7 +5,7 @@ Content     :   A menu for browsing a hierarchy of folders with items represente
 Created     :   July 25, 2014
 Authors     :   Jonathan E. Wright, Warsam Osman, Madhu Kalva
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/

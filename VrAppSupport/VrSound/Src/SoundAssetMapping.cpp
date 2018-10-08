@@ -5,7 +5,7 @@ Content     :   Sound asset manager via json definitions
 Created     :   October 22, 2013
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -39,7 +39,7 @@ void ovrSoundAssetMapping::LoadSoundAssets( ovrFileSys * fileSys )
 		JSON * dataFile = JSON::Load( foundPath.ToCStr() );
 		if ( dataFile == NULL )
 		{
-			FAIL( "ovrSoundAssetMapping::LoadSoundAssets failed to load JSON meta file: %s", foundPath.ToCStr() );
+			OVR_FAIL( "ovrSoundAssetMapping::LoadSoundAssets failed to load JSON meta file: %s", foundPath.ToCStr() );
 		}
 		foundPath.StripTrailing( "sound_assets.json" );
 		LoadSoundAssetsFromJsonObject( foundPath, dataFile );
@@ -75,7 +75,7 @@ void ovrSoundAssetMapping::LoadSoundAssets( ovrFileSys * fileSys )
 
 	if ( SoundMap.IsEmpty() )
 	{
-		LOG( "SoundManger - failed to load any sound definition files!" );
+		OVR_LOG( "SoundManger - failed to load any sound definition files!" );
 	}
 }
 
@@ -95,7 +95,7 @@ bool ovrSoundAssetMapping::GetSound( const char * soundName, String & outSound )
 	}
 	else
 	{
-		WARN( "ovrSoundAssetMapping::GetSound failed to find %s", soundName );
+		OVR_WARN( "ovrSoundAssetMapping::GetSound failed to find %s", soundName );
 	}
 
 	return false;
@@ -108,13 +108,13 @@ void ovrSoundAssetMapping::LoadSoundAssetsFromPackage( const String & url, const
 	ovr_ReadFileFromApplicationPackage( jsonFile, bufferLength, buffer );
 	if ( !buffer )
 	{
-		FAIL( "ovrSoundAssetMapping::LoadSoundAssetsFromPackage failed to read %s", jsonFile );
+		OVR_FAIL( "ovrSoundAssetMapping::LoadSoundAssetsFromPackage failed to read %s", jsonFile );
 	}
 
 	JSON * dataFile = JSON::Parse( reinterpret_cast< char * >( buffer ) );
 	if ( !dataFile )
 	{
-		FAIL( "ovrSoundAssetMapping::LoadSoundAssetsFromPackage failed json parse on %s", jsonFile );
+		OVR_FAIL( "ovrSoundAssetMapping::LoadSoundAssetsFromPackage failed json parse on %s", jsonFile );
 	}
 	free( buffer );
 
@@ -143,12 +143,12 @@ void ovrSoundAssetMapping::LoadSoundAssetsFromJsonObject( const String & url, JS
 		StringHash< String >::ConstIterator soundMapping = SoundMap.Find( sound->Name );
 		if ( soundMapping != SoundMap.End() )
 		{
-			LOG( "SoundManger - adding Duplicate sound %s with asset %s", sound->Name.ToCStr(), fullPath.ToCStr() );
+			OVR_LOG( "SoundManger - adding Duplicate sound %s with asset %s", sound->Name.ToCStr(), fullPath.ToCStr() );
 			SoundMap.Set( sound->Name, fullPath );
 		}
 		else // add new sound
 		{
-			LOG( "SoundManger read in: %s -> %s", sound->Name.ToCStr(), fullPath.ToCStr() );
+			OVR_LOG( "SoundManger read in: %s -> %s", sound->Name.ToCStr(), fullPath.ToCStr() );
 			SoundMap.Add( sound->Name, fullPath );
 		}
 	}

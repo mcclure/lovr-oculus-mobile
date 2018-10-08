@@ -5,7 +5,7 @@ Content     :   A reusable component implementing a scroll bar.
 Created     :   Jan 15, 2014
 Authors     :   Warsam Osman
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 
 *************************************************************************************/
@@ -355,7 +355,7 @@ void OvrScrollBarComponent::SetScrollState( VRMenuObject * self, const eScrollBa
 	case SCROLL_STATE_FADE_IN:
 		if ( lastState == SCROLL_STATE_HIDDEN || lastState == SCROLL_STATE_FADE_OUT )
 		{
-			LOG( "%s to %s", StateString( lastState ), StateString( CurrentScrollState ) );
+			OVR_LOG( "%s to %s", StateString( lastState ), StateString( CurrentScrollState ) );
 			Fader.StartFadeIn();
 		}
 		break;
@@ -365,7 +365,7 @@ void OvrScrollBarComponent::SetScrollState( VRMenuObject * self, const eScrollBa
 	case SCROLL_STATE_FADE_OUT:
 		if ( lastState == SCROLL_STATE_VISIBLE || lastState == SCROLL_STATE_FADE_IN )
 		{
-			LOG( "%s to %s", StateString( lastState ), StateString( CurrentScrollState ) );
+			OVR_LOG( "%s to %s", StateString( lastState ), StateString( CurrentScrollState ) );
 			Fader.StartFadeOut();
 		}
 		break;

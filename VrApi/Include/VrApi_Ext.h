@@ -6,7 +6,7 @@ Created     :   February 3, 2016
 Authors     :   Cass Everitt
 Language    :   C99
 
-Copyright   :   Copyright 2016 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

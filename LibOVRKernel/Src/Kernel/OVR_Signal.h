@@ -1,10 +1,10 @@
 /************************************************************************************
 
-Filename    :   OVR_Signal.cpp
+Filename    :   OVR_Signal.h
 Content     :   Signal for thread synchronization, similar to a Windows event object.
 Created     :   June 6, 2014
 Authors     :   J.M.P van Waveren and Jonathan E. Wright
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 

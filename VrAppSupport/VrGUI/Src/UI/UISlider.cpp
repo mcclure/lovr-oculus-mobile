@@ -5,7 +5,7 @@ Content     :
 Created     :	10/01/2015
 Authors     :   Jonathan Wright & Warsam Osman
 
-Copyright   :   Copyright 2014 Oculus VR, LLC. All Rights reserved.
+Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
 
