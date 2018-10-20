@@ -1,0 +1,33 @@
+apply plugin: 'com.android.library'
+
+
+android {
+  compileSdkVersion 21
+  buildToolsVersion '27.0.3'
+
+  defaultConfig {
+		minSdkVersion 21
+		targetSdkVersion 21
+
+	    externalNativeBuild {
+	        ndk {
+	            abiFilters 'armeabi-v7a','arm64-v8a'
+	        }
+	        cmake {
+				arguments "-DOCULUS_ANDROID_EMBED=TRUE", "-DUSE_PORTAUDIO=TRUE"
+			}
+	    }
+	}
+
+	sourceSets {
+		main {
+			manifest.srcFile 'AndroidManifest.xml'
+		}
+	}
+
+	externalNativeBuild {
+		cmake {
+			path "lovr/CMakeLists.txt"
+		}
+	}
+}
