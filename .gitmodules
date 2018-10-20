@@ -1,3 +1,6 @@
 [submodule "cmakelib/lovr"]
 	path = cmakelib/lovr
 	url = https://github.com/mcclure/lovr.git
+[submodule "deps/openal-soft"]
+	path = deps/openal-soft
+	url = https://github.com/apportable/openal-soft.git
