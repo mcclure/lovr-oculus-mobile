@@ -36,7 +36,7 @@ android {
       java.srcDirs = ['../../java']
       jniLibs.srcDir 'libs'
       res.srcDirs = ['../../res']
-      assets.srcDirs = ['../../assets', '../../../cmakelib/lovr/game/lua']
+      assets.srcDirs = ['../../assets']
     }
   }
 }

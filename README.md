@@ -20,9 +20,9 @@ This is a repository for building LovrApp, a standalone Android app which is bas
 
 * Copy the file downloaded from osig-generator into `LovrApp/assets`
 
-* cd `LovrApp/Projects/Android`
+* You need to build the gradle scripts in `deps/openal-soft` and `cmakelib`, then run the installDebug target of the gradle script in `LovrApp/Projects/Android`. You can do this with the `gradlew` script in the root, but it will need the Android tools in `PATH` and the sdk install location in `ANDROID_HOME`. You can just run this at the Bash prompt from the repository root to do all of this:
 
-* ```PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk ../../../gradlew installDebug```
+        (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd deps/openal-soft-gradle && $GRADLE build) && (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
 
 * **IF IT FAILS WITH A MESSAGE ABOUT `z_crc_t`:**
 
@@ -30,24 +30,37 @@ This is a repository for building LovrApp, a standalone Android app which is bas
 
 		message(FATAL_ERROR fake_failure)
 
-	* Rerun the `installDebug` step. It will fail again, this time with the message "fake_failure".
+	* Rerun the command that failed. It will fail again, this time with the message "fake_failure".
 
 	* Remove the line you just added to `cmakelib/lovr/deps/assimp/CMakeLists.txt`.
 
-	* Rerun the `installDebug` step again. This time it will succeed.
+	* Rerun the command that failed again. This time it will succeed. From now on it will always succeed.
 
 	* Yes, this is *completely ridiculous*. :(
 
-Notes: 
-* To see other things gradlew can do run it with "tasks" as the argument.
-* The reason for the long PATH/ANDROID_HOME line is to get the java and android tools into scope for that line. You could also just modify the env vars in your bashrc.
+* **IF IT FAILS WITH A DIFFERENT MESSAGE:**
+
+    * Try building again and see if it succeeds the second time. Yes, this too is *completely ridiculous*.
+
+Notes:
 * You have to have turned on developer mode on your headset before deploying.
 * If it gets stuck complaining about "unauthorized", try putting on the headset and see if there's a permissions popup.
-* On repeat builds, the build will sometimes fail to recognize that cmakelib is a dependency of LovrApp. When this happens, you might have to separately build cmakelib before building LovrApp. For example:
+* If you get a message about "signatures do not match the previously installed version", run this and try again:
 
-    (cd ../../../cmakelib; PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk ../gradlew build) && (PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk ../../../gradlew installDebug) && say "Beep"
+        PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb uninstall com.lovr.appsample
+
+* If all you have done is changed the assets, you can upload those by running only the final `installDebug` gradlew task. For example:
+
+        (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd LovrApp/Projects/Android && $GRADLE installDebug))
+
+* To see all the things gradlew can do in a particular directory run it with "tasks" as the argument.
+* The reason for the long PATH/ANDROID_HOME line is to get the java and android tools into scope for that line. You could also just modify the env vars in your bashrc.
 
 Any help with fixing the "unusual" or inconsistent steps above, or getting the project to build in Android Studio, would be much appreciated.
+
+## Adding game code:
+
+The game code should be put in `LovrApp/assets`. Alternately, you can place your own directory somewhere and put the path to it on the `assets.srcDirs = ['../../assets', '../../../your/path/here']` line of `LovrApp/Projects/Android/build.gradle`. This will be uploaded when LovrApp's installDebug runs.
 
 ## To make your own app:
 
