@@ -1,5 +1,8 @@
 apply plugin: 'com.android.library'
 
+dependencies {
+  implementation project(':deps:openal-soft-gradle')
+}
 
 android {
   compileSdkVersion 21

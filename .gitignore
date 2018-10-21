@@ -9,6 +9,9 @@
 /VrAppSupport/VrLocale/Projects/Android/build
 /VrAppSupport/VrSound/Projects/Android/.externalNativeBuild
 /VrAppSupport/VrSound/Projects/Android/build
+/deps/openal-soft-gradle/.externalNativeBuild
+/deps/openal-soft-gradle/build
+/deps/openal-soft-gradle/.gradle 
 /LovrApp/Projects/Android/.externalNativeBuild
 /LovrApp/Projects/Android/build
 /LovrApp/Projects/Android/.gradle

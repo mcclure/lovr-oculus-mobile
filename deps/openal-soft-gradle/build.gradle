@@ -1,0 +1,36 @@
+apply plugin: 'com.android.library'
+
+android {
+  compileSdkVersion 21
+  buildToolsVersion '27.0.3'
+
+  defaultConfig {
+	minSdkVersion 21
+	targetSdkVersion 21
+
+    // override app plugin abiFilters for both 32 and 64-bit support
+    externalNativeBuild {
+        ndk {
+                abiFilters 'armeabi-v7a','arm64-v8a'
+        }
+        ndkBuild {
+                abiFilters 'armeabi-v7a','arm64-v8a'
+        }
+    } 
+  }
+
+  sourceSets {
+    main {
+      manifest.srcFile 'AndroidManifest.xml' // Use Lovr-specific manifest with no activity information
+      //manifest.srcFile '../openal-soft/AndroidManifest.xml'
+      //res.srcDirs = ['../openal-soft/res']   // Not wanted when building as library
+      //java.srcDirs = ['../openal-soft/src']  // Not wanted when building as library
+    }
+  }
+
+  externalNativeBuild {
+  	ndkBuild {
+  		path '../openal-soft/jni/Android.mk'
+  	}
+  }
+}

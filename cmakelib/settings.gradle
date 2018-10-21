@@ -7,4 +7,5 @@ include ':', \
 	'VrAppSupport:VrSound:Projects:Android', \
 	'VrSamples:VrCubeWorld_Framework:Projects:Android', \
 	'VrAppSupport:VrGUI:Projects:Android', \
+	'deps:openal-soft-gradle', \
 	'cmakelib'
