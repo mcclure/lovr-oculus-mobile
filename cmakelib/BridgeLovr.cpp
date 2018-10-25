@@ -9,11 +9,23 @@
 extern "C" {
 
 #include "BridgeLovr.h"
-#include "lovr.h"
+#include "luax.h"
+#include "lib/glfw.h"
 
-static lua_State* L;
-static int stepRef;
+#include "api.h"
+#include "lib/lua-cjson/lua_cjson.h"
+#include "lib/lua-enet/enet.h"
 
+// Implicit from boot.lua.h
+extern unsigned char boot_lua[];
+extern unsigned int boot_lua_len;
+
+static lua_State* L, *Lcoroutine;
+static int coroutineRef = LUA_NOREF;
+static int coroutineStartFunctionRef = LUA_NOREF;
+static std::string bridgeLovrSoPath;
+
+// Exposed to oculus_mobile.c
 char *bridgeLovrWritablePath;
 BridgeLovrMobileData bridgeLovrMobileData;
 
@@ -72,6 +84,26 @@ static void physCopyFiles(std::string toDir, std::string fromDir) {
     files++;
   }
   PHYSFS_freeList(filesOrig);
+}
+
+static void android_vthrow(lua_State* L, const char* format, ...) {
+  #define MAX_ERROR_LENGTH 1024
+  char lovrErrorMessage[MAX_ERROR_LENGTH];
+  va_list args;
+  va_start(args, format);
+  vsnprintf(lovrErrorMessage, MAX_ERROR_LENGTH, format, args);
+  va_end(args);
+  __android_log_print(ANDROID_LOG_FATAL, "LOVR", "Error: %s\n", lovrErrorMessage);
+  assert(0);
+}
+
+static int luax_preloadmodule(lua_State* L, const char* key, lua_CFunction f) {
+  lua_getglobal(L, "package");
+  lua_getfield(L, -1, "preload");
+  lua_pushcfunction(L, f);
+  lua_setfield(L, -2, key);
+  lua_pop(L, 2);
+  return 0;
 }
 
 void bridgeLovrInit(BridgeLovrInitData *initData) {
@@ -141,11 +173,14 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
   // Unpack init data
   bridgeLovrMobileData.displayDimensions = initData->suggestedEyeTexture;
 
-  // Ready to actually go now
+  // Ready to actually go now.
+  // Copypaste the init sequence from lovrRun:
   // Load libraries
   L = luaL_newstate(); // FIXME: Just call main?
   luaL_openlibs(L);
   __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n OPENED LIB\n");
+
+  lovrSetErrorCallback((lovrErrorHandler) android_vthrow, L);
 
   // Install custom print
   static const struct luaL_Reg printHack [] = {
@@ -157,28 +192,52 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
   //luaL_setfuncs(L, printlib, 0);  // "for Lua versions 5.2 or greater"
   lua_pop(L, 1);
 
-  // Initialize Lovr
-  const char *argv[] = {"lovr", programPath.c_str()};
-  lovrInit(L, 2, &argv[0]);
+  glfwSetTime(0);
 
-  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n LOVRINIT DONE\n");
+  // Set "arg" global
+  {
+    const char *argv[] = {"lovr", programPath.c_str()};
+    int argc = 2;
 
-  // TODO: Merge with emscripten run?
-  lua_getglobal(L, "lovr");
-  if (!lua_isnil(L, -1)) {
-    lua_getfield(L, -1, "load");
-    if (!lua_isnil(L, -1)) {
-      lua_call(L, 0, 0);
-      __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n LUA LOADED\n");
-    } else {
-      lua_pop(L, 1);
+    lua_newtable(L);
+    lua_pushstring(L, "lovr");
+    lua_rawseti(L, -2, -1);
+    for (int i = 0; i < argc; i++) {
+      lua_pushstring(L, argv[i]);
+      lua_rawseti(L, -2, i == 0 ? -2 : i);
     }
+    lua_setglobal(L, "arg");
   }
 
-  lua_getfield(L, -1, "step");
-  stepRef = luaL_ref(L, LUA_REGISTRYINDEX);
+  // Register loaders for internal packages (since dynamic load does not seem to work on Android)
+  luax_preloadmodule(L, "lovr", luaopen_lovr);
+  luax_preloadmodule(L, "lovr.audio", luaopen_lovr_audio);
+  luax_preloadmodule(L, "lovr.data", luaopen_lovr_data);
+  luax_preloadmodule(L, "lovr.event", luaopen_lovr_event);
+  luax_preloadmodule(L, "lovr.filesystem", luaopen_lovr_filesystem);
+  luax_preloadmodule(L, "lovr.graphics", luaopen_lovr_graphics);
+  luax_preloadmodule(L, "lovr.headset", luaopen_lovr_headset);
+  luax_preloadmodule(L, "lovr.math", luaopen_lovr_math);
+  luax_preloadmodule(L, "lovr.physics", luaopen_lovr_physics);
+  luax_preloadmodule(L, "lovr.thread", luaopen_lovr_thread);
+  luax_preloadmodule(L, "lovr.timer", luaopen_lovr_timer);
+  luax_preloadmodule(L, "cjson", luaopen_cjson);
+  luax_preloadmodule(L, "enet", luaopen_enet);
 
-  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n BRIDGE INIT COMPLETE\n");
+  // Run init
+
+  lua_pushcfunction(L, luax_getstack);
+  if (luaL_loadbuffer(L, (const char*) boot_lua, boot_lua_len, "boot.lua") || lua_pcall(L, 0, 1, -2)) {
+    __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n LUA STARTUP FAILED: %s\n", lua_tostring(L, -1));
+    lua_close(L);
+    assert(0);
+  }
+
+  coroutineStartFunctionRef = luaL_ref(L, LUA_REGISTRYINDEX); // Value returned by boot.lua
+  Lcoroutine = lua_newthread(L); // Leave L clear to be used by the draw function
+  coroutineRef = luaL_ref(L, LUA_REGISTRYINDEX); // Hold on to the Lua-side coroutine object so it isn't GC'd
+
+  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n BRIDGE INIT COMPLETE top %d\n", (int)lua_gettop(L));
 }
 
 void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
@@ -188,17 +247,29 @@ void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
   memcpy(bridgeLovrMobileData.eyeViewMatrix, updateData->eyeViewMatrix, sizeof(bridgeLovrMobileData.eyeViewMatrix));
   memcpy(bridgeLovrMobileData.projectionMatrix, updateData->projectionMatrix, sizeof(bridgeLovrMobileData.projectionMatrix));
 
+  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n WILL UPDATE top %d\n", lua_gettop(L));
   // Go
-  lua_rawgeti(L, LUA_REGISTRYINDEX, stepRef);
-  lua_call(L, 0, 0);
+  if (coroutineStartFunctionRef != LUA_NOREF) {
+    lua_rawgeti(Lcoroutine, LUA_REGISTRYINDEX, coroutineStartFunctionRef);
+    luaL_unref (Lcoroutine, LUA_REGISTRYINDEX, coroutineStartFunctionRef);
+    coroutineStartFunctionRef = LUA_NOREF; // No longer needed
+  }
+  if (lua_resume(Lcoroutine, 0) != LUA_YIELD) {
+    __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n LUA QUIT\n");
+    assert(0);
+  }
+
+  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n UPDATE COMPLETE top %d\n", lua_gettop(L));
 }
 
 void lovrOculusMobileDraw(int eye, int framebuffer, int width, int height, float *eyeViewMatrix, float *projectionMatrix);
 
 void bridgeLovrDraw(BridgeLovrDrawData *drawData) {
   int eye = drawData->eye;
+  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n WILL DRAW top %d\n", lua_gettop(L));
   lovrOculusMobileDraw(eye, drawData->framebuffer, bridgeLovrMobileData.displayDimensions.width, bridgeLovrMobileData.displayDimensions.height,
     bridgeLovrMobileData.eyeViewMatrix[eye], bridgeLovrMobileData.projectionMatrix[eye]); // Is this indexing safe?
+  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n DRAW COMPLETE top %d\n", lua_gettop(L));
 }
 
 }

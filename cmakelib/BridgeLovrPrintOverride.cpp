@@ -3,8 +3,8 @@ using namespace std;
 
 extern "C" {
 
-#include "lovr.h"
 #include <android/log.h>
+#include "luax.h"
 
 // THIS FUNCTION IS SUBSTANTIALLY BASED ON luaB_print FROM LUA SOURCE AND IS LIKELY LICENSE ENCUMBERED
 int lovr_luaB_print_override (lua_State *L) {
