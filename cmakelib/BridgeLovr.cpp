@@ -15,6 +15,7 @@ extern "C" {
 #include "api.h"
 #include "lib/lua-cjson/lua_cjson.h"
 #include "lib/lua-enet/enet.h"
+#include "headset/oculus_mobile.h"
 
 // Implicit from boot.lua.h
 extern unsigned char boot_lua[];
@@ -23,7 +24,6 @@ extern unsigned int boot_lua_len;
 static lua_State* L, *Lcoroutine;
 static int coroutineRef = LUA_NOREF;
 static int coroutineStartFunctionRef = LUA_NOREF;
-static std::string bridgeLovrSoPath;
 
 // Exposed to oculus_mobile.c
 char *bridgeLovrWritablePath;
@@ -262,12 +262,10 @@ void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
   __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n UPDATE COMPLETE top %d\n", lua_gettop(L));
 }
 
-void lovrOculusMobileDraw(int eye, int framebuffer, int width, int height, float *eyeViewMatrix, float *projectionMatrix);
-
 void bridgeLovrDraw(BridgeLovrDrawData *drawData) {
   int eye = drawData->eye;
   __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n WILL DRAW top %d\n", lua_gettop(L));
-  lovrOculusMobileDraw(eye, drawData->framebuffer, bridgeLovrMobileData.displayDimensions.width, bridgeLovrMobileData.displayDimensions.height,
+  lovrOculusMobileDraw(drawData->framebuffer, bridgeLovrMobileData.displayDimensions.width, bridgeLovrMobileData.displayDimensions.height,
     bridgeLovrMobileData.eyeViewMatrix[eye], bridgeLovrMobileData.projectionMatrix[eye]); // Is this indexing safe?
   __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n DRAW COMPLETE top %d\n", lua_gettop(L));
 }
