@@ -24,24 +24,6 @@ This is a repository for building LovrApp, a standalone Android app which is bas
 
         (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd deps/openal-soft-gradle && $GRADLE build) && (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
 
-* **IF IT FAILS WITH A MESSAGE ABOUT `z_crc_t`:**
-
-	* Edit the file `cmakelib/lovr/deps/assimp/CMakeLists.txt`. On the first line, insert:
-
-		message(FATAL_ERROR fake_failure)
-
-	* Rerun the command that failed. It will fail again, this time with the message "fake_failure".
-
-	* Remove the line you just added to `cmakelib/lovr/deps/assimp/CMakeLists.txt`.
-
-	* Rerun the command that failed again. This time it will succeed. From now on it will always succeed.
-
-	* Yes, this is *completely ridiculous*. :(
-
-* **IF IT FAILS WITH A DIFFERENT MESSAGE:**
-
-    * Try building again and see if it succeeds the second time. Yes, this too is *completely ridiculous*.
-
 Notes:
 * You have to have turned on developer mode on your headset before deploying.
 * If it gets stuck complaining about "unauthorized", try putting on the headset and see if there's a permissions popup.
@@ -56,13 +38,13 @@ Notes:
 * To see all the things gradlew can do in a particular directory run it with "tasks" as the argument.
 * The reason for the long PATH/ANDROID_HOME line is to get the java and android tools into scope for that line. You could also just modify the env vars in your bashrc.
 
-Any help with fixing the "unusual" or inconsistent steps above, or getting the project to build in Android Studio, would be much appreciated.
+Help would be appreciated if you know how to do any of the following: Make the build work in Android Studio; make the build work in Windows; make the build work in a single gradle pass without having to invoke `gradlew` three times.
 
 ## Adding game code:
 
 The game code should be put in `LovrApp/assets`. Alternately, you can place your own directory somewhere and put the path to it on the `assets.srcDirs = ['../../assets', '../../../your/path/here']` line of `LovrApp/Projects/Android/build.gradle`. This will be uploaded when LovrApp's installDebug runs.
 
-## To make your own app:
+## To ship your own app:
 
 Decide on a name for your app and also an identifier (this is something like "com.companyname.gametitle").
 
