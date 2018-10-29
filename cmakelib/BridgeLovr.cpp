@@ -247,7 +247,6 @@ void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
   memcpy(bridgeLovrMobileData.eyeViewMatrix, updateData->eyeViewMatrix, sizeof(bridgeLovrMobileData.eyeViewMatrix));
   memcpy(bridgeLovrMobileData.projectionMatrix, updateData->projectionMatrix, sizeof(bridgeLovrMobileData.projectionMatrix));
 
-  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n WILL UPDATE top %d\n", lua_gettop(L));
   // Go
   if (coroutineStartFunctionRef != LUA_NOREF) {
     lua_rawgeti(Lcoroutine, LUA_REGISTRYINDEX, coroutineStartFunctionRef);
@@ -258,16 +257,12 @@ void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
     __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n LUA QUIT\n");
     assert(0);
   }
-
-  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n UPDATE COMPLETE top %d\n", lua_gettop(L));
 }
 
 void bridgeLovrDraw(BridgeLovrDrawData *drawData) {
   int eye = drawData->eye;
-  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n WILL DRAW top %d\n", lua_gettop(L));
   lovrOculusMobileDraw(drawData->framebuffer, bridgeLovrMobileData.displayDimensions.width, bridgeLovrMobileData.displayDimensions.height,
     bridgeLovrMobileData.eyeViewMatrix[eye], bridgeLovrMobileData.projectionMatrix[eye]); // Is this indexing safe?
-  __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "\n DRAW COMPLETE top %d\n", lua_gettop(L));
 }
 
 }

@@ -1449,8 +1449,7 @@ void android_main( struct android_app * app )
 	appState.UseMultiview &= ( glExtensions.multi_view &&
 							vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE ) );
 
-	// FIXME FIXME FIXME FIXME Jumpman can't handle multiview currently
-	// FIXME FIXME FIXME FIXME this should be set back to true before submitting upstream to Lovr project
+	// FIXME FIXME FIXME FIXME This should be turned back on
 	appState.UseMultiview = false;
 
 	ALOGV( "AppState UseMultiview : %d", appState.UseMultiview );
