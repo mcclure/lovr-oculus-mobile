@@ -172,6 +172,7 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
 
   // Unpack init data
   bridgeLovrMobileData.displayDimensions = initData->suggestedEyeTexture;
+  bridgeLovrMobileData.updateData.displayTime = initData->zeroDisplayTime;
 
   // Ready to actually go now.
   // Copypaste the init sequence from lovrRun:
@@ -242,10 +243,7 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
 
 void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
   // Unpack update data
-  bridgeLovrMobileData.lastHeadPose = updateData->lastHeadPose;
-  bridgeLovrMobileData.lastHeadVelocity = updateData->lastHeadVelocity;
-  memcpy(bridgeLovrMobileData.eyeViewMatrix, updateData->eyeViewMatrix, sizeof(bridgeLovrMobileData.eyeViewMatrix));
-  memcpy(bridgeLovrMobileData.projectionMatrix, updateData->projectionMatrix, sizeof(bridgeLovrMobileData.projectionMatrix));
+  bridgeLovrMobileData.updateData = *updateData;
 
   // Go
   if (coroutineStartFunctionRef != LUA_NOREF) {
@@ -262,7 +260,7 @@ void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
 void bridgeLovrDraw(BridgeLovrDrawData *drawData) {
   int eye = drawData->eye;
   lovrOculusMobileDraw(drawData->framebuffer, bridgeLovrMobileData.displayDimensions.width, bridgeLovrMobileData.displayDimensions.height,
-    bridgeLovrMobileData.eyeViewMatrix[eye], bridgeLovrMobileData.projectionMatrix[eye]); // Is this indexing safe?
+    bridgeLovrMobileData.updateData.eyeViewMatrix[eye], bridgeLovrMobileData.updateData.projectionMatrix[eye]); // Is this indexing safe?
 }
 
 }

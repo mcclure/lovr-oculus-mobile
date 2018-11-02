@@ -160,6 +160,23 @@ typedef struct
 
 OpenGLExtensions_t glExtensions;
 
+void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeLovrVel &Velocity) {
+	Pose.x = HeadPose.Pose.Position.x;
+	Pose.y = HeadPose.Pose.Position.y;
+	Pose.z = HeadPose.Pose.Position.z;
+	Pose.q[0] = HeadPose.Pose.Orientation.w;
+	Pose.q[1] = HeadPose.Pose.Orientation.x;
+	Pose.q[2] = HeadPose.Pose.Orientation.y;
+	Pose.q[3] = HeadPose.Pose.Orientation.z;
+
+	Velocity.x = HeadPose.LinearVelocity.x;
+	Velocity.y = HeadPose.LinearVelocity.y;
+	Velocity.z = HeadPose.LinearVelocity.z;
+	Velocity.ax = HeadPose.AngularVelocity.x;
+	Velocity.ay = HeadPose.AngularVelocity.y;
+	Velocity.az = HeadPose.AngularVelocity.z;
+}
+
 static void EglInitExtensions()
 {
 	eglCreateSyncKHR		= (PFNEGLCREATESYNCKHRPROC)			eglGetProcAddress( "eglCreateSyncKHR" );
@@ -760,7 +777,7 @@ static void ovrRenderer_Destroy( ovrRenderer * renderer )
 
 static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJava * java,
 											const ovrTracking2 * tracking, ovrMobile * ovr,
-											unsigned long long * completionFence )
+											unsigned long long * completionFence, BridgeLovrUpdateData &updateData )
 {
 	ovrTracking2 updatedTracking = *tracking;
 
@@ -773,22 +790,8 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, cons
 	projectionMatrixTransposed[1] = ovrMatrix4f_Transpose( &updatedTracking.Eye[1].ProjectionMatrix );
 
 	// Unpack data for Lovr update
-	BridgeLovrUpdateData updateData;
 	
-	updateData.lastHeadPose.x = updatedTracking.HeadPose.Pose.Position.x;
-	updateData.lastHeadPose.y = updatedTracking.HeadPose.Pose.Position.y;
-	updateData.lastHeadPose.z = updatedTracking.HeadPose.Pose.Position.z;
-	updateData.lastHeadPose.q[0] = updatedTracking.HeadPose.Pose.Orientation.w;
-	updateData.lastHeadPose.q[1] = updatedTracking.HeadPose.Pose.Orientation.x;
-	updateData.lastHeadPose.q[2] = updatedTracking.HeadPose.Pose.Orientation.y;
-	updateData.lastHeadPose.q[3] = updatedTracking.HeadPose.Pose.Orientation.z;
-
-	updateData.lastHeadVelocity.x = updatedTracking.HeadPose.LinearVelocity.x;
-	updateData.lastHeadVelocity.y = updatedTracking.HeadPose.LinearVelocity.y;
-	updateData.lastHeadVelocity.z = updatedTracking.HeadPose.LinearVelocity.z;
-	updateData.lastHeadVelocity.ax = updatedTracking.HeadPose.AngularVelocity.x;
-	updateData.lastHeadVelocity.ay = updatedTracking.HeadPose.AngularVelocity.y;
-	updateData.lastHeadVelocity.az = updatedTracking.HeadPose.AngularVelocity.z;
+	BridgeLovrUnpack(updatedTracking.HeadPose, updateData.lastHeadPose, updateData.lastHeadVelocity);
 
 	memcpy(updateData.eyeViewMatrix[0], &eyeViewMatrixTransposed[0].M[0][0], 16*sizeof(float));
 	memcpy(updateData.eyeViewMatrix[1], &eyeViewMatrixTransposed[1].M[0][0], 16*sizeof(float));
@@ -1154,6 +1157,7 @@ typedef struct
 	ovrRenderer			Renderer;
 #endif
 	bool				UseMultiview;
+	
 } ovrApp;
 
 static void ovrApp_Clear( ovrApp * app )
@@ -1281,9 +1285,12 @@ static void ovrApp_HandleVrModeChanges( ovrApp * app )
 	}
 }
 
-static void ovrApp_HandleInput( ovrApp * app )
+// TODO: Should unpack input based on device capabilities. Current code unpacks Go controller specifically
+static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, double predictedDisplayTime )
 {
 	bool backButtonDownThisFrame = false;
+
+	updateData.goPresent = false;
 
 	for ( int i = 0; ; i++ )
 	{
@@ -1313,6 +1320,16 @@ static void ovrApp_HandleInput( ovrApp * app )
 			{
 				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
 			}
+
+			ovrTracking hmtTracking;
+			ovrResult result = vrapi_GetInputTrackingState( app->Ovr, i, predictedDisplayTime, &hmtTracking );
+
+			updateData.goPresent = true;
+			updateData.goButtonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
+			updateData.goButtonTouch = trackedRemoteState.TrackpadStatus ? BridgeLovrButtonTouchpad : BridgeLovrButtonNone;
+			updateData.goTrackpad.x = trackedRemoteState.TrackpadPosition.x;
+			updateData.goTrackpad.y = trackedRemoteState.TrackpadPosition.y;
+			BridgeLovrUnpack(hmtTracking.HeadPose, updateData.goPose, updateData.goVelocity);
 		}
 		else if ( cap.Type == ovrControllerType_Gamepad )
 		{
@@ -1493,8 +1510,7 @@ void android_main( struct android_app * app )
 			ovrApp_HandleVrModeChanges( &appState );
 		}
 
-		ovrApp_HandleInput( &appState );
-
+		// Boot Lovr
 		if ( appState.Ovr == NULL )
 		{
 			continue;
@@ -1504,6 +1520,8 @@ void android_main( struct android_app * app )
 		// The scene is created here to be able to show a loading icon.
 		if ( !appState.Started )
 		{
+			BridgeLovrInitData bridgeData;
+
 #if MULTI_THREADED
 			// Show a loading icon.
 			ovrRenderThread_Submit( &appState.RenderThread, appState.Ovr,
@@ -1537,9 +1555,6 @@ void android_main( struct android_app * app )
 			vrapi_SubmitFrame2( appState.Ovr, &frameDesc );
 #endif
 
-			// Boot Lovr
-			BridgeLovrInitData bridgeData;
-
 			bridgeData.writablePath = app->activity->internalDataPath;
 
 			std::string apkPath = ovr_GetPackageCodePath(java.Env, java.ActivityObject);
@@ -1549,6 +1564,7 @@ void android_main( struct android_app * app )
 			// Possibly convince lovr main project to accept a dichotomy between 'display size' and 'recommended renderbuffer size'?
 			bridgeData.suggestedEyeTexture.width = vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH );
 			bridgeData.suggestedEyeTexture.height = vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT );
+			bridgeData.zeroDisplayTime = vrapi_GetPredictedDisplayTime( appState.Ovr, 0 );
 
 			bridgeLovrInit(&bridgeData);
 
@@ -1579,10 +1595,16 @@ void android_main( struct android_app * app )
 
 		unsigned long long completionFence = 0;
 
+		BridgeLovrUpdateData updateData;
+
+		updateData.displayTime = predictedDisplayTime;
+
+		ovrApp_HandleInput( &appState, updateData, predictedDisplayTime );
+
 		// Render eye images and setup the primary layer using ovrTracking2.
 		const ovrLayerProjection2 worldLayer = ovrRenderer_RenderFrame( &appState.Renderer, &appState.Java,
 				&tracking,
-				appState.Ovr, &completionFence );
+				appState.Ovr, &completionFence, updateData );
 
 		const ovrLayerHeader2 * layers[] =
 		{

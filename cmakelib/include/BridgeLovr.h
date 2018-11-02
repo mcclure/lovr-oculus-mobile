@@ -19,13 +19,43 @@ typedef struct {
 	float x; float y; float z; float ax; float ay; float az;
 } BridgeLovrVel;
 
+typedef struct {
+	float x; float y;
+} BridgeLovrTrackpad;
+
+// Bit identical with VrApi_Input.h ovrButton
+typedef enum
+{
+	BridgeLovrButtonNone = 0,
+
+	BridgeLovrButtonShoulder = 0x00000001,	// "Set for trigger pulled on the Gear VR and Go Controllers"
+	BridgeLovrButtonTouchpad = 0x00100000,	// "Set for touchpad click on the Gear VR and Go Controllers"
+	BridgeLovrButtonMenu     = 0x00200000,	// "Back button on the headset or Gear VR Controller (only set when a short press comes up)"
+} BridgeLovrButton;
+
+// Data passed from Lovr_NativeActivity to BridgeLovr at update time
+typedef struct {
+	double displayTime; // Projected
+
+	BridgeLovrPose lastHeadPose;
+	BridgeLovrVel lastHeadVelocity;
+	float eyeViewMatrix[2][16];
+	float projectionMatrix[2][16];
+
+	// TODO: Controller object
+	bool goPresent;
+	BridgeLovrPose goPose;
+	BridgeLovrVel goVelocity;
+	BridgeLovrTrackpad goTrackpad;
+	bool goTrackpadTouch;
+	BridgeLovrButton goButtonDown;
+	BridgeLovrButton goButtonTouch;
+} BridgeLovrUpdateData;
+
 // Data passed from BridgeLovr to oculus_mobile
 typedef struct {
 	BridgeLovrDimensions displayDimensions;
-	BridgeLovrPose lastHeadPose;
-	BridgeLovrVel lastHeadVelocity; // Ignore angle
-	float eyeViewMatrix[2][16];
-	float projectionMatrix[2][16];
+	BridgeLovrUpdateData updateData;
 } BridgeLovrMobileData;
 extern BridgeLovrMobileData bridgeLovrMobileData;
 
@@ -34,17 +64,10 @@ typedef struct {
 	const char *writablePath;
 	const char *apkPath;
 	BridgeLovrDimensions suggestedEyeTexture;
+	double zeroDisplayTime;
 } BridgeLovrInitData;
 
 void bridgeLovrInit(BridgeLovrInitData *initData);
-
-// Data passed from Lovr_NativeActivity to BridgeLovr at update time
-typedef struct {
-	BridgeLovrPose lastHeadPose;
-	BridgeLovrVel lastHeadVelocity; // Ignore angle
-	float eyeViewMatrix[2][16];
-	float projectionMatrix[2][16];
-} BridgeLovrUpdateData;
 
 void bridgeLovrUpdate(BridgeLovrUpdateData *updateData);
 
