@@ -263,4 +263,8 @@ void bridgeLovrDraw(BridgeLovrDrawData *drawData) {
     bridgeLovrMobileData.updateData.eyeViewMatrix[eye], bridgeLovrMobileData.updateData.projectionMatrix[eye]); // Is this indexing safe?
 }
 
+void bridgeLovrClose() {
+  lua_close(L);
+}
+
 }

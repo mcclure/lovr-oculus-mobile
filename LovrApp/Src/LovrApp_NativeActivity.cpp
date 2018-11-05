@@ -1631,6 +1631,8 @@ void android_main( struct android_app * app )
 	ovrRenderer_Destroy( &appState.Renderer );
 #endif
 
+	bridgeLovrClose();
+
 	// TODO DESTROY LOVR
 
 	ovrEgl_DestroyContext( &appState.Egl );
