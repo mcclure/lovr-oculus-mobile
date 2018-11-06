@@ -1387,6 +1387,7 @@ static void app_handle_cmd( struct android_app * app, int32_t cmd )
 			ALOGV( "onResume()" );
 			ALOGV( "    APP_CMD_RESUME" );
 			appState->Resumed = true;
+			bridgeLovrPaused(false);
 			break;
 		}
 		case APP_CMD_PAUSE:
@@ -1394,6 +1395,7 @@ static void app_handle_cmd( struct android_app * app, int32_t cmd )
 			ALOGV( "onPause()" );
 			ALOGV( "    APP_CMD_PAUSE" );
 			appState->Resumed = false;
+			bridgeLovrPaused(true);
 			break;
 		}
 		case APP_CMD_STOP:

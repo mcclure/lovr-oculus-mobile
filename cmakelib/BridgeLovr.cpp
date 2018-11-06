@@ -25,6 +25,18 @@ static lua_State* L, *Lcoroutine;
 static int coroutineRef = LUA_NOREF;
 static int coroutineStartFunctionRef = LUA_NOREF;
 
+// Used for resume (pausing the app and returning to the menu) logic. This is needed for two reasons
+// 1. The GLFW time should rewind after a pause so that the app cannot perceive time passed
+// 2. There is a bug in the Mobile SDK https://developer.oculus.com/bugs/bug/189155031962759/
+//    On the first frame after a resume, the time will be total nonsense
+static double lastPauseAt, lastPauseAtRaw; // glfw time and oculus time at last pause
+enum {
+  PAUSESTATE_NONE,   // Normal state
+  PAUSESTATE_PAUSED, // A pause has been issued -- waiting for resume
+  PAUSESTATE_BUG,    // We have resumed, but the next frame will be the bad frame
+  PAUSESTATE_RESUME  // We have resumed, and the next frame will need to adjust the clock
+} pauseState;
+
 // Exposed to oculus_mobile.c
 char *bridgeLovrWritablePath;
 BridgeLovrMobileData bridgeLovrMobileData;
@@ -245,6 +257,14 @@ void bridgeLovrUpdate(BridgeLovrUpdateData *updateData) {
   // Unpack update data
   bridgeLovrMobileData.updateData = *updateData;
 
+  if (pauseState == PAUSESTATE_BUG) { // Bad frame-- replace bad time with last known good oculus time
+    bridgeLovrMobileData.updateData.displayTime = lastPauseAtRaw;
+    pauseState = PAUSESTATE_RESUME;
+  } else if (pauseState == PAUSESTATE_RESUME) { // Resume frame-- adjust glfw time to be equal to last good glfw time
+    glfwSetTime(lastPauseAt);
+    pauseState = PAUSESTATE_NONE;
+  }
+
   // Go
   if (coroutineStartFunctionRef != LUA_NOREF) {
     lua_rawgeti(Lcoroutine, LUA_REGISTRYINDEX, coroutineStartFunctionRef);
@@ -263,7 +283,24 @@ void bridgeLovrDraw(BridgeLovrDrawData *drawData) {
     bridgeLovrMobileData.updateData.eyeViewMatrix[eye], bridgeLovrMobileData.updateData.projectionMatrix[eye]); // Is this indexing safe?
 }
 
+// Android activity has been stopped or resumed
+// In order to prevent weird dt jumps, we need to freeze and reset the clock
+static bool armedUnpause;
+void bridgeLovrPaused(bool paused) {
+  if (paused) { // Save last glfw and oculus times and wait for resume
+    lastPauseAt = glfwGetTime();
+    lastPauseAtRaw = bridgeLovrMobileData.updateData.displayTime;
+    pauseState = PAUSESTATE_PAUSED;
+  } else {
+    if (pauseState != PAUSESTATE_NONE) { // Got a resume-- set flag to start the state machine in bridgeLovrUpdate
+      pauseState = PAUSESTATE_BUG;
+    }
+  }
+}
+
+// Android activity has been "destroyed" (but process will probably not quit)
 void bridgeLovrClose() {
+  pauseState = PAUSESTATE_NONE;
   lua_close(L);
 }
 

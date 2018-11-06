@@ -78,6 +78,8 @@ typedef struct {
 
 void bridgeLovrDraw(BridgeLovrDrawData *drawData);
 
+void bridgeLovrPaused(bool paused);
+
 void bridgeLovrClose();
 
 extern char *bridgeLovrWritablePath;
