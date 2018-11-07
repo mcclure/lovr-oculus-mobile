@@ -1326,7 +1326,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 
 			updateData.goPresent = true;
 			updateData.goButtonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
-			updateData.goButtonTouch = trackedRemoteState.TrackpadStatus ? BridgeLovrButtonTouchpad : BridgeLovrButtonNone;
+			updateData.goButtonTouch = trackedRemoteState.TrackpadStatus ? BRIDGE_LOVR_BUTTON_TOUCHPAD : BRIDGE_LOVR_BUTTON_NONE;
 			updateData.goTrackpad.x = trackedRemoteState.TrackpadPosition.x;
 			updateData.goTrackpad.y = trackedRemoteState.TrackpadPosition.y;
 			BridgeLovrUnpack(hmtTracking.HeadPose, updateData.goPose, updateData.goVelocity);
@@ -1567,6 +1567,16 @@ void android_main( struct android_app * app )
 			bridgeData.suggestedEyeTexture.width = vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH );
 			bridgeData.suggestedEyeTexture.height = vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT );
 			bridgeData.zeroDisplayTime = vrapi_GetPredictedDisplayTime( appState.Ovr, 0 );
+
+			// What type of device is this? Collapse device ranges into general types
+			ovrDeviceType deviceType = (ovrDeviceType)vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_HEADSET_TYPE );
+			if (deviceType >= VRAPI_DEVICE_TYPE_GEARVR_START && deviceType <= VRAPI_DEVICE_TYPE_GEARVR_END) {
+				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_GEAR;
+			} else if (deviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSGO_END) {
+				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_GO;
+			} else {
+				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_UNKNOWN;
+			}
 
 			bridgeLovrInit(&bridgeData);
 
