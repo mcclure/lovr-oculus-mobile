@@ -22,7 +22,7 @@ include $(PREBUILT_SHARED_LIBRARY)
 #--------------------------------------------------------
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES += ../../../cmakelib/include
+LOCAL_C_INCLUDES += ../../../cmakelib
 
 LOCAL_MODULE			:= lovractivity
 LOCAL_CFLAGS			:= -Werror
