@@ -1,15 +1,12 @@
 #include <stdio.h>
 #include <android/log.h>
-#include <string.h>
 #include "physfs.h"
-#include <string>
 #include <sys/stat.h>
 #include <assert.h>
 
-extern "C" {
-
 #include "BridgeLovr.h"
 #include "luax.h"
+#include "lib/sds/sds.h"
 #include "lib/glfw.h"
 
 #include "api.h"
@@ -43,40 +40,42 @@ BridgeLovrMobileData bridgeLovrMobileData;
 
 int lovr_luaB_print_override (lua_State *L);
 
+#define SDS(...) sdscatfmt(sdsempty(), __VA_ARGS__)
+
 // Recursively copy a subdirectory out of PhysFS onto disk
-static void physCopyFiles(std::string toDir, std::string fromDir) {
-  char **filesOrig = PHYSFS_enumerateFiles(fromDir.c_str());
+static void physCopyFiles(sds toDir, sds fromDir) {
+  char **filesOrig = PHYSFS_enumerateFiles(fromDir);
   char **files = filesOrig;
 
   if (!files) {
-    __android_log_print(ANDROID_LOG_ERROR, "LOVR", "COULD NOT READ DIRECTORY SOMEHOW: [%s]", fromDir.c_str());
+    __android_log_print(ANDROID_LOG_ERROR, "LOVR", "COULD NOT READ DIRECTORY SOMEHOW: [%s]", fromDir);
     return;
   }
 
-  mkdir(toDir.c_str(), 0777);
+  mkdir(toDir, 0777);
 
   while (*files) {
-    std::string fromPath = fromDir + "/" + *files;
-    std::string toPath = toDir + "/" + *files;
+    sds fromPath = SDS("%S/%s", fromDir, *files);
+    sds toPath = SDS("%S/%s", toDir, *files);
     PHYSFS_Stat stat;
-    PHYSFS_stat(fromPath.c_str(), &stat);
+    PHYSFS_stat(fromPath, &stat);
 
     if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY) {
-      __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "DIR:  [%s] INTO: [%s]", fromPath.c_str(), toPath.c_str());
+      __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "DIR:  [%s] INTO: [%s]", fromPath, toPath);
       physCopyFiles(toPath, fromPath);
     } else {
-      __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "FILE: [%s] INTO: [%s]", fromPath.c_str(), toPath.c_str());
+      __android_log_print(ANDROID_LOG_DEBUG, "LOVR", "FILE: [%s] INTO: [%s]", fromPath, toPath);
 
-      PHYSFS_File *fromFile = PHYSFS_openRead(fromPath.c_str());
+      PHYSFS_File *fromFile = PHYSFS_openRead(fromPath);
 
       if (!fromFile) {
-        __android_log_print(ANDROID_LOG_ERROR, "LOVR", "COULD NOT OPEN TO READ:  [%s]", fromPath.c_str());
+        __android_log_print(ANDROID_LOG_ERROR, "LOVR", "COULD NOT OPEN TO READ:  [%s]", fromPath);
       
       } else {
-        FILE *toFile = fopen(toPath.c_str(), "w");
+        FILE *toFile = fopen(toPath, "w");
 
         if (!toFile) {
-          __android_log_print(ANDROID_LOG_ERROR, "LOVR", "COULD NOT OPEN TO WRITE: [%s]", toPath.c_str());
+          __android_log_print(ANDROID_LOG_ERROR, "LOVR", "COULD NOT OPEN TO WRITE: [%s]", toPath);
 
         } else {
 #define CPBUFSIZE (1024*8)
@@ -94,6 +93,8 @@ static void physCopyFiles(std::string toDir, std::string fromDir) {
       }
     }
     files++;
+    sdsfree(fromPath);
+    sdsfree(toPath);
   }
   PHYSFS_freeList(filesOrig);
 }
@@ -123,8 +124,7 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
 
   // Save writable data directory for LovrFilesystemInit later
   {
-    std::string writablePath = std::string(initData->writablePath) + "/data";
-    bridgeLovrWritablePath = strdup(writablePath.c_str());
+    bridgeLovrWritablePath = sdsRemoveFreeSpace(SDS("%s/data", initData->writablePath));
     mkdir(bridgeLovrWritablePath, 0777);
   }
 
@@ -133,11 +133,11 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
   // and because if we run the files out of a temp data directory, we can overwrite them
   // with "adb push" to debug.
   // As a TODO, when PHYSFS_mountSubdir lands, this path should change to only run in debug mode.
-  std::string programPath = std::string(initData->writablePath) + "/program";
+  sds programPath = SDS("%s/program", initData->writablePath);
   {
     // We will store the last apk change time in this "lastprogram" file.
     // We will copy all the files out of the zip into the temp dir, but ONLY if they've changed.
-    std::string timePath = std::string(initData->writablePath) + "/lastprogram.dat";
+    sds timePath = SDS("%s/lastprogram.dat", initData->writablePath);
 
     // When did APK last change?
     struct stat apkstat;
@@ -148,8 +148,8 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
     }
 
     // When did we last do a file copy?
-    timespec previoussec;
-    FILE *timeFile = fopen(timePath.c_str(), "r");
+    struct timespec previoussec;
+    FILE *timeFile = fopen(timePath, "r");
     bool copyFiles = !timeFile; // If no lastprogram.dat, we've never copied
     if (timeFile) {
       fread(&previoussec.tv_sec, sizeof(previoussec.tv_sec), 1, timeFile);
@@ -170,16 +170,20 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
         __android_log_print(ANDROID_LOG_ERROR, "LOVR", "FAILED TO MOUNT APK [%s]\n", initData->apkPath);
         assert(0);
       } else {
-        physCopyFiles(programPath, "/assets");
+        sds rootFromDir = sdsnew("/assets");
+        physCopyFiles(programPath, rootFromDir);
+        sdsfree(rootFromDir);
       }
       PHYSFS_deinit();
 
       // Save timestamp in a new lastprogram.dat file
-      timeFile = fopen(timePath.c_str(), "w");
+      timeFile = fopen(timePath, "w");
       fwrite(&apkstat.st_mtim.tv_sec, sizeof(apkstat.st_mtim.tv_sec), 1, timeFile);
       fwrite(&apkstat.st_mtim.tv_nsec, sizeof(apkstat.st_mtim.tv_nsec), 1, timeFile);
       fclose(timeFile);
     }
+
+    sdsfree(timePath);
   }
 
   // Unpack init data
@@ -209,7 +213,7 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
 
   // Set "arg" global
   {
-    const char *argv[] = {"lovr", programPath.c_str()};
+    const char *argv[] = {"lovr", programPath};
     int argc = 2;
 
     lua_newtable(L);
@@ -221,6 +225,8 @@ void bridgeLovrInit(BridgeLovrInitData *initData) {
     }
     lua_setglobal(L, "arg");
   }
+
+  sdsfree(programPath);
 
   // Register loaders for internal packages (since dynamic load does not seem to work on Android)
   luax_preloadmodule(L, "lovr", luaopen_lovr);
@@ -302,6 +308,4 @@ void bridgeLovrPaused(bool paused) {
 void bridgeLovrClose() {
   pauseState = PAUSESTATE_NONE;
   lua_close(L);
-}
-
 }

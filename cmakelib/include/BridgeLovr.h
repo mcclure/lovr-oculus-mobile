@@ -1,5 +1,7 @@
 // Functions on the Lovr side of the wall, called from the Oculus side of the wall.
 
+#include <stdbool.h>
+
 // What's going on here:
 // At the moment, it's not easy to statically link LovrApp_NativeActivity with lovr.
 // In order to prevent NativeActivity and Lovr from having to start including each other's
