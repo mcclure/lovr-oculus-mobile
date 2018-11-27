@@ -2,6 +2,8 @@ This is a repository for building LovrApp, a standalone Android app which is bas
 
 # Usage
 
+Most users do not need to build LovrApp themselves. For running your own Lua files you can sideload the LovrTest app, which you can find on the "Releases" section of this github repo, or [this page with instructions](https://mcclure.github.io/mermaid-lovr).
+
 ## To build (Mac instructions):
 
 * The submodule cmakelib/lovr has submodules. If you did not initially clone this repo with --recurse-submodules, you will need to run `(cd cmakelib/lovr && git submodule init && git submodule update)` before doing anything else.
@@ -29,7 +31,7 @@ Notes:
 * If it gets stuck complaining about "unauthorized", try putting on the headset and see if there's a permissions popup.
 * If you get a message about "signatures do not match the previously installed version", run this and try again:
 
-        PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb uninstall com.lovr.appsample
+        PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb uninstall org.lovr.appsample
 
 * If all you have done is changed the assets, you can upload those by running only the final `installDebug` gradlew task. For example:
 
@@ -52,6 +54,12 @@ Edit `LovrApp/Projects/build.gradle`. Change "project.archivesBaseName" and "app
 
 Edit `LovrApp/Projects/Android/AndroidManifest.xml`. Change "package=" at the top to your identifier and change "android:label=" partway down (right after YOUR NAME HERE) to your name.
 
+## Debugging:
+
+If you get a crash, select the crash report in `adb logcat`, then run this to extract the crash report and look up line numbers:
+
+    pbpaste | ~/Library/Android/sdk/ndk-bundle/prebuilt/darwin-x86_64/bin/ndk-stack -sym ./LovrApp/Projects/Android/build/intermediates/transforms/mergeJniLibs/debug/0/lib/arm64-v8a
+
 # Contributing
 
 ## Upgrading
@@ -59,6 +67,20 @@ Edit `LovrApp/Projects/Android/AndroidManifest.xml`. Change "package=" at the to
 This repository has a branch "oculus-original-sdk". As commits, this branch has versions of some versions of official Oculus Mobile SDK releases (with those samples which are not necessary, notably the ones with large embedded video samples, deleted).
 
 If you need to upgrade the version of Oculus Mobile SDK used by this release, you should do so by checking out the "oculus-original-sdk" branch, unpacking the latest ovr_sdk_mobile package into the repository, committing, and then merging back into the master branch. This will ensure that changes to the SDK are cleanly incorporated.
+
+# TODO
+
+Known limitations and planned improvement for LovrApp and Lovr for Oculus Mobile:
+
+- No Gear controller (headset button) support
+- No gamepad support
+- Currently uses Lua rather than LuaJIT (this is nontrivial to fix-- the problem is LuaJIT builds two helper tools during its own build, but this does not work in a cross compile environment without weird tricks)
+- Currently draws each eye separately (no stereo rendering)
+- `getEyePose` in oculus mobile driver is wrong (just redirects to getPose)
+- Avatar SDK support (to display controller model) should be added
+- "Focus" events should be issued on pause and resume
+- lovr.conf MSAA setting is ignored
+- Can 32-bit build be removed?
 
 # License
 

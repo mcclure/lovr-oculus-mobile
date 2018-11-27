@@ -17,7 +17,7 @@ android {
     // Gradle replaces the manifest package with this value, which must
     // be unique on a system.  If you don't change it, a new app
     // will replace an older one.
-    applicationId "com.lovr." + project.archivesBaseName
+    applicationId "org.lovr." + project.archivesBaseName
 
     // override app plugin abiFilters for both 32 and 64-bit support
     externalNativeBuild {
