@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-		package="org.lovr.appsample"
+		package="org.lovr.test"
 		android:versionCode="1" 
 		android:versionName="1.0" android:installLocation="auto" >
 
@@ -14,7 +14,7 @@
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
 	<!-- YOUR NAME HERE -->
-	<application android:allowBackup="false" android:label="LovrApp">
+	<application android:allowBackup="false" android:label="LovrTest">
 		<meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
 		<!-- The activity is the built-in NativeActivity framework class. -->
 		<!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->

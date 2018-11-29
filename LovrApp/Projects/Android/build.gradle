@@ -11,7 +11,7 @@ android {
   // -debug.apk or -release.apk appended to it.
   // The filename doesn't effect the Android installation process.
   // Use only letters to remain compatible with the package name.
-  project.archivesBaseName = "appsample"
+  project.archivesBaseName = "test"
 
   defaultConfig {
     // Gradle replaces the manifest package with this value, which must
@@ -36,7 +36,7 @@ android {
       java.srcDirs = ['../../java']
       jniLibs.srcDir 'libs'
       res.srcDirs = ['../../res']
-      assets.srcDirs = ['../../assets']
+      assets.srcDirs = ['../../assets', '/Users/mcc/work/gh/lovr-lodr']
     }
   }
 }
