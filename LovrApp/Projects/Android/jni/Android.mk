@@ -8,13 +8,15 @@ LOCAL_PATH:= $(call my-dir)
 # TODO: Install to a known location instead of depending on the cmake temp files
 
 include $(CLEAR_VARS)
-ifdef NDK_DEBUG
+ifeq ($(NDK_DEBUG),1)
 	LOVR_LIB_SUFFIX=d
+	LOVR_LIB_CONFIG=debug
 else
 	LOVR_LIB_SUFFIX=
+	LOVR_LIB_CONFIG=release
 endif
 LOCAL_MODULE := lovr
-LOCAL_SRC_FILES := ../../../../cmakelib/build/intermediates/cmake/debug/obj/$(TARGET_ARCH_ABI)/liblovr$(LOVR_LIB_SUFFIX).so
+LOCAL_SRC_FILES := ../../../../cmakelib/build/intermediates/cmake/$(LOVR_LIB_CONFIG)/obj/$(TARGET_ARCH_ABI)/liblovr$(LOVR_LIB_SUFFIX).so
 include $(PREBUILT_SHARED_LIBRARY)
 
 #--------------------------------------------------------
