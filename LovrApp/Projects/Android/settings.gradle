@@ -1,4 +1,4 @@
 rootProject.projectDir = new File(settingsDir, '../../..')
-rootProject.name = "LovrApp"
+rootProject.name = "LovrTest"
 
 include ':', 'LovrApp:Projects:Android', 'cmakelib'
