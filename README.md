@@ -10,7 +10,7 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
 * Install Android Studio
 
-* Open Android Studio, go into Preferences, search in the box for "SDK". use the "Android SDK" pane to download Android API level 21. Now quit Android Studio (in my testing it is broken and will break your project).
+* Open Android Studio, go into Preferences, search in the box for "SDK". Use the "Android SDK" pane and the "SDK Platforms" tab to download Android API level 21. Next, install the NDK from the "SDK Tools" tab of the same pane. Now quit Android Studio (in my testing it is broken and will break your project).
 
 * Run:
 
