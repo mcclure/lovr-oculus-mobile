@@ -16,7 +16,7 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
       PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb devices
 
-    To get the ID number for the device.  If you do not see your device in the list, you may need to enable USB debugging for the device.  For the Oculus Go, you can do this by turning on the device, putting it on, and using the controller to accept the "Allow USB Debugging" popup.
+    ...to get the ID number for the device.  (If you do not see your device in the list, see "notes" below.)
 
 * Plug the id number from adb into [https://dashboard.oculus.com/tools/osig-generator/]
 
@@ -28,7 +28,7 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
 Notes:
 * You have to have turned on developer mode on your headset before deploying.
-* If it gets stuck complaining about "unauthorized", try putting on the headset and see if there's a permissions popup.
+* You also have to enable USB debugging for the device.  For the Oculus Go, you can do this by plugging in the device, putting it on, and using the controller to accept the "Allow USB Debugging" popup.
 * If you get a message about "signatures do not match the previously installed version", run this and try again:
 
         PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb uninstall org.lovr.appsample
