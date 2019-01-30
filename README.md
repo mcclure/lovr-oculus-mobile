@@ -16,7 +16,7 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
         PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb devices
 
-    Get your id number for the device.
+    To get the ID number for the device.  If you do not see your device in the list, you may need to enable USB debugging for the device.  For the Oculus Go, you can do this by turning on the device, putting it on, and using the controller to accept the "Allow USB Debugging" popup.
 
 * Plug the id number from adb into [https://dashboard.oculus.com/tools/osig-generator/]
 
