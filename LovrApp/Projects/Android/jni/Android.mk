@@ -9,14 +9,12 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 ifeq ($(NDK_DEBUG),1)
-	LOVR_LIB_SUFFIX=d
 	LOVR_LIB_CONFIG=debug
 else
-	LOVR_LIB_SUFFIX=
 	LOVR_LIB_CONFIG=release
 endif
 LOCAL_MODULE := lovr
-LOCAL_SRC_FILES := ../../../../cmakelib/build/intermediates/cmake/$(LOVR_LIB_CONFIG)/obj/$(TARGET_ARCH_ABI)/liblovr$(LOVR_LIB_SUFFIX).so
+LOCAL_SRC_FILES := ../../../../cmakelib/build/intermediates/cmake/$(LOVR_LIB_CONFIG)/obj/$(TARGET_ARCH_ABI)/liblovr.so
 include $(PREBUILT_SHARED_LIBRARY)
 
 #--------------------------------------------------------
