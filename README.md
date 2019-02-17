@@ -10,13 +10,13 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
 * Install Android Studio
 
-* Open Android Studio, go into Preferences, search in the box for "SDK". use the "Android SDK" pane to download Android API level 21. Now quit Android Studio (in my testing it is broken and will break your project).
+* Open Android Studio, go into Preferences, search in the box for "SDK". Use the "Android SDK" pane and the "SDK Platforms" tab to download Android API level 21. Next, install the NDK from the "SDK Tools" tab of the same pane. Now quit Android Studio (in my testing it is broken and will break your project).
 
 * Run:
 
-        PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb devices
+      PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb devices
 
-    Get your id number for the device.
+    ...to get the ID number for the device.  (If you do not see your device in the list, see "notes" below.)
 
 * Plug the id number from adb into [https://dashboard.oculus.com/tools/osig-generator/]
 
@@ -24,18 +24,18 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
 * You need to build the gradle script in `cmakelib`, then run the installDebug target of the gradle script in `LovrApp/Projects/Android`. You can do this with the `gradlew` script in the root, but it will need the Android tools in `PATH` and the sdk install location in `ANDROID_HOME`. You can just run this at the Bash prompt from the repository root to do all of this:
 
-        (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
+      (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
 
 Notes:
 * You have to have turned on developer mode on your headset before deploying.
-* If it gets stuck complaining about "unauthorized", try putting on the headset and see if there's a permissions popup.
+* You also have to enable USB debugging for the device.  For the Oculus Go, you can do this by plugging in the device, putting it on, and using the controller to accept the "Allow USB Debugging" popup.
 * If you get a message about "signatures do not match the previously installed version", run this and try again:
 
         PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb uninstall org.lovr.appsample
 
 * If all you have done is changed the assets, you can upload those by running only the final `installDebug` gradlew task. For example:
 
-        (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd LovrApp/Projects/Android && $GRADLE installDebug))
+      (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd LovrApp/Projects/Android && $GRADLE installDebug))
 
 * To see all the things gradlew can do in a particular directory run it with "tasks" as the argument.
 * The reason for the long PATH/ANDROID_HOME line is to get the java and android tools into scope for that line. You could also just modify the env vars in your bashrc.
