@@ -155,7 +155,7 @@ void Java_com_oculus_vrappframework_VrApp_nativeSurfaceChanged( JNIEnv *jni, jcl
 }
 
 void Java_com_oculus_vrappframework_VrApp_nativeSurfaceDestroyed( JNIEnv *jni, jclass clazz,
-		jlong appPtr, jobject surface )
+		jlong appPtr )
 {
 	OVR_LOG( "%p nativeSurfaceDestroyed()", (void *)appPtr );
 

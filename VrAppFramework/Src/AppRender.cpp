@@ -294,7 +294,6 @@ void AppLocal::DrawEyeViews( ovrFrameResult & res )
 		frameDesc.Flags = res.FrameFlags;
 		frameDesc.SwapInterval = res.SwapInterval;
 		frameDesc.FrameIndex = res.FrameIndex;
-		frameDesc.CompletionFence_DEPRECATED = 0;
 		frameDesc.DisplayTime = res.DisplayTime;
 		frameDesc.LayerCount = layerCount;
 		frameDesc.Layers = layers;

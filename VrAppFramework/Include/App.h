@@ -86,7 +86,7 @@ struct ovrSettings
 	int					GpuLevel;
 	int					MainThreadTid;
 	int					RenderThreadTid;
-	ovrTrackingTransform TrackingTransform;			// Default is VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_FLOOR_LEVEL
+	ovrTrackingSpace	TrackingSpace;				// Default is VRAPI_TRACKING_SPACE_LOCAL_FLOOR
 	ovrEyeBufferParms	EyeBufferParms;
 	ovrRenderMode		RenderMode;					// Default is RENDERMODE_STEREO.
 #if defined( OVR_OS_WIN32 )

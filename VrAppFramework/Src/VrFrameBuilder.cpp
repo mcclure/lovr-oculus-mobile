@@ -244,7 +244,6 @@ void VrFrameBuilder::AddKeyEventToFrame( ovrKeyCode const keyCode, KeyEventType 
 
 void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobile * ovr,
 									const ovrJava & java,
-									const ovrTrackingTransform trackingTransform,
 									const long long enteredVrModeFrameNumber )
 {
 	const VrInput lastVrInput = vrFrame.Input;
@@ -255,6 +254,8 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 	// Use the vrapi input api to check to see if a short back button press happened, and to fill in the touch data
 	bool backButtonDownThisFrame = false;
 	vrFrame.Input.buttonState &= ~BUTTON_TOUCH;
+
+	bool injectLeftStick = false;
 
 	float touchpadMinSwipe = 100.0f;
 
@@ -323,6 +324,43 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 				ovrResult result = vrapi_GetInputDeviceCapabilities( ovr, &remoteCapabilities.Header );
 				OVR_UNUSED( result );
 
+				setTouched |= trackedRemoteState.Buttons & ovrButton_Trigger;
+
+				if ( result == ovrSuccess )
+				{
+					if ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_HasJoystick )
+					{
+						trackedRemoteState.TrackpadStatus = 0;
+						trackedRemoteState.TrackpadPosition.x = 0.0f;
+						trackedRemoteState.TrackpadPosition.y = 0.0f;
+
+						if ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_LeftHand )
+						{
+							vrFrame.Input.sticks[0][0] = trackedRemoteState.Joystick.x;
+							vrFrame.Input.sticks[0][1] = trackedRemoteState.Joystick.y;
+						}
+						else
+						{
+							vrFrame.Input.sticks[1][0] = trackedRemoteState.Joystick.x;
+							vrFrame.Input.sticks[1][1] = trackedRemoteState.Joystick.y;
+						}
+					}
+
+
+					if ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
+					{
+						// to match the Rift, the menu button returns ovrButton_Enter
+						backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Enter;
+
+						// to match design, the b button and the y button will also be treated as back buttons for the app framework apps when using the Oculus Touch controllers.
+						backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_B;
+						backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Y;
+
+						setTouched = trackedRemoteState.Buttons & ovrButton_A || trackedRemoteState.Buttons & ovrButton_Trigger || ( trackedRemoteState.TrackpadStatus && TreatRemoteTouchpadTouchedAsButtonDown[trackedRemoteIndex] );
+
+						injectLeftStick = true;
+					}
+				}
 
 				if ( trackedRemoteState.Buttons & ovrButton_Enter || !trackedRemoteState.TrackpadStatus )
 				{
@@ -400,6 +438,131 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 		vrFrame.Input.NumKeyEvents++;
 	}
 
+	if ( injectLeftStick )
+	{
+		vrFrame.Input.buttonState &= ~BUTTON_LSTICK_UP;
+		vrFrame.Input.buttonState &= ~BUTTON_LSTICK_DOWN;
+		vrFrame.Input.buttonState &= ~BUTTON_LSTICK_RIGHT;
+		vrFrame.Input.buttonState &= ~BUTTON_LSTICK_LEFT;
+
+		LStick.ResetDirection();
+
+		LStick.StickPos.x = vrFrame.Input.sticks[0][0];
+		LStick.StickPos.y = vrFrame.Input.sticks[0][1];
+		ovrKeyCode leftkeycode = OVR_KEY_NONE;
+
+		// if LeftJoystick is being used then determine the direction
+		if ( LStick.StickPos.x != 0 && LStick.StickPos.y != 0 )
+		{
+			if ( LStick.StickPos.x > LStick.DeadZone )
+			{
+				LStick.StickRight = true;
+				leftkeycode = OVR_KEY_LSTICK_RIGHT;
+			}
+			else if ( LStick.StickPos.x < ( -1.0f * LStick.DeadZone ) )
+			{
+				LStick.StickLeft = true;
+				leftkeycode = OVR_KEY_LSTICK_LEFT;
+			}
+			else if ( LStick.StickPos.y < ( -1.0f * LStick.DeadZone ) )
+			{
+				LStick.StickUp = true;
+				leftkeycode = OVR_KEY_LSTICK_UP;
+			}
+			else if ( LStick.StickPos.y > LStick.DeadZone )
+			{
+				LStick.StickDown = true;
+				leftkeycode = OVR_KEY_LSTICK_DOWN;
+			}
+
+			if ( leftkeycode != OVR_KEY_NONE )
+			{
+				LStick.SetCurrStick( leftkeycode, true );
+			}
+		}
+	}
+
+
+	vrFrame.Input.buttonState &= ~BUTTON_RSTICK_UP;
+	vrFrame.Input.buttonState &= ~BUTTON_RSTICK_DOWN;
+	vrFrame.Input.buttonState &= ~BUTTON_RSTICK_RIGHT;
+	vrFrame.Input.buttonState &= ~BUTTON_RSTICK_LEFT;
+
+	RStick.ResetDirection();
+
+	RStick.StickPos.x = vrFrame.Input.sticks[1][0];
+	RStick.StickPos.y = vrFrame.Input.sticks[1][1];
+	ovrKeyCode rightkeycode = OVR_KEY_NONE;
+
+	// if RightJoystick is being used then determine the direction
+	if ( RStick.StickPos.x != 0 && RStick.StickPos.y != 0 )
+	{
+		if ( RStick.StickPos.x > RStick.DeadZone )
+		{
+			RStick.StickRight = true;
+			rightkeycode = OVR_KEY_RSTICK_RIGHT;
+		}
+		else if ( RStick.StickPos.x < ( -1.0f * RStick.DeadZone ) )
+		{
+			RStick.StickLeft = true;
+			rightkeycode = OVR_KEY_RSTICK_LEFT;
+		}
+		else if ( RStick.StickPos.y < ( -1.0f * RStick.DeadZone ) )
+		{
+			RStick.StickUp = true;
+			rightkeycode = OVR_KEY_RSTICK_UP;
+		}
+		else if ( RStick.StickPos.y > RStick.DeadZone )
+		{
+			RStick.StickDown = true;
+			rightkeycode = OVR_KEY_RSTICK_DOWN;
+		}
+
+		if ( rightkeycode != OVR_KEY_NONE )
+		{
+			RStick.SetCurrStick( rightkeycode, true );
+		}
+	}
+
+	// Create a fake event as if Joystick was used.
+	if ( vrFrame.Input.NumKeyEvents == 0 )
+	{
+		if ( injectLeftStick )
+		{
+			// if the LeftJoystick is pressed
+			if ( LStick.CurrStickState )
+			{
+				vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].KeyCode = LStick.CurrStickCode;
+				vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].RepeatCount = 0;
+				vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].EventType = KEY_EVENT_DOWN;
+				vrFrame.Input.NumKeyEvents++;
+			}
+			else if ( ( !LStick.CurrStickState && LStick.LastStickState ) ) // if the LeftJoystick is released
+			{
+				vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].KeyCode = LStick.LastStickCode;
+				vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].RepeatCount = 0;
+				vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].EventType = KEY_EVENT_UP;
+				vrFrame.Input.NumKeyEvents++;
+			}
+		}
+
+		// if the RightJoystick is pressed
+		if ( RStick.CurrStickState )
+		{
+			vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].KeyCode = RStick.CurrStickCode;
+			vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].RepeatCount = 0;
+			vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].EventType = KEY_EVENT_DOWN;
+			vrFrame.Input.NumKeyEvents++;
+		}
+		else if ( ( !RStick.CurrStickState && RStick.LastStickState ) ) // if the RightJoystick is released
+		{
+			vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].KeyCode = RStick.LastStickCode;
+			vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].RepeatCount = 0;
+			vrFrame.Input.KeyEvents[vrFrame.Input.NumKeyEvents].EventType = KEY_EVENT_UP;
+			vrFrame.Input.NumKeyEvents++;
+		}
+	}
+
 	// Clear previously set swipe buttons.
 	vrFrame.Input.buttonState &= ~(	BUTTON_SWIPE_UP |
 									BUTTON_SWIPE_DOWN |
@@ -411,13 +574,39 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 									BUTTON_TOUCH_LONGPRESS );
 
 	// Update the joypad buttons using the key events.
-	for ( int i = 0; i < inputEvents.NumKeyEvents; i++ )
+	for ( int i = 0; i < vrFrame.Input.NumKeyEvents; i++ )
 	{
-		const ovrKeyCode keyCode = inputEvents.KeyEvents[i].KeyCode;
-		const bool down = inputEvents.KeyEvents[i].Down;
+		const ovrKeyCode keyCode = vrFrame.Input.KeyEvents[i].KeyCode;
+		bool down = inputEvents.KeyEvents[i].Down;
+
+		if ( RStick.CurrStickState ) // if RStick is used
+		{
+			down = true;
+			RStick.SetLastStick();
+			RStick.ResetCurrStick();
+		}
+		else if ( !RStick.CurrStickState && RStick.LastStickState ) // if RStick is Released
+		{
+			down = false;
+			RStick.ResetLastStick();
+		} 
+		else if ( injectLeftStick )
+		{
+			if ( LStick.CurrStickState ) // if LStick is used
+			{
+				down = true;
+				LStick.SetLastStick();
+				LStick.ResetCurrStick();
+			}
+			else if ( !LStick.CurrStickState && LStick.LastStickState ) // if LStick is Released
+			{
+				down = false;
+				LStick.ResetLastStick();
+			}
+		}
 
 		// Keys always map to joystick buttons right now.
-        for ( int j = 0; buttonMappings[j].KeyCode != OVR_KEY_MAX; j++ )
+		for ( int j = 0; buttonMappings[j].KeyCode != OVR_KEY_MAX; j++ )
 		{
 			if ( keyCode == buttonMappings[j].KeyCode )
 			{
@@ -432,6 +621,7 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 				break;
 			}
 		}
+
 		if ( down && 0 /* keyboard swipes */ )
 		{
 			if ( keyCode == OVR_KEY_CLOSE_BRACKET )
@@ -492,8 +682,8 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 	vrFrame.DeltaSeconds = Alg::Clamp( (float)( predictedDisplayTime - vrFrame.PredictedDisplayTimeInSeconds ), 0.0f, 0.1f );
 	vrFrame.PredictedDisplayTimeInSeconds = predictedDisplayTime;
 
-	const ovrPosef trackingPose = vrapi_GetTrackingTransform( ovr, trackingTransform );
-	const ovrPosef eyeLevelTrackingPose = vrapi_GetTrackingTransform( ovr, VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_EYE_LEVEL );
+	const ovrPosef trackingPose = vrapi_LocateTrackingSpace( ovr, vrapi_GetTrackingSpace( ovr ) );
+	const ovrPosef eyeLevelTrackingPose = vrapi_LocateTrackingSpace( ovr, VRAPI_TRACKING_SPACE_LOCAL );
 	vrFrame.EyeHeight = vrapi_GetEyeHeight( &eyeLevelTrackingPose, &trackingPose );
 
 	vrFrame.IPD = vrapi_GetInterpupillaryDistance( &vrFrame.Tracking );

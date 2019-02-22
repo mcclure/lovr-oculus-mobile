@@ -677,11 +677,11 @@ bool LoadModelFile_glTF_Json( ModelFile & modelFile, const char * modelsJson,
 											newGltfSurface.surfaceDef.geo.localBounds.AddPoint( max );
 										}
 									}
-
+									
 									const int numVertices = attribs.position.GetSizeI();
 									if ( loaded ) { loaded = ReadSurfaceDataFromAccessor( attribs.normal, modelFile, attributes.GetChildInt32ByName( "NORMAL", -1 ), ACCESSOR_VEC3, GL_FLOAT, numVertices ); }
-									// #TODO:  we have tangent as a vec3, the spec has it as a vec4.  so we will have to one off the loading of it.  skipping for now, since none of our shaders use tangent
-									//if ( loaded ) { loaded = ReadSurfaceDataFromAccessor( attribs.tangent, modelFile, attributes.GetChildInt32ByName( "TANGENT", -1 ), ACCESSOR_VEC3, GL_FLOAT, numVertices ); }
+									// #TODO:  we have tangent as a vec3, the spec has it as a vec4.  so we will have to one off the loading of it.  
+									if ( loaded ) { loaded = ReadSurfaceDataFromAccessor( attribs.tangent, modelFile, attributes.GetChildInt32ByName( "TANGENT", -1 ), ACCESSOR_VEC3, GL_FLOAT, numVertices ); }
 									if ( loaded ) { loaded = ReadSurfaceDataFromAccessor( attribs.binormal, modelFile, attributes.GetChildInt32ByName( "BINORMAL", -1 ), ACCESSOR_VEC3, GL_FLOAT, numVertices ); }
 									if ( loaded ) { loaded = ReadSurfaceDataFromAccessor( attribs.color, modelFile, attributes.GetChildInt32ByName( "COLOR", -1 ), ACCESSOR_VEC4, GL_FLOAT, numVertices ); }
 									if ( loaded ) { loaded = ReadSurfaceDataFromAccessor( attribs.uv0, modelFile, attributes.GetChildInt32ByName( "TEXCOORD_0", -1 ), ACCESSOR_VEC2, GL_FLOAT, numVertices ); }
@@ -838,6 +838,11 @@ bool LoadModelFile_glTF_Json( ModelFile & modelFile, const char * modelsJson,
 
 											if ( skinned )
 											{
+												if ( programs.ProgSkinnedBaseColorEmissivePBR == nullptr )
+												{
+													OVR_FAIL( "No ProgSkinnedBaseColorEmissivePBR set" );
+												}
+
 												newGltfSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedBaseColorEmissivePBR;
 												newGltfSurface.surfaceDef.surfaceName = "ProgSkinnedBaseColorEmissivePBR";
 											}
@@ -850,10 +855,7 @@ bool LoadModelFile_glTF_Json( ModelFile & modelFile, const char * modelsJson,
 										else
 										{
 											newGltfSurface.surfaceDef.graphicsCommand.numUniformTextures = 1;
-											if ( programs.ProgBaseColorPBR == nullptr )
-											{
-												OVR_FAIL( "No ProgBaseColorPBR set" );
-											}
+											
 
 											newGltfSurface.surfaceDef.graphicsCommand.uniformSlots[0] = 2;
 											newGltfSurface.surfaceDef.graphicsCommand.uniformValues[0][0] = newGltfSurface.material->baseColorFactor.x;
@@ -863,11 +865,19 @@ bool LoadModelFile_glTF_Json( ModelFile & modelFile, const char * modelsJson,
 
 											if ( skinned )
 											{
+												if ( programs.ProgSkinnedBaseColorPBR == nullptr )
+												{
+													OVR_FAIL( "No ProgSkinnedBaseColorPBR set" );
+												}
 												newGltfSurface.surfaceDef.graphicsCommand.Program = *programs.ProgSkinnedBaseColorPBR;
 												newGltfSurface.surfaceDef.surfaceName = "ProgSkinnedBaseColorPBR";
 											}
 											else
 											{
+												if ( programs.ProgBaseColorPBR == nullptr )
+												{
+													OVR_FAIL( "No ProgBaseColorPBR set" );
+												}
 												newGltfSurface.surfaceDef.graphicsCommand.Program = *programs.ProgBaseColorPBR;
 												newGltfSurface.surfaceDef.surfaceName = "ProgBaseColorPBR";
 											}

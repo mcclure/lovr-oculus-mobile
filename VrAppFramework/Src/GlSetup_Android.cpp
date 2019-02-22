@@ -194,13 +194,6 @@ glSetup_t GL_Setup( const EGLContext shareContext,
 	eglInitialize( egl.display, &majorVersion, &minorVersion );
 	OVR_LOG( "eglInitialize gives majorVersion %i, minorVersion %i", majorVersion, minorVersion);
 
-#if defined( OVR_HAS_OPENGL_LOADER )
-	if ( !GLES3::LoadGLFunctions() )
-	{
-		OVR_FAIL( "Failed to load GLES3 core entry points!" );
-	}
-#endif
-
 	const char * eglVendorString = eglQueryString( egl.display, EGL_VENDOR );
 	OVR_LOG( "EGL_VENDOR: %s", eglVendorString );
 	const char * eglClientApisString = eglQueryString( egl.display, EGL_CLIENT_APIS );

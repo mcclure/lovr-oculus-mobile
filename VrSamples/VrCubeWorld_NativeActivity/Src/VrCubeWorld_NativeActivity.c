@@ -57,14 +57,6 @@ typedef void (GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC) (GLenum targ
 typedef void (GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(GLenum target, GLenum attachment, GLuint texture, GLint level, GLsizei samples, GLint baseViewIndex, GLsizei numViews);
 #endif
 
-// Must use EGLSyncKHR because the VrApi still supports OpenGL ES 2.0
-// EGL_KHR_reusable_sync
-PFNEGLCREATESYNCKHRPROC			eglCreateSyncKHR;
-PFNEGLDESTROYSYNCKHRPROC		eglDestroySyncKHR;
-PFNEGLCLIENTWAITSYNCKHRPROC		eglClientWaitSyncKHR;
-PFNEGLSIGNALSYNCKHRPROC			eglSignalSyncKHR;
-PFNEGLGETSYNCATTRIBKHRPROC		eglGetSyncAttribKHR;
-
 #include "VrApi.h"
 #include "VrApi_Helpers.h"
 #include "VrApi_SystemUtils.h"
@@ -119,12 +111,6 @@ OpenGLExtensions_t glExtensions;
 
 static void EglInitExtensions()
 {
-	eglCreateSyncKHR		= (PFNEGLCREATESYNCKHRPROC)			eglGetProcAddress( "eglCreateSyncKHR" );
-	eglDestroySyncKHR		= (PFNEGLDESTROYSYNCKHRPROC)		eglGetProcAddress( "eglDestroySyncKHR" );
-	eglClientWaitSyncKHR	= (PFNEGLCLIENTWAITSYNCKHRPROC)		eglGetProcAddress( "eglClientWaitSyncKHR" );
-	eglSignalSyncKHR		= (PFNEGLSIGNALSYNCKHRPROC)			eglGetProcAddress( "eglSignalSyncKHR" );
-	eglGetSyncAttribKHR		= (PFNEGLGETSYNCATTRIBKHRPROC)		eglGetProcAddress( "eglGetSyncAttribKHR" );
-
 	const char * allExtensions = (const char *)glGetString( GL_EXTENSIONS );
 	if ( allExtensions != NULL )
 	{
@@ -744,7 +730,7 @@ static const char VERTEX_SHADER[] =
 	"out vec4 fragmentColor;\n"
 	"void main()\n"
 	"{\n"
-	"	gl_Position = sm.ProjectionMatrix[VIEW_ID] * ( sm.ViewMatrix[VIEW_ID] * ( vertexTransform * vec4( vertexPosition, 1.0 ) ) );\n"
+	"	gl_Position = sm.ProjectionMatrix[VIEW_ID] * ( sm.ViewMatrix[VIEW_ID] * ( vertexTransform * vec4( vertexPosition * 0.1, 1.0 ) ) );\n"
 	"	fragmentColor = vertexColor;\n"
 	"}\n";
 
@@ -965,60 +951,6 @@ static void ovrFramebuffer_Advance( ovrFramebuffer * frameBuffer )
 }
 
 /*
-================================================================================================================================
-
-ovrFence
-
-================================================================================================================================
-*/
-
-typedef struct
-{
-	EGLDisplay	Display;
-	EGLSyncKHR	Sync;
-} ovrFence;
-
-static void ovrFence_Create( ovrFence * fence )
-{
-	fence->Display = 0;
-	fence->Sync = EGL_NO_SYNC_KHR;
-}
-
-static void ovrFence_Destroy( ovrFence * fence )
-{
-	if ( fence->Sync != EGL_NO_SYNC_KHR )
-	{
-		if ( eglDestroySyncKHR( fence->Display, fence->Sync ) ==  EGL_FALSE )
-		{
-			ALOGE( "eglDestroySyncKHR() : EGL_FALSE" );
-			return;
-		}
-		fence->Display = 0;
-		fence->Sync = EGL_NO_SYNC_KHR;
-	}
-}
-
-static void ovrFence_Insert( ovrFence * fence )
-{
-	ovrFence_Destroy( fence );
-
-	fence->Display = eglGetCurrentDisplay();
-	fence->Sync = eglCreateSyncKHR( fence->Display, EGL_SYNC_FENCE_KHR, NULL );
-	if ( fence->Sync == EGL_NO_SYNC_KHR )
-	{
-		ALOGE( "eglCreateSyncKHR() : EGL_NO_SYNC_KHR" );
-		return;
-	}
-	// Force flushing the commands.
-	// Note that some drivers will already flush when calling eglCreateSyncKHR.
-	if ( eglClientWaitSyncKHR( fence->Display, fence->Sync, EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, 0 ) == EGL_FALSE )
-	{
-		ALOGE( "eglClientWaitSyncKHR() : EGL_FALSE" );
-		return;
-	}
-}
-
-/*
 ================================================================================
 
 ovrScene
@@ -1159,6 +1091,10 @@ static void ovrScene_Create( ovrScene * scene, bool useMultiview )
 			}
 		}
 
+		rx *= 0.1f;
+		ry *= 0.1f;
+		rz *= 0.1f;
+
 		// Insert into list sorted based on distance.
 		int insert = 0;
 		const float distSqr = rx * rx + ry * ry + rz * rz;
@@ -1238,14 +1174,10 @@ ovrRenderer
 ================================================================================
 */
 
-static int MAX_FENCES = 4;
-
 typedef struct
 {
 	ovrFramebuffer	FrameBuffer[VRAPI_FRAME_LAYER_EYE_MAX];
 	int				NumBuffers;
-	ovrFence *		Fence;			// Per-frame completion fence
-	int				FenceIndex;
 } ovrRenderer;
 
 static void ovrRenderer_Clear( ovrRenderer * renderer )
@@ -1255,8 +1187,6 @@ static void ovrRenderer_Clear( ovrRenderer * renderer )
 		ovrFramebuffer_Clear( &renderer->FrameBuffer[eye] );
 	}
 	renderer->NumBuffers = VRAPI_FRAME_LAYER_EYE_MAX;
-
-	renderer->FenceIndex = 0;
 }
 
 static void ovrRenderer_Create( ovrRenderer * renderer, const ovrJava * java, const bool useMultiview )
@@ -1273,12 +1203,6 @@ static void ovrRenderer_Create( ovrRenderer * renderer, const ovrJava * java, co
 								NUM_MULTI_SAMPLES );
 
 	}
-
-	renderer->Fence = (ovrFence *) malloc( MAX_FENCES * sizeof( ovrFence ) );
-	for ( int i = 0; i < MAX_FENCES; i++ )
-	{
-		ovrFence_Create( &renderer->Fence[i] );
-	}
 }
 
 static void ovrRenderer_Destroy( ovrRenderer * renderer )
@@ -1287,18 +1211,11 @@ static void ovrRenderer_Destroy( ovrRenderer * renderer )
 	{
 		ovrFramebuffer_Destroy( &renderer->FrameBuffer[eye] );
 	}
-
-	for ( int i = 0; i < MAX_FENCES; i++ )
-	{
-		ovrFence_Destroy( &renderer->Fence[i] );
-	}
-	free( renderer->Fence );
 }
 
 static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJava * java,
 											const ovrScene * scene, const ovrSimulation * simulation,
-											const ovrTracking2 * tracking, ovrMobile * ovr,
-											unsigned long long * completionFence )
+											const ovrTracking2 * tracking, ovrMobile * ovr )
 {
 	ovrMatrix4f rotationMatrices[NUM_ROTATIONS];
 	for ( int i = 0; i < NUM_ROTATIONS; i++ )
@@ -1431,13 +1348,6 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, cons
 
 	ovrFramebuffer_SetNone();
 
-	// Use a single fence to indicate the frame is ready to be displayed.
-	ovrFence * fence = &renderer->Fence[renderer->FenceIndex];
-	ovrFence_Insert( fence );
-	renderer->FenceIndex = ( renderer->FenceIndex + 1 ) % MAX_FENCES;
-	
-	*completionFence = (size_t)fence->Sync;
-
 	return layer;
 }
 
@@ -1543,14 +1453,13 @@ void * RenderThreadFunction( void * parm )
 		ovrLayer_Union2 layers[ovrMaxLayerCount] = {};
 		int layerCount = 0;
 		int frameFlags = 0;
-		unsigned long long completionFence = 0;
 
 		if ( renderThread->RenderType == RENDER_FRAME )
 		{
 			ovrLayerProjection2 layer;
 			layer = ovrRenderer_RenderFrame( &renderer, &java,
 					renderThread->Scene, &renderThread->Simulation,
-					&renderThread->Tracking, renderThread->Ovr, &completionFence );
+					&renderThread->Tracking, renderThread->Ovr );
 
 			layers[layerCount++].Projection = layer;
 		}
@@ -1586,7 +1495,6 @@ void * RenderThreadFunction( void * parm )
 		frameDesc.SwapInterval = renderThread->SwapInterval;
 		frameDesc.FrameIndex = renderThread->FrameIndex;
 		frameDesc.DisplayTime = renderThread->DisplayTime;
-		frameDesc.CompletionFence_DEPRECATED = completionFence;
 		frameDesc.LayerCount = layerCount;
 		frameDesc.Layers = layerList;
 
@@ -2151,13 +2059,9 @@ void android_main( struct android_app * app )
 				RENDER_FRAME, appState.FrameIndex, appState.DisplayTime, appState.SwapInterval,
 				&appState.Scene, &appState.Simulation, &tracking );
 #else
-
-		unsigned long long completionFence = 0;
-
 		// Render eye images and setup the primary layer using ovrTracking2.
 		const ovrLayerProjection2 worldLayer = ovrRenderer_RenderFrame( &appState.Renderer, &appState.Java,
-				&appState.Scene, &appState.Simulation, &tracking,
-				appState.Ovr, &completionFence );
+				&appState.Scene, &appState.Simulation, &tracking, appState.Ovr );
 
 		const ovrLayerHeader2 * layers[] =
 		{
@@ -2168,7 +2072,6 @@ void android_main( struct android_app * app )
 		frameDesc.Flags = 0;
 		frameDesc.SwapInterval = appState.SwapInterval;
 		frameDesc.FrameIndex = appState.FrameIndex;
-		frameDesc.CompletionFence_DEPRECATED = completionFence;
 		frameDesc.DisplayTime = appState.DisplayTime;
 		frameDesc.LayerCount = 1;
 		frameDesc.Layers = layers;

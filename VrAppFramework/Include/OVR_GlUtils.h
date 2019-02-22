@@ -31,35 +31,18 @@ extern ovrOpenGLExtensions extensionsOpenGL;
 
 #if defined( ANDROID )	// FIXME: Use OVR_Types defines when used consistently
 
-#define OVR_HAS_OPENGL_LOADER
-#if defined( OVR_HAS_OPENGL_LOADER )
-	#define __gl2_h_
-	#include <EGL/egl.h>
-	#include <EGL/eglext.h>
-	#ifdef __gl2_h_
-		#include <GLES3/gl3_loader.h>
-		using namespace GLES3;
-		static const int GL_ES_VERSION = 3;	// This will be passed to EglSetup() by App.cpp
-	#else
-		#include <GLES2/gl2_loader.h>
-		using namespace GLES2;
-		static const int GL_ES_VERSION = 2;	// This will be passed to EglSetup() by App.cpp
-	#endif
-	#include <GLES2/gl2ext.h>
+#define __gl2_h_
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#ifdef __gl2_h_
+	#include <GLES3/gl3.h>
+	#include <GLES3/gl3ext.h>
+	static const int GL_ES_VERSION = 3;	// This will be passed to EglSetup() by App.cpp
 #else
-	#define __gl2_h_
-	#include <EGL/egl.h>
-	#include <EGL/eglext.h>
-	#ifdef __gl2_h_
-		#include <GLES3/gl3.h>
-		#include <GLES3/gl3ext.h>
-		static const int GL_ES_VERSION = 3;	// This will be passed to EglSetup() by App.cpp
-	#else
-		#include <GLES2/gl2.h>
-		static const int GL_ES_VERSION = 2;	// This will be passed to EglSetup() by App.cpp
-	#endif
-	#include <GLES2/gl2ext.h>
+	#include <GLES2/gl2.h>
+	static const int GL_ES_VERSION = 2;	// This will be passed to EglSetup() by App.cpp
 #endif
+#include <GLES2/gl2ext.h>
 
 // We need to detect the API level because Google tweaked some of the GL headers in version 21+
 #include <android/api-level.h>

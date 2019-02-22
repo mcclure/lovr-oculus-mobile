@@ -160,7 +160,6 @@ while ( !exit )
 			ovrSubmitFrameDescription2 frameDesc = {};
 			frameDesc.FrameIndex = frameIndex;
 			frameDesc.DisplayTime = predictedDisplayTime;
-			frameDesc.CompletionFence_DEPRECATED = 0;
 			frameDesc.LayerCount = 1;
 			frameDesc.Layers = layers;
 
@@ -252,14 +251,10 @@ at any time from any thread.
 The VrApi allows for one frame of overlap which is essential on tiled mobile GPUs. Because
 there is one frame of overlap, the eye images have typically not completed rendering by the
 time they are submitted to vrapi_SubmitFrame(). To allow the time warp to check whether the
-eye images have completed rendering, the application can explicitly pass in a sync object
-(CompletionFence) for each eye image through vrapi_SubmitFrame(). Note that these sync
-objects must be EGLSyncKHR because the VrApi still supports OpenGL ES 2.0.
-
-If, however, the application does not explicitly pass in sync objects, then vrapi_SubmitFrame()
-*must* be called from the thread with the OpenGL ES context that was used for rendering,
-which allows vrapi_SubmitFrame() to add a sync object to the current context and check
-if rendering has completed.
+eye images have completed rendering, vrapi_SubmitFrame() adds a sync object to the current
+context. Therefore, vrapi_SubmitFrame() *must* be called from a thread with an OpenGL ES
+context whose completion ensures that frame rendering is complete. Generally this is the
+thread and context that was used for the rendering.
 
 Note that even if no OpenGL ES objects are explicitly passed through the VrApi, then
 vrapi_EnterVrMode() and vrapi_SubmitFrame() can still be called from different threads.
@@ -589,7 +584,11 @@ OVR_VRAPI_EXPORT ovrTracking vrapi_GetPredictedTracking( ovrMobile * ovr, double
 /// images from being abrubtly warped across the screen.
 ///
 /// Can be called from any thread while in VR mode.
-OVR_VRAPI_EXPORT void vrapi_RecenterPose( ovrMobile * ovr );
+
+// vrapi_RecenterPose() is being deprecated because it is supported at the user
+// level via system interaction, and at the app level, the app is free to use
+// any means it likes to control the mapping of virtual space to physical space.
+OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_RecenterPose( ovrMobile * ovr ) );
 
 //-----------------------------------------------------------------
 // Tracking Transform
@@ -625,18 +624,86 @@ OVR_VRAPI_EXPORT void vrapi_RecenterPose( ovrMobile * ovr );
 /// the VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_FLOOR_LEVEL transform.
 /// To determine the current tracking transform, applications can fetch the
 /// VRAPI_TRACKING_TRANSFORM_CURRENT transform.
-OVR_VRAPI_EXPORT ovrPosef  vrapi_GetTrackingTransform( ovrMobile * ovr, ovrTrackingTransform whichTransform );
+
+/// The TrackingTransform API has been deprecated because it was superceded by the
+/// TrackingSpace API. The key difference in the TrackingSpace API is that LOCAL
+/// and LOCAL_FLOOR spaces are mutable, so user/system recentering is transparently
+/// applied without app intervention.
+OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT ovrPosef  vrapi_GetTrackingTransform( ovrMobile * ovr, ovrTrackingTransform whichTransform ) );
 
 /// Sets the transform used convert between tracking coordinates and a canonical
 /// application-defined space.
 /// Only the yaw component of the orientation is used.
-OVR_VRAPI_EXPORT void vrapi_SetTrackingTransform( ovrMobile * ovr, ovrPosef pose );
+OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_SetTrackingTransform( ovrMobile * ovr, ovrPosef pose ) );
 
+
+/// Returns the current tracking space
+OVR_VRAPI_EXPORT ovrTrackingSpace vrapi_GetTrackingSpace( ovrMobile * ovr );
+
+/// Set the tracking space. There are currently two options:
+///   * VRAPI_TRACKING_SPACE_LOCAL (default)
+///         The local tracking space's origin is at the nominal head position
+///         with +y up, and -z forward. This space is volatile and will change
+///         when system recentering occurs.
+///   * VRAPI_TRACKING_SPACE_LOCAL_FLOOR
+///         The local floor tracking space is the same as the local tracking
+///         space, except its origin is translated down to the floor. The local
+///         floor space differs from the local space only in its y translation.
+///         This space is volatile and will change when system recentering occurs.
+OVR_VRAPI_EXPORT ovrResult vrapi_SetTrackingSpace( ovrMobile * ovr, ovrTrackingSpace whichSpace );
+
+/// Returns pose of the requested space relative to the current space.
+/// The returned value is not affected by the current tracking transform.
+OVR_VRAPI_EXPORT ovrPosef vrapi_LocateTrackingSpace( ovrMobile * ovr, ovrTrackingSpace target );
+
+//-----------------------------------------------------------------
+// Guardian System
+//
+//-----------------------------------------------------------------
+
+/// Get the geometry of the Guardian System as a list of points that define the outer boundary space.
+/// You can choose to get just the number of points by passing in a null value for points or
+/// by passing in a pointsCountInput size of 0.  Otherwise pointsCountInput will be used to fetch
+/// as many points as possible from the Guardian points data.  If the input size exceeds the
+/// number of points that are currently stored off we only copy up to the number of points that we
+/// have and pointsCountOutput will return the number of copied points
+OVR_VRAPI_EXPORT ovrResult vrapi_GetBoundaryGeometry( ovrMobile * ovr, const uint32_t pointsCountInput, uint32_t * pointsCountOutput, ovrVector3f * points );
+
+/// Gets the dimension of the Oriented Bounding box for the Guardian System.  This is the largest
+/// fit rectangle within the Guardian System boundary geometry. The pose value contains the forward facing
+/// direction as well as the translation for the oriented box.  The scale return value returns a
+/// scalar value for the width, height, and depth of the box.  These values are half the actual size
+/// as they are scalars and in meters."
+OVR_VRAPI_EXPORT ovrResult vrapi_GetBoundaryOrientedBoundingBox( ovrMobile * ovr, ovrPosef * pose, ovrVector3f * scale );
+
+/// Tests collision/proximity of a 3D point against the Guardian System Boundary and returns whether or not a
+/// given point is inside or outside of the boundary.  If a more detailed set of boundary
+/// trigger information is requested a ovrBoundaryTriggerResult may be passed in.  However null may
+/// also be passed in to just return whether a point is inside the boundary or not.
+OVR_VRAPI_EXPORT ovrResult vrapi_TestPointIsInBoundary( ovrMobile * ovr, const ovrVector3f point, bool * pointInsideBoundary, ovrBoundaryTriggerResult * result );
+
+/// Tests collision/proximity of position tracked devices (e.g. HMD and/or Controllers) against the
+/// Guardian System boundary. This function returns an ovrGuardianTriggerResult which contains information
+/// such as distance and closest point based on collision/proximity test
+OVR_VRAPI_EXPORT ovrResult vrapi_GetBoundaryTriggerState( ovrMobile * ovr, const ovrTrackedDeviceTypeId deviceId, ovrBoundaryTriggerResult * result );
+
+/// Used to force Guardian System mesh visibility to true.  Forcing to false will set the Guardian
+/// System back to normal operation.
+OVR_VRAPI_EXPORT ovrResult vrapi_RequestBoundaryVisible( ovrMobile * ovr, const bool visible );
+
+/// Used to access whether or not the Guardian System is visible or not
+OVR_VRAPI_EXPORT ovrResult vrapi_GetBoundaryVisible( ovrMobile * ovr, bool * visible );
 
 //-----------------------------------------------------------------
 // Texture Swap Chains
 //
 //-----------------------------------------------------------------
+
+/// Texture Swap Chain lifetime is explicitly controlled by the application via calls
+/// to vrapi_CreateTextureSwapChain* or vrapi_CreateAndroidSurfaceSwapChain and
+/// vrapi_DestroyTextureSwapChain. Swap Chains are associated with the VrApi instance,
+/// not the VrApi ovrMobile. Therefore, calls to vrapi_EnterVrMode and vrapi_LeaveVrMode
+/// will not destroy or cause the Swap Chain to become invalid.
 
 /// Create a texture swap chain that can be passed to vrapi_SubmitFrame.
 /// Must be called from a thread with a valid OpenGL ES context current.
@@ -706,15 +773,11 @@ OVR_VRAPI_EXPORT jobject vrapi_GetTextureSwapChainAndroidSurface( ovrTextureSwap
 /// The VrApi allows for one frame of overlap which is essential on tiled mobile GPUs.
 /// Because there is one frame of overlap, the eye images have typically not completed
 /// rendering by the time they are submitted to vrapi_SubmitFrame(). To allow the time
-/// warp to check whether the eye images have completed rendering, the application can
-/// explicitly pass in a sync object (CompletionFence) for each eye image through
-/// vrapi_SubmitFrame(). \note These sync objects must be EGLSyncKHR because the
-/// VrApi still supports OpenGL ES 2.0.
-/// 
-/// If, however, the application does not explicitly pass in sync objects, then
-/// vrapi_SubmitFrame() *must* be called from the thread with the OpenGL ES context that
-/// was used for rendering, which allows vrapi_SubmitFrame() to add a sync object to
-/// the current context and check if rendering has completed.
+/// warp to check whether the eye images have completed rendering, vrapi_SubmitFrame()
+/// adds a sync object to the current context. Therefore, vrapi_SubmitFrame() *must*
+/// be called from a thread with an OpenGL ES context whose completion ensures that
+/// frame rendering is complete. Generally this is the thread and context that was used
+/// for the rendering.
 OVR_VRAPI_EXPORT void vrapi_SubmitFrame( ovrMobile * ovr, const ovrFrameParms * parms );
 
 /// vrapi_SubmitFrame2 takes a frameDescription describing per-frame information such as:

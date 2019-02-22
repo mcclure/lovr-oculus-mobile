@@ -61,6 +61,8 @@ LOCAL_SRC_FILES  := ../../../Src/BitmapFont.cpp \
                     ../../../Src/OVR_TextureManager.cpp \
                     ../../../Src/SystemClock.cpp
 
+# OpenGL ES 3.0
+LOCAL_EXPORT_LDLIBS := -lGLESv3
 # GL platform interface
 LOCAL_EXPORT_LDLIBS += -lEGL
 # native multimedia
@@ -74,14 +76,11 @@ LOCAL_EXPORT_LDLIBS += -lz
 # audio
 LOCAL_EXPORT_LDLIBS += -lOpenSLES
 
-LOCAL_STATIC_LIBRARIES += libovrkernel minizip stb openglloader
+LOCAL_STATIC_LIBRARIES += libovrkernel minizip stb
 LOCAL_SHARED_LIBRARIES := vrapi
 
 include $(BUILD_STATIC_LIBRARY)		# start building based on everything since CLEAR_VARS
 
 $(call import-module,3rdParty/minizip/build/android/jni)
 $(call import-module,3rdParty/stb/build/android/jni)
-$(call import-module,1stParty/OpenGL_Loader/Projects/Android/jni)
-
-# Note: Even though we depend on LibOVRKernel, we don't explicitly import it since our
-# dependents may want either a prebuilt or from-source LibOVRKernel.
+$(call import-module,LibOVRKernel/Projects/Android/jni)

@@ -63,6 +63,8 @@ public:
 	ovrInputDevice_TrackedRemote( const ovrInputTrackedRemoteCapabilities & caps, 
 			const uint8_t lastRecenterCount )
 		: ovrInputDeviceBase()
+		, MinTrackpad( FLT_MAX )
+		, MaxTrackpad( -FLT_MAX )
 		, Caps( caps )
 		, LastRecenterCount( lastRecenterCount )
 	{
@@ -75,6 +77,7 @@ public:
 	static ovrInputDeviceBase * 				Create( App & app, OvrGuiSys & guiSys, 
 														VRMenu & menu, 
 														const ovrInputTrackedRemoteCapabilities & capsHeader );
+	void										UpdateHaptics( ovrMobile * ovr, const ovrFrameInput & vrFrame );
 	virtual const ovrInputCapabilityHeader *	GetCaps() const OVR_OVERRIDE { return &Caps.Header; }
 	virtual ovrControllerType 					GetType() const OVR_OVERRIDE { return Caps.Header.Type; }
 	virtual ovrDeviceID 						GetDeviceID() const OVR_OVERRIDE { return Caps.Header.DeviceID; }
@@ -91,19 +94,23 @@ public:
 	uint8_t										GetLastRecenterCount() const { return LastRecenterCount; }
 	void										SetLastRecenterCount( const uint8_t c ) { LastRecenterCount = c; }
 
-	const ovrDrawSurface &						GetSurface() { return Surface; };
 	ovrArmModel & 								GetArmModel() { return ArmModel; }
 	jointHandles_t & 							GetJointHandles() { return JointHandles; }
-	ovrDrawSurface &							GetControllerSurface() { return Surface; }
+	std::vector< ovrDrawSurface > &				GetControllerSurfaces() { return Surfaces; }
 	const ovrInputTrackedRemoteCapabilities &	GetTrackedRemoteCaps() const { return Caps; }
+
+	Vector2f									MinTrackpad;
+	Vector2f									MaxTrackpad;
 
 private:
 	ovrInputTrackedRemoteCapabilities	Caps;
-	ovrDrawSurface						Surface;
+	std::vector< ovrDrawSurface >		Surfaces;
 	uint8_t								LastRecenterCount;
 	ovrArmModel							ArmModel;
 	jointHandles_t						JointHandles;
 	ovrTracking							Tracking;
+	uint32_t							HapticState;
+	float								HapticsSimpleValue;
 };
 
 //==============================================================
@@ -225,17 +232,22 @@ private:
 	GlProgram					ProgLitController;
 	GlProgram					ProgLitSpecularWithHighlight;
 	GlProgram					ProgLitSpecular;
+	GlProgram					ProgOculusTouch;
 
 	ModelFile *					ControllerModelGear;
 	ModelFile *					ControllerModelGearPreLit;
 
 	ModelFile *					ControllerModelOculusGo;
 	ModelFile *					ControllerModelOculusGoPreLit;
+	ModelFile *					ControllerModelOculusTouchLeft;
+	ModelFile *					ControllerModelOculusTouchRight;
 
 	Vector3f					SpecularLightDirection;
 	Vector3f					SpecularLightColor;
 	Vector3f					AmbientLightColor;
 	Vector4f					HighLightMask;
+	Vector4f					HighLightMaskLeft;
+	Vector4f					HighLightMaskRight;
 	Vector3f					HighLightColor;
 
 	double						LastGamepadUpdateTimeInSeconds;

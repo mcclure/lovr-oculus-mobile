@@ -19,7 +19,7 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 extern "C" {
 #endif
 
-typedef enum
+typedef enum ovrSystemUIType_
 {
 	// enum 0 used to be VRAPI_SYS_UI_GLOBAL_MENU.
 

@@ -608,10 +608,14 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 	parms.Layers[0].SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
 	parms.Layers[0].DstBlend = VRAPI_FRAME_LAYER_BLEND_ZERO;
 	parms.Layers[0].Flags = 0;
+	parms.Layers[0].SpinSpeed = 0.0f;
+	parms.Layers[0].SpinScale = 1.0f;
 
 	parms.Layers[1].SrcBlend = VRAPI_FRAME_LAYER_BLEND_SRC_ALPHA;
 	parms.Layers[1].DstBlend = VRAPI_FRAME_LAYER_BLEND_ONE_MINUS_SRC_ALPHA;
 	parms.Layers[1].Flags = 0;
+	parms.Layers[1].SpinSpeed = 0.0f;
+	parms.Layers[1].SpinScale = 1.0f;
 
 	switch ( init )
 	{
@@ -789,9 +793,6 @@ static inline ovrLayerCube2 vrapi_DefaultLayerCube2()
 {
 	ovrLayerCube2 layer = {};
 
-	const ovrMatrix4f projectionMatrix			= ovrMatrix4f_CreateProjectionFov( 90.0f, 90.0f, 0.0f, 0.0f, 0.1f, 0.0f );
-	const ovrMatrix4f texCoordsFromTanAngles	= ovrMatrix4f_TanAngleMatrixFromProjection( &projectionMatrix );
-
 	layer.Header.Type	= VRAPI_LAYER_TYPE_CUBE2;
 	layer.Header.Flags  = 0;
 	layer.Header.ColorScale.x	= 1.0f;
@@ -803,7 +804,7 @@ static inline ovrLayerCube2 vrapi_DefaultLayerCube2()
 	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
-	layer.TexCoordsFromTanAngles = texCoordsFromTanAngles;
+	layer.TexCoordsFromTanAngles = ovrMatrix4f_CreateIdentity();
 
 	layer.Offset.x = 0.0f;
 	layer.Offset.y = 0.0f;
@@ -816,9 +817,6 @@ static inline ovrLayerEquirect2 vrapi_DefaultLayerEquirect2()
 {
 	ovrLayerEquirect2 layer = {};
 
-	const ovrMatrix4f projectionMatrix			= ovrMatrix4f_CreateProjectionFov( 90.0f, 90.0f, 0.0f, 0.0f, 0.1f, 0.0f );
-	const ovrMatrix4f texCoordsFromTanAngles	= ovrMatrix4f_TanAngleMatrixFromProjection( &projectionMatrix );
-
 	layer.Header.Type	= VRAPI_LAYER_TYPE_EQUIRECT2;
 	layer.Header.Flags  = 0;
 	layer.Header.ColorScale.x	= 1.0f;
@@ -830,7 +828,7 @@ static inline ovrLayerEquirect2 vrapi_DefaultLayerEquirect2()
 	layer.Header.Reserved		= NULL;
 
 	layer.HeadPose.Pose.Orientation.w = 1.0f;
-	layer.TexCoordsFromTanAngles = texCoordsFromTanAngles;
+	layer.TexCoordsFromTanAngles = ovrMatrix4f_CreateIdentity();
 
 	for ( int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; i++ )
 	{

@@ -58,7 +58,6 @@ public:
 
 	void				AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobile * ovr,
 										const ovrJava & java,
-										const ovrTrackingTransform trackingTransform,
 										const long long enteredVrModeFrameNumber );
 	const ovrFrameInput &		Get() const { return vrFrame; }
 
@@ -78,6 +77,58 @@ private:
 
 	void 		InterpretTouchpad( VrInput & input, const double currentTime, const float min_swipe_distance );
 	void		AddKeyEventToFrame( ovrKeyCode const keyCode, KeyEventType const eventType, int const repeatCount );
+
+	// Joystick support to enable BUTTON_*STICK_UP, BUTTON_*STICK_DOWN, BUTTON_*STICK_LEFT and BUTTON_*STICK_RIGHT
+	struct ovrJoyStick_t
+	{
+
+		const float DeadZone = 0.1f;
+		bool LastStickState = false;
+		bool CurrStickState = false;
+		ovrKeyCode LastStickCode = OVR_KEY_NONE;
+		ovrKeyCode CurrStickCode = OVR_KEY_NONE;
+		Vector2f StickPos; // (x, y) position of Right Joystick
+
+		bool StickLeft = false;
+		bool StickRight = false;
+		bool StickUp = false;
+		bool StickDown = false;
+
+		void ResetCurrStick()
+		{
+			CurrStickState = false;
+			CurrStickCode = OVR_KEY_NONE;
+		}
+
+		void ResetLastStick()
+		{
+			LastStickState = false;
+			LastStickCode = OVR_KEY_NONE;
+		}
+
+		void SetLastStick()
+		{
+			LastStickState = CurrStickState;
+			LastStickCode = CurrStickCode;
+		}
+
+		void SetCurrStick( const ovrKeyCode keycode, const bool state )
+		{
+			CurrStickState = state;
+			CurrStickCode = keycode;
+		}
+
+		void ResetDirection()
+		{
+			StickLeft = false;
+			StickRight = false;
+			StickUp = false;
+			StickDown = false;
+		}
+	};
+	
+	ovrJoyStick_t RStick;
+	ovrJoyStick_t LStick;
 };
 
 }	// namespace OVR

@@ -2,8 +2,8 @@
 
 Filename    :   VrController.cpp
 Content     :   Trivial use of the application framework.
-Created     :   
-Authors     :   
+Created     :
+Authors     :	Jonathan E. Wright, Robert Memmott
 
 Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
@@ -185,14 +185,14 @@ static const char * SpecularFragmentWithHighlight = R"(
 		lowp float specularPower = 1.0f - diffuse.a;
 		specularPower = specularPower * specularPower;
 
-		lowp vec3 H = normalize( SpecularLightDirection + eyeDir ); 
-		lowp float nDotH = max( dot( Normal, H ), 0.0 ); 
+		lowp vec3 H = normalize( SpecularLightDirection + eyeDir );
+		lowp float nDotH = max( dot( Normal, H ), 0.0 );
 		lowp float specularIntensity = pow( nDotH, 64.0f * ( specularPower ) ) * specularPower;
 		lowp vec3 specularValue = specularIntensity * SpecularLightColor;
 
 		lowp vec3 controllerColor = diffuseValue + ambientValue + specularValue;
 		gl_FragColor.xyz = highLight * HighLightColor + (1.0f - highLight) * controllerColor;
-		
+
 		// fade controller if it is too close to the camera
 		gl_FragColor.w = oFade;
 	}
@@ -223,16 +223,106 @@ static const char * SpecularFragmentShaderSrc = R"(
 		lowp float specularPower = 1.0f - diffuse.a;
 		specularPower = specularPower * specularPower;
 
-		lowp vec3 H = normalize( SpecularLightDirection + eyeDir ); 
-		lowp float nDotH = max( dot( Normal, H ), 0.0 ); 
+		lowp vec3 H = normalize( SpecularLightDirection + eyeDir );
+		lowp float nDotH = max( dot( Normal, H ), 0.0 );
 		lowp float specularIntensity = pow( nDotH, 64.0f * ( specularPower ) ) * specularPower;
 		lowp vec3 specularValue = specularIntensity * SpecularLightColor;
 
 		lowp vec3 controllerColor = diffuseValue + ambientValue + specularValue;
 		gl_FragColor.xyz = controllerColor;
-		
+
 		// fade controller if it is too close to the camera
 		gl_FragColor.w = oFade;
+	}
+)";
+
+static const char * OculusTouchVertexShaderSrc = R"(
+	attribute highp vec4 Position;
+	attribute highp vec3 Normal;
+	attribute highp vec3 Tangent;
+	attribute highp vec3 Binormal;
+	attribute highp vec2 TexCoord;
+	varying lowp vec3 oEye;
+	varying lowp vec3 oNormal;
+	varying lowp vec2 oTexCoord;
+	//varying highp mat3 oTangentSpaceMatrix;
+	vec3 multiply( mat4 m, vec3 v )
+	{
+		return vec3(
+			m[0].x * v.x + m[1].x * v.y + m[2].x * v.z,
+			m[0].y * v.x + m[1].y * v.y + m[2].y * v.z,
+			m[0].z * v.x + m[1].z * v.y + m[2].z * v.z );
+	}
+	vec3 transposeMultiply( mat4 m, vec3 v )
+	{
+		return vec3(
+			m[0].x * v.x + m[0].y * v.y + m[0].z * v.z,
+			m[1].x * v.x + m[1].y * v.y + m[1].z * v.z,
+			m[2].x * v.x + m[2].y * v.y + m[2].z * v.z );
+	}
+	void main()
+	{
+		gl_Position = TransformVertex( Position );
+		vec3 eye = transposeMultiply( sm.ViewMatrix[VIEW_ID], -vec3( sm.ViewMatrix[VIEW_ID][3] ) );
+		oEye = eye - vec3( ModelMatrix * Position );
+		vec3 iNormal = Normal * 100.0f;
+		oNormal = multiply( ModelMatrix, iNormal );
+
+		//vec3 tVec = normalize(multiply(ModelMatrix, Tangent));
+		//vec3 bVec = normalize(multiply(ModelMatrix, Binormal));
+		//vec3 nVec = normalize(multiply(ModelMatrix, Normal));
+		//oTangentSpaceMatrix = mat3(tVec, bVec, nVec);
+
+		oTexCoord = TexCoord;
+	}
+)";
+
+static const char * OculusTouchFragmentShaderSrc = R"(
+	uniform sampler2D Texture0;
+	uniform lowp vec3 SpecularLightDirection;
+	uniform lowp vec3 SpecularLightColor;
+	uniform lowp vec3 AmbientLightColor;
+	//uniform sampler2D Texture1;
+	varying lowp vec3 oEye;
+	varying lowp vec3 oNormal;
+	varying lowp vec2 oTexCoord;
+	//varying highp mat3 oTangentSpaceMatrix;
+	lowp vec3 multiply( lowp mat3 m, lowp vec3 v )
+	{
+		return vec3(
+			m[0].x * v.x + m[1].x * v.y + m[2].x * v.z,
+			m[0].y * v.x + m[1].y * v.y + m[2].y * v.z,
+			m[0].z * v.x + m[1].z * v.y + m[2].z * v.z );
+	}
+	void main()
+	{
+
+		lowp vec3 eyeDir = normalize( oEye.xyz );
+		lowp vec3 Normal = normalize( oNormal );
+
+		//lowp vec3 normalMap = texture2D( Texture1, oTexCoord ).xyz;
+		//normalMap = normalize( (normalMap - 0.5 ) * 2.0 );
+		//normalMap = multiply( oTangentSpaceMatrix, normalMap);
+		//Normal = normalMap;
+	
+		lowp vec3 reflectionDir = dot( eyeDir, Normal ) * 2.0 * Normal - eyeDir;
+		lowp vec4 diffuse = texture2D( Texture0, oTexCoord );
+		lowp vec3 ambientValue = diffuse.xyz * AmbientLightColor;
+
+		lowp float nDotL = max( dot( Normal , SpecularLightDirection ), 0.0 );
+		lowp vec3 diffuseValue = diffuse.xyz * SpecularLightColor * nDotL;
+
+		lowp float specularPower = 1.0f - diffuse.a;
+		specularPower = specularPower * specularPower;
+
+		lowp vec3 H = normalize( SpecularLightDirection + eyeDir );
+		lowp float nDotH = max( dot( Normal, H ), 0.0 );
+		lowp float specularIntensity = pow( nDotH, 64.0f * ( specularPower ) ) * specularPower;
+		lowp vec3 specularValue = specularIntensity * SpecularLightColor;
+
+		lowp vec3 controllerColor = diffuseValue + ambientValue + specularValue;
+		gl_FragColor.xyz = controllerColor;
+		gl_FragColor.w = 1.0f;
 	}
 )";
 
@@ -284,7 +374,7 @@ static void UpdateRibbon( ovrPointList & points, ovrPointList & velocities, cons
 	const float invDeltaSeconds = 1.0f / deltaSeconds;
 
 	int count = 0;
-	int i = points.GetFirst(); 
+	int i = points.GetFirst();
 	Vector3f & firstPoint = points.Get( i );
 
 	Vector3f delta = anchorPos - firstPoint;
@@ -356,7 +446,7 @@ ovrControllerRibbon::ovrControllerRibbon( const int numPoints, const float width
 	}
 #endif
 
-	Ribbon = new ovrRibbon( *Points, width, color );	
+	Ribbon = new ovrRibbon( *Points, width, color );
 }
 
 ovrControllerRibbon::~ovrControllerRibbon()
@@ -417,6 +507,8 @@ ovrVrController::ovrVrController()
 	, ControllerModelGearPreLit( nullptr )
 	, ControllerModelOculusGo( nullptr )
 	, ControllerModelOculusGoPreLit( nullptr )
+	, ControllerModelOculusTouchLeft( nullptr )
+	, ControllerModelOculusTouchRight( nullptr )
 	, LastGamepadUpdateTimeInSeconds( 0 )
 	, Ribbons{ nullptr, nullptr }
 {
@@ -440,6 +532,10 @@ ovrVrController::~ovrVrController()
 	ControllerModelOculusGo = nullptr;
 	delete ControllerModelOculusGoPreLit;
 	ControllerModelOculusGoPreLit = nullptr;
+	delete ControllerModelOculusTouchLeft;
+	ControllerModelOculusTouchLeft = nullptr;
+	delete ControllerModelOculusTouchRight;
+	ControllerModelOculusTouchRight = nullptr;
 
 	delete RemoteBeamRenderer;
 	RemoteBeamRenderer = nullptr;
@@ -513,6 +609,15 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			{ "HighLightColor",			ovrProgramParmType::FLOAT_VECTOR3 },
 		};
 
+		static ovrProgramParm OculusTouchUniformParms[] =
+		{
+			{ "Texture0",				ovrProgramParmType::TEXTURE_SAMPLED },
+			{ "SpecularLightDirection",	ovrProgramParmType::FLOAT_VECTOR3 },
+			{ "SpecularLightColor",		ovrProgramParmType::FLOAT_VECTOR3 },
+			{ "AmbientLightColor",		ovrProgramParmType::FLOAT_VECTOR3 },
+			//{ "Texture1",				ovrProgramParmType::TEXTURE_SAMPLED },
+		};
+
 		SpecularLightDirection = Vector3f( 0.0f, 1.0f, 0.0f );
 		SpecularLightColor = Vector3f( 1.0f, 1.0f, 1.0f ) * 0.75f;
 		AmbientLightColor = Vector3f( 1.0f, 1.0f, 1.0f ) * 0.85f;
@@ -529,6 +634,9 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 		ProgLitSpecular = GlProgram::Build( SpecularVertexShaderSrc, SpecularFragmentShaderSrc,
 			LitUniformParms, sizeof( LitUniformParms ) / sizeof( ovrProgramParm ) );
 
+		ProgOculusTouch = GlProgram::Build( OculusTouchVertexShaderSrc, OculusTouchFragmentShaderSrc,
+			OculusTouchUniformParms, sizeof( OculusTouchUniformParms ) / sizeof( ovrProgramParm ) );
+
 		{
 			ModelGlPrograms	programs;
 			const char * controllerModelFile = "apk:///assets/gearcontroller.ovrscene";
@@ -537,6 +645,12 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			programs.ProgLightMapped = &ProgLitSpecularWithHighlight;
 			MaterialParms	materials;
 			ControllerModelGear = LoadModelFile( app->GetFileSys(), controllerModelFile, programs, materials );
+
+			if ( ControllerModelGear == NULL || ControllerModelGear->Models.GetSizeI() < 1 )
+			{
+				OVR_FAIL( "Couldn't load Gear VR controller model" );
+			}
+
 			ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.UniformData[0].Data = &ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.uniformTextures[0];
 			ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.UniformData[1].Data = &SpecularLightDirection;
 			ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.UniformData[2].Data = &SpecularLightColor;
@@ -548,11 +662,6 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
 			ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendSrc = GL_SRC_ALPHA;
 			ControllerModelGear->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendDst = GL_ONE_MINUS_SRC_ALPHA;
-
-			if ( ControllerModelGear == NULL || ControllerModelGear->Models.GetSizeI() < 1 )
-			{
-				OVR_FAIL( "Couldn't load Gear VR controller model" );
-			}
 		}
 
 		{
@@ -563,15 +672,15 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			MaterialParms	materials;
 			ControllerModelGearPreLit = LoadModelFile( app->GetFileSys(), controllerModelFile, programs, materials );
 
-			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.depthEnable = ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.depthMaskEnable = false;
-			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE_SEPARATE;
-			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendSrc = GL_SRC_ALPHA;
-			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendDst = GL_ONE_MINUS_SRC_ALPHA;
-
 			if ( ControllerModelGearPreLit == NULL || ControllerModelGearPreLit->Models.GetSizeI() < 1 )
 			{
 				OVR_FAIL( "Couldn't load prelit Gear VR controller model" );
 			}
+
+			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.depthEnable = ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.depthMaskEnable = false;
+			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE_SEPARATE;
+			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendSrc = GL_SRC_ALPHA;
+			ControllerModelGearPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendDst = GL_ONE_MINUS_SRC_ALPHA;
 		}
 
 		{
@@ -582,6 +691,12 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			programs.ProgLightMapped = &ProgLitSpecularWithHighlight;
 			MaterialParms	materials;
 			ControllerModelOculusGo = LoadModelFile( app->GetFileSys(), controllerModelFile, programs, materials );
+
+			if ( ControllerModelOculusGo == NULL || ControllerModelOculusGo->Models.GetSizeI() < 1 )
+			{
+				OVR_FAIL( "Couldn't load oculus go controller model" );
+			}
+
 			ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.UniformData[0].Data = &ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.uniformTextures[0];
 			ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.UniformData[1].Data = &SpecularLightDirection;
 			ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.UniformData[2].Data = &SpecularLightColor;
@@ -593,11 +708,6 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
 			ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendSrc = GL_SRC_ALPHA;
 			ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendDst = GL_ONE_MINUS_SRC_ALPHA;
-
-			if ( ControllerModelOculusGo == NULL || ControllerModelOculusGo->Models.GetSizeI() < 1 )
-			{
-				OVR_FAIL( "Couldn't load oculus go controller model" );
-			}
 		}
 
 		{
@@ -607,14 +717,67 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			programs.ProgBaseColorPBR = &ProgSingleTexture;
 			MaterialParms	materials;
 			ControllerModelOculusGoPreLit = LoadModelFile( app->GetFileSys(), controllerModelFile, programs, materials );
-			
-			ControllerModelOculusGoPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
-			ControllerModelOculusGoPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendSrc = GL_SRC_ALPHA;
-			ControllerModelOculusGoPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendDst = GL_ONE_MINUS_SRC_ALPHA;
 
 			if ( ControllerModelOculusGoPreLit == NULL || ControllerModelOculusGoPreLit->Models.GetSizeI() < 1 )
 			{
 				OVR_FAIL( "Couldn't load prelit oculus go controller model" );
+			}
+
+			ControllerModelOculusGoPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendEnable = ovrGpuState::BLEND_ENABLE;
+			ControllerModelOculusGoPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendSrc = GL_SRC_ALPHA;
+			ControllerModelOculusGoPreLit->Models[0].surfaces[0].surfaceDef.graphicsCommand.GpuState.blendDst = GL_ONE_MINUS_SRC_ALPHA;
+		}
+
+		{
+			ModelGlPrograms	programs;
+			const char * controllerModelFile = "apk:///assets/oculusQuest_oculusTouch_Left.gltf.ovrscene";
+			programs.ProgSingleTexture = &ProgOculusTouch;
+			programs.ProgBaseColorPBR = &ProgOculusTouch;
+			programs.ProgSkinnedBaseColorPBR = &ProgOculusTouch;
+			programs.ProgLightMapped = &ProgOculusTouch;
+			programs.ProgBaseColorEmissivePBR = &ProgOculusTouch;
+			programs.ProgSkinnedBaseColorEmissivePBR = &ProgOculusTouch;
+			MaterialParms	materials;
+			ControllerModelOculusTouchLeft = LoadModelFile( app->GetFileSys(), controllerModelFile, programs, materials );
+
+			if ( ControllerModelOculusTouchLeft == NULL || ControllerModelOculusTouchLeft->Models.GetSizeI() < 1 )
+			{
+				OVR_FAIL( "Couldn't load Oculus Touch for Oculus Quest Controller left model" );
+			}
+
+			for ( auto& model : ControllerModelOculusTouchLeft->Models )
+			{
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[0].Data = &model.surfaces[0].surfaceDef.graphicsCommand.uniformTextures[0];
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[1].Data = &SpecularLightDirection;
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[2].Data = &SpecularLightColor;
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[3].Data = &AmbientLightColor;
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[4].Data = &model.surfaces[0].surfaceDef.graphicsCommand.uniformTextures[1];
+			}
+		}
+		{
+			ModelGlPrograms	programs;
+			const char * controllerModelFile = "apk:///assets/oculusQuest_oculusTouch_Right.gltf.ovrscene";
+			programs.ProgSingleTexture = &ProgOculusTouch;
+			programs.ProgBaseColorPBR = &ProgOculusTouch;
+			programs.ProgSkinnedBaseColorPBR = &ProgOculusTouch;
+			programs.ProgLightMapped = &ProgOculusTouch;
+			programs.ProgBaseColorEmissivePBR = &ProgOculusTouch;
+			programs.ProgSkinnedBaseColorEmissivePBR = &ProgOculusTouch;
+			MaterialParms	materials;
+			ControllerModelOculusTouchRight = LoadModelFile( app->GetFileSys(), controllerModelFile, programs, materials );
+
+			if ( ControllerModelOculusTouchRight == NULL || ControllerModelOculusTouchRight->Models.GetSizeI() < 1 )
+			{
+				OVR_FAIL( "Couldn't load Oculus Touch for Oculus Quest Controller Controller right model" );
+			}
+
+			for ( auto& model : ControllerModelOculusTouchRight->Models )
+			{
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[0].Data = &model.surfaces[0].surfaceDef.graphicsCommand.uniformTextures[0];
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[1].Data = &SpecularLightDirection;
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[2].Data = &SpecularLightColor;
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[3].Data = &AmbientLightColor;
+				model.surfaces[0].surfaceDef.graphicsCommand.UniformData[4].Data = &model.surfaces[0].surfaceDef.graphicsCommand.uniformTextures[1];
 			}
 		}
 
@@ -667,10 +830,18 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			GuiSys->AddMenu( Menu );
 			GuiSys->OpenMenu( Menu->GetName() );
 
-			const ovrDeviceType deviceType = ( ovrDeviceType )vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_DEVICE_TYPE );
+			OVR::Posef pose = Menu->GetMenuPose();
+			pose.Translation = Vector3f( 0.0f, 1.0f, -2.0f );
+			Menu->SetMenuPose( pose );
+
+			const ovrDeviceType deviceType = ( ovrDeviceType )app->GetSystemProperty( VRAPI_SYS_PROP_DEVICE_TYPE );
 			if ( deviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSGO_END )
 			{
 				SetObjectText( *GuiSys, Menu, "panel", "VrController (Oculus Go)" );
+			}
+			else if ( deviceType >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END )
+			{
+				SetObjectText( *GuiSys, Menu, "panel", "VrController (Oculus Quest)" );
 			}
 		}
 	}
@@ -725,8 +896,8 @@ bool ovrVrController::OnKeyEvent( const int keyCode, const int repeatCount, cons
 }
 
 static void RenderBones( const ovrFrameInput & frame, ovrParticleSystem * ps, ovrTextureAtlas & particleAtlas,
-		const uint16_t particleAtlasIndex, ovrBeamRenderer * br, ovrTextureAtlas & beamAtlas, const uint16_t beamAtlasIndex, 
-		const Posef & worldPose, const Array< ovrJoint > & joints, 
+		const uint16_t particleAtlasIndex, ovrBeamRenderer * br, ovrTextureAtlas & beamAtlas, const uint16_t beamAtlasIndex,
+		const Posef & worldPose, const Array< ovrJoint > & joints,
 		Array< ovrPairT< ovrParticleSystem::handle_t, ovrBeamRenderer::handle_t > > & handles )
 {
 	for ( int i = 0; i < joints.GetSizeI(); ++i )
@@ -736,12 +907,12 @@ static void RenderBones( const ovrFrameInput & frame, ovrParticleSystem * ps, ov
 
 		if ( !handles[i].First.IsValid() )
 		{
-			handles[i].First = ps->AddParticle( frame, jw.Translation, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ), 
+			handles[i].First = ps->AddParticle( frame, jw.Translation, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ),
 					joint.Color, ovrEaseFunc::NONE, 0.0f, 0.08f, FLT_MAX, particleAtlasIndex );
 		}
 		else
 		{
-			ps->UpdateParticle( frame, handles[i].First, jw.Translation, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ), joint.Color, 
+			ps->UpdateParticle( frame, handles[i].First, jw.Translation, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ), joint.Color,
 				ovrEaseFunc::NONE, 0.0f, 0.08f, FLT_MAX, particleAtlasIndex );
 		}
 
@@ -751,12 +922,12 @@ static void RenderBones( const ovrFrameInput & frame, ovrParticleSystem * ps, ov
 			const Posef pw = worldPose * parentJoint.Pose;
 			if ( !handles[i].Second.IsValid() )
 			{
-				handles[i].Second = br->AddBeam( frame, beamAtlas, beamAtlasIndex, 0.064f, pw.Translation, jw.Translation, 
+				handles[i].Second = br->AddBeam( frame, beamAtlas, beamAtlasIndex, 0.064f, pw.Translation, jw.Translation,
 						Vector4f( 0.0f, 0.0f, 1.0f, 1.0f ), ovrBeamRenderer::LIFETIME_INFINITE );
 			}
 			else
 			{
-				br->UpdateBeam( frame, handles[i].Second, beamAtlas, beamAtlasIndex, 0.064f, pw.Translation, jw.Translation, 
+				br->UpdateBeam( frame, handles[i].Second, beamAtlas, beamAtlasIndex, 0.064f, pw.Translation, jw.Translation,
 						Vector4f( 0.0f, 0.0f, 1.0f, 1.0f ) );
 			}
 		}
@@ -780,7 +951,7 @@ static void ResetBones( ovrParticleSystem * ps, ovrBeamRenderer * br, jointHandl
     }
 }
 
-static void TrackpadStats( const Vector2f & pos, const Vector2f & range, 
+static void TrackpadStats( const Vector2f & pos, const Vector2f & range,
 	const Vector2f & size, Vector2f & min, Vector2f & max, Vector2f & mm )
 {
 	if ( pos.x < min.x ) { min.x = pos.x; }
@@ -808,12 +979,6 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 		{
 			continue;   // consumed the event
 		}
-		// If nothing consumed the key and it's a short-press of the back key, then exit the application to OculusHome.
-		if ( keyCode == OVR_KEY_BACK && eventType == KEY_EVENT_SHORT_PRESS )
-		{
-			app->ShowSystemUI( VRAPI_SYS_UI_CONFIRM_QUIT_MENU );
-			continue;
-		}
 	}
 
 	// disallow player movement
@@ -826,11 +991,16 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 	EnumerateInputDevices();
 	bool recenteredController = false;
 	ovrArmModel::ovrHandedness dominantHand =
-		vrapi_GetSystemPropertyInt( app->GetJava(), VRAPI_SYS_PROP_DOMINANT_HAND ) == VRAPI_HAND_LEFT ? ovrArmModel::HAND_LEFT : ovrArmModel::HAND_RIGHT;
+		app->GetSystemProperty( VRAPI_SYS_PROP_DOMINANT_HAND ) == VRAPI_HAND_LEFT ? ovrArmModel::HAND_LEFT : ovrArmModel::HAND_RIGHT;
     bool hasActiveController = false;
 
 	bool showHeadset = true;
 
+	ovrDeviceType deviceType = ( ovrDeviceType )app->GetSystemProperty( VRAPI_SYS_PROP_DEVICE_TYPE );
+	if ( deviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END )
+	{
+		showHeadset = false;
+	}
 
 	ClearAndHideMenuItems();
 
@@ -862,7 +1032,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 				OnDeviceDisconnected( deviceID );
 				SetObjectText( *GuiSys, Menu, "secondary_input_header", "Headset Error" );
 				continue;
-			}		
+			}
 			else
 			{
 				SetObjectText( *GuiSys, Menu, "secondary_input_header", "Gear VR Headset" );
@@ -870,9 +1040,9 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 				const ovrInputHeadsetCapabilities* headsetCapabilities = reinterpret_cast<const ovrInputHeadsetCapabilities*>( hsDevice.GetCaps() );
 
 				String buttonStr = "";
-				if ( headsetCapabilities->ButtonCapabilities & ovrButton_A ) 
-				{ 
-					buttonStr += "TRIGGER "; 
+				if ( headsetCapabilities->ButtonCapabilities & ovrButton_A )
+				{
+					buttonStr += "TRIGGER ";
 					SetObjectVisible( *GuiSys, Menu, "secondary_input_trigger", true );
 					SetObjectVisible( *GuiSys, Menu, "secondary_input_triggerana", true );
 				}
@@ -883,7 +1053,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 					SetObjectVisible( *GuiSys, Menu, "secondary_input_touchpad_click", true );
 				}
 
-				if ( headsetCapabilities->ButtonCapabilities & ovrButton_Back ) 
+				if ( headsetCapabilities->ButtonCapabilities & ovrButton_Back )
 				{
 					buttonStr += "BACK ";
 					SetObjectVisible( *GuiSys, Menu, "secondary_input_back", true );
@@ -907,7 +1077,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 				Quatf r( hmtTracking.HeadPose.Pose.Orientation );
 				r.GetEulerAngles< Axis_Y, Axis_X, Axis_Z >( &yaw, &pitch, &roll );
 				//OVR_LOG_WITH_TAG( "HMTPose", "Pose.r = ( %.2f, %.2f, %.2f, %.2f ), ypr( %.2f, %.2f, %.2f )",
-				//		r.x, r.y, r.z, r.w, 
+				//		r.x, r.y, r.z, r.w,
 				//		MATH_FLOAT_RADTODEGREEFACTOR * yaw, MATH_FLOAT_RADTODEGREEFACTOR* pitch, MATH_FLOAT_RADTODEGREEFACTOR * roll );
 
 				ovrInputStateHeadset headsetInputState;
@@ -940,7 +1110,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 							Vector2f( hsDevice.GetHeadsetCaps().TrackpadSizeX, hsDevice.GetHeadsetCaps().TrackpadSizeY ), minTrackpad, maxTrackpad, mm );
 
 					SetObjectVisible( *GuiSys, Menu, "secondary_input_touch_pos", true );
-					SetObjectText( *GuiSys, Menu, "secondary_input_touch_pos", "Pos( %.2f, %.2f ) Min( %.2f, %.2f ) Max( %.2f, %.2f )", 
+					SetObjectText( *GuiSys, Menu, "secondary_input_touch_pos", "Pos( %.2f, %.2f ) Min( %.2f, %.2f ) Max( %.2f, %.2f )",
 						headsetInputState.TrackpadPosition.x, headsetInputState.TrackpadPosition.y,
 						minTrackpad.x, minTrackpad.y, maxTrackpad.x, maxTrackpad.y );
 		/*
@@ -956,7 +1126,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 		else if ( device->GetType() == ovrControllerType_TrackedRemote )
 		{
 			ovrInputDevice_TrackedRemote & trDevice = *static_cast< ovrInputDevice_TrackedRemote*>( device );
-					
+
 			if ( deviceID != ovrDeviceIdType_Invalid )
 			{
 				ovrTracking remoteTracking;
@@ -975,10 +1145,10 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 				Quatf r( remoteTracking.HeadPose.Pose.Orientation );
 				r.GetEulerAngles< Axis_Y, Axis_X, Axis_Z >( &yaw, &pitch, &roll );
 				//OVR_LOG_WITH_TAG( "MLBUPose", "Pose.r = ( %.2f, %.2f, %.2f, %.2f ), ypr( %.2f, %.2f, %.2f ), t( %.2f, %.2f, %.2f )",
-				//	r.x, r.y, r.z, r.w, 
+				//	r.x, r.y, r.z, r.w,
 				//	MATH_FLOAT_RADTODEGREEFACTOR * yaw, MATH_FLOAT_RADTODEGREEFACTOR * pitch, MATH_FLOAT_RADTODEGREEFACTOR * roll,
 				//	remoteTracking.HeadPose.Pose.Position.x, remoteTracking.HeadPose.Pose.Position.y, remoteTracking.HeadPose.Pose.Position.z );
-				
+
 				result = PopulateRemoteControllerInfo( trDevice, recenteredController );
 				if ( result == ovrSuccess )
 				{
@@ -1020,8 +1190,8 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 						SetObjectText( *GuiSys, Menu, "tertiary_input_header", "Gamepad ID: %u", deviceID );
 					}
 
-					SetObjectText( *GuiSys, Menu, "tertiary_input_lstick", "LStick x: %.2f y: %.2f", gamepadInputState.LeftJoyStick.x, gamepadInputState.LeftJoyStick.y );
-					SetObjectText( *GuiSys, Menu, "tertiary_input_rstick", "RStick x: %.2f y: %.2f", gamepadInputState.RightJoyStick.x, gamepadInputState.RightJoyStick.y );
+					SetObjectText( *GuiSys, Menu, "tertiary_input_lstick", "LStick x: %.2f y: %.2f", gamepadInputState.LeftJoystick.x, gamepadInputState.LeftJoystick.y );
+					SetObjectText( *GuiSys, Menu, "tertiary_input_rstick", "RStick x: %.2f y: %.2f", gamepadInputState.RightJoystick.x, gamepadInputState.RightJoystick.y );
 					SetObjectText( *GuiSys, Menu, "tertiary_input_l2", "L2 %.2f", gamepadInputState.LeftTrigger );
 					SetObjectText( *GuiSys, Menu, "tertiary_input_r2", "R2 %.2f", gamepadInputState.RightTrigger );
 
@@ -1134,7 +1304,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 	if ( ( vrFrameWithoutMove.Tracking.Status & VRAPI_TRACKING_STATUS_ORIENTATION_TRACKED ) != 0 )
 	{
 		vrFrameWithoutMove.Input.sticks[1][0] = 0.0f;
-		vrFrameWithoutMove.Input.sticks[1][1] = 0.0f;	
+		vrFrameWithoutMove.Input.sticks[1][1] = 0.0f;
 	}
 
 	// Player movement.
@@ -1160,18 +1330,17 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 			OVR_ASSERT( false );	// this should never happen!
 			continue;
 		}
-		ovrDeviceID deviceID = device->GetDeviceID();		
+		ovrDeviceID deviceID = device->GetDeviceID();
 		if ( deviceID == ovrDeviceIdType_Invalid )
 		{
 			OVR_ASSERT( deviceID != ovrDeviceIdType_Invalid );
 			continue;
 		}
 		if ( device->GetType() == ovrControllerType_TrackedRemote )
-		{		
+		{
 			ovrInputDevice_TrackedRemote & trDevice = *static_cast< ovrInputDevice_TrackedRemote*>( device );
 
 			ovrArmModel & 			armModel = trDevice.GetArmModel();
-			OVR::ovrDrawSurface & 	controllerSurface = trDevice.GetControllerSurface();
 			const ovrTracking &		tracking = trDevice.GetTracking();
 
 			Array< ovrJoint > worldJoints = armModel.GetSkeleton().GetJoints();
@@ -1186,29 +1355,40 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 			armModel.Update( headPoseWithoutPosition, remotePoseWithoutPosition, trDevice.GetHand(),
 					recenteredController, remotePose );
 
+#if defined( OVR_OS_ANDROID )
+			if ( ( trDevice.GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_HasPositionTracking ) == 0 )
+			{
+#endif
 				Posef neckPose( Quatf(), Vector3f( 0.0f, vrFrame.EyeHeight, 0.0f ) );
 				RenderBones( vrFrame, ParticleSystem, *SpriteAtlas, 0, RemoteBeamRenderer, *BeamAtlas, 0,
 					neckPose, armModel.GetTransformedJoints(), trDevice.GetJointHandles() );
-
-			Matrix4f mat = Matrix4f( tracking.HeadPose.Pose );
-
-			controllerSurface.surface = &ControllerModelGear->Models[0].surfaces[0].surfaceDef;
-
-			// TODO: The pitch offset should only be applied to the Gear VR controller but should be baked into the model.
-			float controllerPitch = DegreeToRad( 15.0f );
-
 #if defined( OVR_OS_ANDROID )
-			if ( trDevice.GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_ModelOculusGo )
-			{
-				controllerSurface.surface = &ControllerModelOculusGo->Models[0].surfaces[0].surfaceDef;
-				controllerPitch = 0.0f;
 			}
 #endif
 
-			// TODO: bake the yaw rotation into the models -- this probably requires changing VrShell, too.
-			const float controllerYaw = DegreeToRad( 180.0f );
-			controllerSurface.modelMatrix = mat * Matrix4f::RotationY( controllerYaw ) * Matrix4f::RotationX( controllerPitch );
+			Matrix4f mat = Matrix4f( tracking.HeadPose.Pose );
 
+			// TODO: The pitch offset should only be applied to the Gear VR controller but should be baked into the model.
+			float controllerPitch = DegreeToRad( 15.0f );
+#if defined( OVR_OS_ANDROID )
+			if ( trDevice.GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_ModelOculusGo )
+			{
+				controllerPitch = 0.0f;
+			}
+			else if ( trDevice.GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
+			{
+				controllerPitch = DegreeToRad( -90.0f );
+			}
+#endif
+
+			std::vector< ovrDrawSurface > & 	controllerSurfaces = trDevice.GetControllerSurfaces();
+			const float controllerYaw = DegreeToRad( 180.0f );
+			for ( uint32_t i = 0; i < controllerSurfaces.size(); i++ )
+			{
+				controllerSurfaces[i].modelMatrix = mat * Matrix4f::RotationY( controllerYaw ) * Matrix4f::RotationX( controllerPitch );
+			}
+
+			trDevice.UpdateHaptics( app->GetOvrMobile(), vrFrame );
 
 			// only do the trace for the user's dominant hand
 			if ( trDevice.GetHand() == dominantHand )
@@ -1225,7 +1405,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 					pointerEnd = pointerStart + hit.RayDir * hit.t - pointerDir * 0.025f;//pointerDir * 0.15f;
 				}
 				else
-				{	
+				{
 					pointerEnd = pointerStart + pointerDir * 10.0f;
 				}
 			}
@@ -1276,7 +1456,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 	{
 		if ( !LaserPointerBeamHandle.IsValid() )
 		{
-			LaserPointerBeamHandle = RemoteBeamRenderer->AddBeam( vrFrame, *BeamAtlas, 0, 0.032f, pointerStart, pointerEnd, 
+			LaserPointerBeamHandle = RemoteBeamRenderer->AddBeam( vrFrame, *BeamAtlas, 0, 0.032f, pointerStart, pointerEnd,
 					LASER_COLOR, ovrBeamRenderer::LIFETIME_INFINITE );
 			OVR_LOG_WITH_TAG( "MLBULaser", "AddBeam %i", LaserPointerBeamHandle.Get() );
 
@@ -1296,7 +1476,7 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 		{
 			if ( LaserHit )
 			{
-				LaserPointerParticleHandle = ParticleSystem->AddParticle( vrFrame, pointerEnd, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ), 
+				LaserPointerParticleHandle = ParticleSystem->AddParticle( vrFrame, pointerEnd, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ),
 						LASER_COLOR, ovrEaseFunc::NONE, 0.0f, 0.1f, 0.1f, 0 );
 				OVR_LOG_WITH_TAG( "MLBULaser", "AddParticle %i", LaserPointerParticleHandle.Get() );
 			}
@@ -1315,9 +1495,9 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 			}
 		}
 
-//		ParticleSystem->AddParticle( vrFrame, pointerStart_NoWrist, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ), 
+//		ParticleSystem->AddParticle( vrFrame, pointerStart_NoWrist, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ),
 //				Vector4f( 0.0f, 1.0f, 1.0f, 1.0f ), ovrEaseFunc::ALPHA_IN_OUT_LINEAR, 0.0f, 0.025f, 0.5f, 0 );
-		ParticleSystem->AddParticle( vrFrame, pointerStart, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ), 
+		ParticleSystem->AddParticle( vrFrame, pointerStart, 0.0f, Vector3f( 0.0f ), Vector3f( 0.0f ),
 				Vector4f( 0.0f, 1.0f, 0.0f, 0.5f ), ovrEaseFunc::ALPHA_IN_OUT_LINEAR, 0.0f, 0.025f, 0.05f, 0 );
 	}
 	else
@@ -1347,14 +1527,20 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 			continue;
 		}
 		ovrInputDevice_TrackedRemote & trDevice = *static_cast< ovrInputDevice_TrackedRemote*>( device );
-		if ( trDevice.GetSurface().surface != nullptr )
+
+		std::vector< ovrDrawSurface > & 	controllerSurfaces = trDevice.GetControllerSurfaces();
+		for ( auto& surface : controllerSurfaces )
 		{
-			res.Surfaces.PushBack( trDevice.GetSurface() );
+			if ( surface.surface != nullptr )
+			{
+				res.Surfaces.PushBack( surface );
+			}
 		}
+		
 		if ( Ribbons[trDevice.GetHand()] != nullptr )
 		{
 			Ribbons[trDevice.GetHand()]->Ribbon->GenerateSurfaceList( res.Surfaces );
-		}
+		}		
 	}
 
 	const Matrix4f projectionMatrix;
@@ -1462,7 +1648,7 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 
 	const ovrArmModel::ovrHandedness controllerHand = trDevice.GetHand();
 
-	ovrArmModel::ovrHandedness dominantHand = vrapi_GetSystemPropertyInt( app->GetJava(), VRAPI_SYS_PROP_DOMINANT_HAND ) == VRAPI_HAND_LEFT ? ovrArmModel::HAND_LEFT : ovrArmModel::HAND_RIGHT;
+	ovrArmModel::ovrHandedness dominantHand = app->GetSystemProperty( VRAPI_SYS_PROP_DOMINANT_HAND ) == VRAPI_HAND_LEFT ? ovrArmModel::HAND_LEFT : ovrArmModel::HAND_RIGHT;
 
 	ovrInputStateTrackedRemote remoteInputState;
 	remoteInputState.Header.ControllerType = trDevice.GetType();
@@ -1495,7 +1681,7 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 	String thumbUpObjectName;
 	String aButtonObjectName;
 	String bButtonObjectName;
-	
+
 	if ( controllerHand == dominantHand )
 	{
 		headerObjectName = "primary_input_header";
@@ -1557,6 +1743,10 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 	{
 		SetObjectText( *GuiSys, Menu, headerObjectName.ToCStr(), "Oculus Go Controller" );
 	}
+	else if ( ( inputTrackedRemoteCapabilities->ControllerCapabilities & ovrControllerCaps_ModelOculusTouch ) != 0 )
+	{
+		SetObjectText( *GuiSys, Menu, headerObjectName.ToCStr(), "Oculus Touch Controller" );
+	}
 	else
 #endif
 	{
@@ -1572,6 +1762,58 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 		SetObjectText( *GuiSys, Menu, aButtonObjectName.ToCStr(), "A" );
 	}
 
+	if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_Trigger )
+	{
+		buttonStr += "TRG ";
+		SetObjectVisible( *GuiSys, Menu, triggerObjectName.ToCStr(), true );
+		SetObjectVisible( *GuiSys, Menu, triggerAnalogObjectName.ToCStr(), true );
+	}
+
+	if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_B )
+	{
+		buttonStr += "B ";
+		SetObjectVisible( *GuiSys, Menu, bButtonObjectName.ToCStr(), true );
+		SetObjectText( *GuiSys, Menu, bButtonObjectName.ToCStr(), "B" );
+	}
+
+	if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_X )
+	{
+		buttonStr += "X ";
+		SetObjectVisible( *GuiSys, Menu, aButtonObjectName.ToCStr(), true );
+		SetObjectText( *GuiSys, Menu, aButtonObjectName.ToCStr(), "X" );
+	}
+
+	if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_Y )
+	{
+		buttonStr += "Y ";
+		SetObjectVisible( *GuiSys, Menu, bButtonObjectName.ToCStr(), true );
+		SetObjectText( *GuiSys, Menu, bButtonObjectName.ToCStr(), "Y" );
+	}
+
+#if defined( OVR_OS_ANDROID )
+	if ( inputTrackedRemoteCapabilities->TouchCapabilities & ovrTouch_IndexTrigger ) {
+		buttonStr += "TrgT ";
+	}
+
+	if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_GripTrigger )
+	{
+		buttonStr += "GRIP ";
+		SetObjectVisible( *GuiSys, Menu, gripObjectName.ToCStr(), true );
+		SetObjectVisible( *GuiSys, Menu, gripAnalogObjectName.ToCStr(), true );
+	}
+
+	if ( inputTrackedRemoteCapabilities->TouchCapabilities & ovrTouch_IndexTrigger )
+	{
+		buttonStr += "Pnt ";
+		SetObjectVisible( *GuiSys, Menu, pointingObjectName.ToCStr(), true );
+	}
+
+	if ( inputTrackedRemoteCapabilities->TouchCapabilities & ovrTouch_ThumbUp )
+	{
+		buttonStr += "Tmb ";
+		SetObjectVisible( *GuiSys, Menu, thumbUpObjectName.ToCStr(), true );
+	}
+#endif
 
 	if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_Back )
 	{
@@ -1579,10 +1821,86 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 		SetObjectVisible( *GuiSys, Menu, backObjectName.ToCStr(), true );
 	}
 
+	if ( inputTrackedRemoteCapabilities->ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
+	{
+		if ( inputTrackedRemoteCapabilities->ButtonCapabilities & ovrButton_Enter )
+		{
+			buttonStr += "Enter ";
+			SetObjectVisible( *GuiSys, Menu, backObjectName.ToCStr(), true );
+			SetObjectText( *GuiSys, Menu, backObjectName.ToCStr(), "Enter" );
+		}
+	}
+
 	SetObjectVisible( *GuiSys, Menu, buttonCapsObjectName.ToCStr(), true );
 	SetObjectText( *GuiSys, Menu, buttonCapsObjectName.ToCStr(), "Buttons: %s",
 		buttonStr.ToCStr() );
 
+#if defined( OVR_OS_ANDROID )
+	if ( remoteInputState.Touches & ovrTouch_IndexTrigger )
+	{
+		buttons += "TA ";
+		SetObjectColor( *GuiSys, Menu, triggerAnalogObjectName.ToCStr(),
+			Vector4f( 0.25f, 1.0f, 0.0f, 1.0f ) );
+	}
+
+	SetObjectText( *GuiSys, Menu, triggerAnalogObjectName.ToCStr(),
+		"%.2f",
+		remoteInputState.IndexTrigger );
+
+	if ( remoteInputState.Buttons & ovrButton_GripTrigger )
+	{
+		buttons += "GRIP ";
+		SetObjectColor( *GuiSys, Menu, gripObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+	SetObjectText( *GuiSys, Menu, gripAnalogObjectName.ToCStr(),
+		"%.2f",
+		remoteInputState.GripTrigger );
+
+	if ( remoteInputState.Touches & ovrTouch_IndexPointing )
+	{
+		buttons += "Pnt ";
+		SetObjectColor( *GuiSys, Menu, pointingObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+
+	if ( remoteInputState.Touches & ovrTouch_ThumbUp )
+	{
+		buttons += "Tmb ";
+		SetObjectColor( *GuiSys, Menu, thumbUpObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+#endif
+
+	Vector4f * hightLightMaskPointer = &HighLightMask;
+
+	if ( inputTrackedRemoteCapabilities->ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
+	{
+		if ( controllerHand == ovrArmModel::ovrHandedness::HAND_LEFT )
+		{
+			hightLightMaskPointer = &HighLightMaskLeft;
+		}
+		else if ( controllerHand == ovrArmModel::ovrHandedness::HAND_RIGHT )
+		{
+			hightLightMaskPointer = &HighLightMaskRight;
+		}
+	}
+
+	if ( remoteInputState.Buttons & ovrButton_Trigger
+		&& ( remoteInputState.Buttons & ovrButton_Enter || remoteInputState.Buttons & ovrButton_Joystick ) )
+	{
+		hightLightMaskPointer->x = 1.0f;
+		hightLightMaskPointer->y = 1.0f;
+		hightLightMaskPointer->z = 1.0f;
+		hightLightMaskPointer->w = 1.0f;
+	}
+	else
+	{
+		hightLightMaskPointer->x = 0.0f;
+		hightLightMaskPointer->y = 0.0f;
+		hightLightMaskPointer->z = 0.0f;
+		hightLightMaskPointer->w = 0.0f;
+	}
 
 	if ( remoteInputState.Buttons & ovrButton_A )
 	{
@@ -1591,6 +1909,82 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 			Vector4f( 1.25f, 0.25f, 0.25f, 1.0f ) );
 	}
 
+	if ( remoteInputState.Buttons & ovrButton_Trigger )
+	{
+		buttons += "Trigger ";
+		SetObjectColor( *GuiSys, Menu, triggerObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+
+	if ( remoteInputState.Touches & ovrTouch_A && remoteInputState.Buttons & ovrButton_A )
+	{
+		buttons += "A ";
+		SetObjectColor( *GuiSys, Menu, aButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 0.25f, 1.0f, 1.0f ) );
+	}
+	else if ( remoteInputState.Touches & ovrTouch_A )
+	{
+		buttons += "A ";
+		SetObjectColor( *GuiSys, Menu, aButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 1.0f, 0.25f, 1.0f ) );
+	}
+
+	if ( remoteInputState.Touches & ovrTouch_B && remoteInputState.Buttons & ovrButton_B )
+	{
+		buttons += "B ";
+		SetObjectColor( *GuiSys, Menu, bButtonObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+	else if ( remoteInputState.Touches & ovrTouch_B )
+	{
+		buttons += "B ";
+		SetObjectColor( *GuiSys, Menu, bButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 1.0f, 0.25f, 1.0f ) );
+	}
+	else if ( remoteInputState.Buttons & ovrButton_B )
+	{
+		buttons += "B ";
+		SetObjectColor( *GuiSys, Menu, bButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 0.25f, 1.0f, 1.0f ) );
+	}
+
+	if ( remoteInputState.Touches & ovrTouch_X && remoteInputState.Buttons & ovrButton_X )
+	{
+		buttons += "X ";
+		SetObjectColor( *GuiSys, Menu, aButtonObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+	else if ( remoteInputState.Touches & ovrTouch_X )
+	{
+		buttons += "X ";
+		SetObjectColor( *GuiSys, Menu, aButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 1.0f, 0.25f, 1.0f ) );
+	}
+	else if ( remoteInputState.Buttons & ovrButton_X )
+	{
+		buttons += "X ";
+		SetObjectColor( *GuiSys, Menu, aButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 0.25f, 1.0f, 1.0f ) );
+	}
+
+	if ( remoteInputState.Touches & ovrTouch_Y && remoteInputState.Buttons & ovrButton_Y )
+	{
+		buttons += "Y ";
+		SetObjectColor( *GuiSys, Menu, bButtonObjectName.ToCStr(),
+			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+	}
+	else if ( remoteInputState.Touches & ovrTouch_Y )
+	{
+		buttons += "y ";
+		SetObjectColor( *GuiSys, Menu, bButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 1.0f, 0.25f, 1.0f ) );
+	}
+	else if ( remoteInputState.Buttons & ovrButton_Y )
+	{
+		buttons += "Y ";
+		SetObjectColor( *GuiSys, Menu, bButtonObjectName.ToCStr(),
+			Vector4f( 0.25f, 0.25f, 1.0f, 1.0f ) );
+	}
 
 	if ( remoteInputState.Buttons & ovrButton_Back )
 	{
@@ -1599,9 +1993,17 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 			Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
 	}
 
-	static Vector2f minTrackpad( FLT_MAX );
-	static Vector2f maxTrackpad( -FLT_MAX );
+	if ( inputTrackedRemoteCapabilities->ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
+	{
+		if ( remoteInputState.Buttons & ovrButton_Enter )
+		{
+			buttons += "ENTER";
+			SetObjectColor( *GuiSys, Menu, backObjectName.ToCStr(),
+				Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+		}
+	}
 
+	
 	if ( inputTrackedRemoteCapabilities->ControllerCapabilities & ovrControllerCaps_HasTrackpad )
 	{
 		SetObjectVisible( *GuiSys, Menu, rangeObjectName.ToCStr(), true );
@@ -1622,6 +2024,12 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 				Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
 		}
 
+		if ( remoteInputState.Touches & ovrTouch_TrackPad )
+		{
+			// this code is a duplicate of the above, using a slightly different color to differentiate.
+			SetObjectColor( *GuiSys, Menu, touchObjectName.ToCStr(),
+				Vector4f( 1.0f, 0.25f, 0.3f, 1.0f ) );
+		}
 
 		if ( remoteInputState.Buttons & ovrButton_Enter )
 		{
@@ -1635,13 +2043,57 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 				trDevice.GetTrackedRemoteCaps().TrackpadMaxY ),
 			Vector2f( trDevice.GetTrackedRemoteCaps().TrackpadSizeX,
 				trDevice.GetTrackedRemoteCaps().TrackpadSizeY ),
-			minTrackpad, maxTrackpad, mm );
+			trDevice.MinTrackpad, trDevice.MaxTrackpad, mm );
 		SetObjectVisible( *GuiSys, Menu, touchPosObjectName.ToCStr(), true );
 		SetObjectText( *GuiSys, Menu, touchPosObjectName.ToCStr(),
 			"TP( %.2f, %.2f ) Min( %.2f, %.2f ) Max( %.2f, %.2f )",
 			remoteInputState.TrackpadPosition.x,
 			remoteInputState.TrackpadPosition.y,
-			minTrackpad.x, minTrackpad.y, maxTrackpad.x, maxTrackpad.y );
+			trDevice.MinTrackpad.x, trDevice.MinTrackpad.y, trDevice.MaxTrackpad.x, trDevice.MaxTrackpad.y );
+	}
+	else if ( inputTrackedRemoteCapabilities->ControllerCapabilities & ovrControllerCaps_HasJoystick )
+	{
+		SetObjectVisible( *GuiSys, Menu, touchObjectName.ToCStr(), true );
+		SetObjectVisible( *GuiSys, Menu, touchpadClickObjectName.ToCStr(), true );
+		SetObjectText( *GuiSys, Menu, touchObjectName.ToCStr(), "JS Touch" );
+		SetObjectText( *GuiSys, Menu, touchpadClickObjectName.ToCStr(), "JS Click" );
+
+		if ( remoteInputState.Touches & ovrTouch_Joystick )
+		{
+			SetObjectColor( *GuiSys, Menu, touchObjectName.ToCStr(),
+				Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+		}
+
+		if ( remoteInputState.Buttons & ovrButton_Joystick )
+		{
+			SetObjectColor( *GuiSys, Menu, touchpadClickObjectName.ToCStr(),
+				Vector4f( 1.0f, 0.25f, 0.25f, 1.0f ) );
+		}
+
+		Vector2f mm( 0.0f );
+		TrackpadStats( remoteInputState.Joystick,
+			Vector2f( 2.0f,
+				2.0f ),
+			Vector2f( 2.0f,
+				2.0f ),
+			 trDevice.MinTrackpad, trDevice.MaxTrackpad, mm );
+		SetObjectVisible( *GuiSys, Menu, touchPosObjectName.ToCStr(), true );
+		SetObjectText( *GuiSys, Menu, touchPosObjectName.ToCStr(),
+			"JS( %.2f, %.2f ) Min( %.2f, %.2f ) Max( %.2f, %.2f )",
+			remoteInputState.Joystick.x,
+			remoteInputState.Joystick.y,
+			trDevice.MinTrackpad.x, trDevice.MinTrackpad.y, trDevice.MaxTrackpad.x, trDevice.MaxTrackpad.y );
+		if ( remoteInputState.Joystick.x != remoteInputState.JoystickNoDeadZone.x
+			|| remoteInputState.Joystick.y != remoteInputState.JoystickNoDeadZone.y )
+		{
+			SetObjectColor( *GuiSys, Menu, touchPosObjectName.ToCStr(),
+				Vector4f( 0.35f, 0.25f, 0.25f, 1.0f ) );
+		}
+		else
+		{
+			SetObjectColor( *GuiSys, Menu, touchPosObjectName.ToCStr(),
+				Vector4f( 0.25f, 0.25f, 0.25f, 1.0f ) );
+		}
 	}
 
 	char const *handStr =
@@ -1661,7 +2113,7 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 			( int )trDevice.GetLastRecenterCount() );
 		trDevice.SetLastRecenterCount( remoteInputState.RecenterCount );
 	}
-	
+
 
 	return result;
 }
@@ -1759,6 +2211,38 @@ void ovrVrController::OnDeviceConnected( const ovrInputCapabilityHeader & capsHe
 				if ( result == ovrSuccess )
 				{
 					device = ovrInputDevice_TrackedRemote::Create( *app, *GuiSys, *Menu, remoteCapabilities );
+
+					// populate model surfaces.
+					ovrInputDevice_TrackedRemote & trDevice = *static_cast< ovrInputDevice_TrackedRemote*>( device );
+					std::vector< ovrDrawSurface > & 	controllerSurfaces = trDevice.GetControllerSurfaces();
+					OVR::ModelFile * modelFile = ControllerModelGear;
+#if defined( OVR_OS_ANDROID )
+					if ( trDevice.GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_ModelOculusGo )
+					{
+						modelFile = ControllerModelOculusGo;
+					}
+					else if ( trDevice.GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
+					{
+						
+						if ( trDevice.GetHand() == ovrArmModel::HAND_LEFT )
+						{
+							modelFile = ControllerModelOculusTouchLeft;
+						}
+						else
+						{
+							modelFile = ControllerModelOculusTouchRight;
+						}
+					}
+#endif
+
+					controllerSurfaces.clear();
+					for ( auto& model : modelFile->Models )
+					{
+						OVR::ovrDrawSurface controllerSurface;
+						controllerSurface.surface = &( model.surfaces[0].surfaceDef );
+						controllerSurfaces.push_back( controllerSurface );
+					}
+
 					// reflect the device type in the UI
 					VRMenuObject * header = Menu->ObjectForName( *GuiSys, "primary_input_header" );
 					if ( header != nullptr )
@@ -1767,6 +2251,10 @@ void ovrVrController::OnDeviceConnected( const ovrInputCapabilityHeader & capsHe
 						if ( ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_ModelOculusGo ) != 0 )
 						{
 							header->SetText( "Oculus Go old Controller" );
+						}
+						else if ( ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_ModelOculusTouch ) != 0 )
+						{
+							header->SetText( "Oculus Touch Controller" );
 						}
 						else
 #endif
@@ -1777,7 +2265,7 @@ void ovrVrController::OnDeviceConnected( const ovrInputCapabilityHeader & capsHe
 				}
 				break;
 		}
-			
+
 		case ovrControllerType_Gamepad:
 			{
 				OVR_LOG_WITH_TAG( "MLBUConnect", "Gamepad connected, ID = %u", capsHeader.DeviceID );
@@ -1790,7 +2278,7 @@ void ovrVrController::OnDeviceConnected( const ovrInputCapabilityHeader & capsHe
 				}
 			}
 			break;
-			
+
 		default:
 			OVR_LOG( "Unknown device connected!");
 			OVR_ASSERT( false );
@@ -1844,7 +2332,7 @@ ovrInputDeviceBase * ovrInputDevice_Gamepad::Create( App & app, OvrGuiSys & guiS
 
 //==============================
 // ovrInputDevice_Headset::Create
-ovrInputDeviceBase * ovrInputDevice_Headset::Create( App & app, OvrGuiSys & guiSys, VRMenu & menu, 
+ovrInputDeviceBase * ovrInputDevice_Headset::Create( App & app, OvrGuiSys & guiSys, VRMenu & menu,
 		const ovrInputHeadsetCapabilities & headsetCapabilities )
 {
 	ovrInputDevice_Headset * device = new ovrInputDevice_Headset( headsetCapabilities );
@@ -1860,7 +2348,7 @@ ovrInputDeviceBase * ovrInputDevice_Headset::Create( App & app, OvrGuiSys & guiS
 
 //==============================
 // ovrInputDevice_TrackedRemote::Create
-ovrInputDeviceBase * ovrInputDevice_TrackedRemote::Create( App & app, OvrGuiSys & guiSys, VRMenu & menu, 
+ovrInputDeviceBase * ovrInputDevice_TrackedRemote::Create( App & app, OvrGuiSys & guiSys, VRMenu & menu,
 		const ovrInputTrackedRemoteCapabilities & remoteCapabilities )
 {
 	OVR_LOG_WITH_TAG( "MLBUConnect", "ovrInputDevice_TrackedRemote::Create" );
@@ -1871,7 +2359,7 @@ ovrInputDeviceBase * ovrInputDevice_TrackedRemote::Create( App & app, OvrGuiSys 
 	if ( result == ovrSuccess )
 	{
 		ovrInputDevice_TrackedRemote * device = new ovrInputDevice_TrackedRemote( remoteCapabilities, remoteInputState.RecenterCount );
-	
+
 		ovrArmModel::ovrHandedness controllerHand = ovrArmModel::HAND_RIGHT;
 		if ( ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_LeftHand ) != 0 )
 		{
@@ -1888,6 +2376,8 @@ ovrInputDeviceBase * ovrInputDevice_TrackedRemote::Create( App & app, OvrGuiSys 
 		device->ArmModel.InitSkeleton();
 		device->JointHandles.Resize( device->ArmModel.GetSkeleton().GetJoints().GetSizeI() );
 
+		device->HapticState = 0;
+		device->HapticsSimpleValue = 0.0f;
 
 		return device;
 	}
@@ -1899,5 +2389,125 @@ ovrInputDeviceBase * ovrInputDevice_TrackedRemote::Create( App & app, OvrGuiSys 
 	return nullptr;
 }
 
+enum HapticStates
+{
+	HAPTICS_NONE = 0,
+	HAPTICS_BUFFERED = 1,
+	HAPTICS_SIMPLE = 2,
+	HAPTICS_SIMPLE_CLICKED = 3
+};
+
+//==============================
+// ovrInputDevice_TrackedRemote::Create
+void ovrInputDevice_TrackedRemote::UpdateHaptics( ovrMobile * ovr, const ovrFrameInput & vrFrame )
+{
+	if ( GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_HasSimpleHapticVibration
+		|| GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration )
+	{
+		ovrResult result;
+		ovrInputStateTrackedRemote remoteInputState;
+		remoteInputState.Header.ControllerType = GetType();
+		result = vrapi_GetCurrentInputState( ovr, GetDeviceID(), &remoteInputState.Header );
+
+		bool gripDown = ( remoteInputState.Buttons & ovrButton_GripTrigger ) > 0;
+		bool trigDown = ( remoteInputState.Buttons & ovrButton_A ) > 0;
+		trigDown |= ( remoteInputState.Buttons & ovrButton_Trigger ) > 0;
+		bool touchDown = remoteInputState.TrackpadStatus;
+		bool touchClicked = ( remoteInputState.Buttons & ovrButton_Enter  || remoteInputState.Buttons & ovrButton_Joystick ) > 0;
+
+		const int maxSamples = GetTrackedRemoteCaps().HapticSamplesMax;
+
+		if ( gripDown && ( touchDown || touchClicked ) )
+		{
+			if ( trigDown )
+			{
+				if ( GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration )
+				{
+					// buffered haptics
+					float intensity = 0.0f;
+					intensity = fmodf( vrFrame.PredictedDisplayTimeInSeconds, 1.0f );
+
+					ovrHapticBuffer hapticBuffer;
+					uint8_t dataBuffer[maxSamples];
+					hapticBuffer.BufferTime = vrFrame.PredictedDisplayTimeInSeconds;
+					hapticBuffer.NumSamples = maxSamples;
+					hapticBuffer.HapticBuffer = dataBuffer;
+					hapticBuffer.Terminated = false;
+
+					for ( int i = 0; i < maxSamples; i++ )
+					{
+						dataBuffer[i] = intensity * 255;
+						intensity += (float)GetTrackedRemoteCaps().HapticSampleDurationMS * 0.001f;
+						intensity = fmodf( intensity, 1.0f );
+					}
+
+					vrapi_SetHapticVibrationBuffer( ovr, GetDeviceID(), &hapticBuffer );
+					HapticState = HAPTICS_BUFFERED;
+				}
+				else
+				{
+					OVR_LOG( "Device does not support buffered haptics?" );
+				}
+
+			}
+			else
+			{
+				// simple haptics
+				if ( touchClicked )
+				{
+					if ( GetTrackedRemoteCaps().ControllerCapabilities & ovrControllerCaps_HasSimpleHapticVibration )
+					{
+						if ( HapticState != HAPTICS_SIMPLE_CLICKED )
+						{
+							vrapi_SetHapticVibrationSimple( ovr, GetDeviceID(), 1.0f );
+							HapticState = HAPTICS_SIMPLE_CLICKED;
+							HapticsSimpleValue = 1.0f;
+						}
+					}
+					else
+					{
+						OVR_LOG( "Device does not support simple haptics?" );
+					}
+				}
+				else
+				{
+					// huge epsilon value since there is so much noise in the grip trigger
+					// and currently a problem with sending too many haptics values.
+					if ( HapticsSimpleValue < ( remoteInputState.GripTrigger - 0.05f ) ||
+						HapticsSimpleValue >( remoteInputState.GripTrigger + 0.05f ) )
+					{
+						vrapi_SetHapticVibrationSimple( ovr, GetDeviceID(), remoteInputState.GripTrigger );
+						HapticState = HAPTICS_SIMPLE;
+						HapticsSimpleValue = remoteInputState.GripTrigger;
+					}
+				}
+			}
+		}
+		else if ( HapticState == HAPTICS_BUFFERED )
+		{
+			ovrHapticBuffer hapticBuffer;
+			uint8_t dataBuffer[maxSamples];
+			hapticBuffer.BufferTime = vrFrame.PredictedDisplayTimeInSeconds;
+			hapticBuffer.NumSamples = maxSamples;
+			hapticBuffer.HapticBuffer = dataBuffer;
+			hapticBuffer.Terminated = true;
+
+			for ( int i = 0; i < maxSamples; i++ )
+			{
+				dataBuffer[i] = (((float) i) / ( float )maxSamples) * 255;
+			}
+
+			vrapi_SetHapticVibrationBuffer( ovr, GetDeviceID(), &hapticBuffer );
+			HapticState = HAPTICS_NONE;
+		}
+		else if ( HapticState == HAPTICS_SIMPLE || HapticState == HAPTICS_SIMPLE_CLICKED )
+		{
+			vrapi_SetHapticVibrationSimple( ovr, GetDeviceID(), 0.0f );
+			HapticState = HAPTICS_NONE;
+			HapticsSimpleValue = 0.0f;
+		}
+
+	}
+}
 
 } // namespace OVR

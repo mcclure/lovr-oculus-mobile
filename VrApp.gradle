@@ -165,7 +165,7 @@ class VrAppPlugin implements Plugin<Project> {
 
 			  externalNativeBuild {
   				  ndkBuild {
-					  arguments "NDK_DEBUG=1","OVR_DEBUG=1"
+					  arguments "NDK_DEBUG=1","OVR_DEBUG=1","USE_ASAN=1"
 				  }
 			  }
           }
@@ -177,7 +177,7 @@ class VrAppPlugin implements Plugin<Project> {
 
 			  externalNativeBuild {
   				  ndkBuild {
-					  arguments "NDK_DEBUG=0","OVR_DEBUG=0"
+					  arguments "NDK_DEBUG=0","OVR_DEBUG=0","USE_ASAN=0"
 				  }
 			  }
           }

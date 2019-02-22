@@ -198,7 +198,7 @@ AppLocal::AppLocal( JNIEnv & jni_, jobject activityObject_, VrAppInterface & int
 	, InputEvents()
 	, TheVrFrame()
 	, EnteredVrModeFrame( 0 )
-	, VrThread( &ThreadStarter, this, 256 * 1024 )
+	, VrThread( &ThreadStarter, this, 512 * 1024 )
 	, ExitCode( 0 )
 	, RecenterYawFrameStart( 0 )
 	, DebugLines( NULL )
@@ -247,7 +247,7 @@ AppLocal::AppLocal( JNIEnv & jni_, jobject activityObject_, VrAppInterface & int
 	VrSettings.UseProtectedFramebuffer = false;
 	VrSettings.Use16BitFramebuffer = false;
 	VrSettings.SwapInterval = 1;
-	VrSettings.TrackingTransform = VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_FLOOR_LEVEL;
+	VrSettings.TrackingSpace = VRAPI_TRACKING_SPACE_LOCAL_FLOOR;
 	VrSettings.RenderMode = RENDERMODE_STEREO;
 
 	// Default ovrModeParms
@@ -645,8 +645,8 @@ void AppLocal::InitGlObjects()
 				EGL_CONTEXT_PRIORITY_MEDIUM_IMG );
 	}
 #else
-	const int displayPixelsWide = vrapi_GetSystemPropertyInt( &Java, VRAPI_SYS_PROP_DISPLAY_PIXELS_WIDE );
-	const int displayPixelsHigh = vrapi_GetSystemPropertyInt( &Java, VRAPI_SYS_PROP_DISPLAY_PIXELS_HIGH );
+	const int displayPixelsWide = GetSystemProperty( VRAPI_SYS_PROP_DISPLAY_PIXELS_WIDE );
+	const int displayPixelsHigh = GetSystemProperty( VRAPI_SYS_PROP_DISPLAY_PIXELS_HIGH );
 	glSetup = GL_Setup( displayPixelsWide / 2, displayPixelsHigh / 2, false,
 						VrSettings.WindowParms.Title.ToCStr(), VrSettings.WindowParms.IconResourceId,
 						this );
@@ -778,9 +778,8 @@ void AppLocal::EnterVrMode()
 	OvrMobile = vrapi_EnterVrMode( &VrSettings.ModeParms );
 
 	// Set the coordinate system to use.
-	ovrPosef trackingTransformPose = vrapi_GetTrackingTransform( OvrMobile, VrSettings.TrackingTransform );
-	vrapi_SetTrackingTransform( OvrMobile, trackingTransformPose );
-	OVR_LOG( "Setting tracking transform (%d)", VrSettings.TrackingTransform );
+	vrapi_SetTrackingSpace( OvrMobile, VrSettings.TrackingSpace );
+	OVR_LOG( "Setting tracking space (%d)", VrSettings.TrackingSpace );
 
 	// Set the initial clock and application performance threads.
 	vrapi_SetClockLevels( GetOvrMobile(), VrSettings.CpuLevel, VrSettings.GpuLevel );
@@ -880,9 +879,9 @@ void AppLocal::Configure()
 	VrSettings.Use16BitFramebuffer = false;
 	VrSettings.RenderMode = RENDERMODE_STEREO;
 
-	VrSettings.EyeBufferParms.resolutionWidth = vrapi_GetSystemPropertyInt( &Java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH );
-	VrSettings.EyeBufferParms.resolutionHeight = vrapi_GetSystemPropertyInt( &Java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT );
-	VrSettings.EyeBufferParms.multisamples = vrapi_GetSystemPropertyInt( &Java, VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES );
+	VrSettings.EyeBufferParms.resolutionWidth = GetSystemProperty( VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH );
+	VrSettings.EyeBufferParms.resolutionHeight = GetSystemProperty( VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT );
+	VrSettings.EyeBufferParms.multisamples = GetSystemProperty( VRAPI_SYS_PROP_MAX_FULLSPEED_FRAMEBUFFER_SAMPLES );
 	VrSettings.EyeBufferParms.colorFormat = COLOR_8888;
 	VrSettings.EyeBufferParms.depthFormat = DEPTH_24;
 
@@ -1202,7 +1201,7 @@ void * AppLocal::VrThreadFunction()
 		{
 			OVR_PERF_TIMER( VrThreadFunction_Loop_AdvanceVrFrame );
 			// Update ovrFrameInput.
-			TheVrFrame.AdvanceVrFrame( InputEvents, OvrMobile, *GetJava(), VrSettings.TrackingTransform, EnteredVrModeFrame );
+			TheVrFrame.AdvanceVrFrame( InputEvents, OvrMobile, *GetJava(), EnteredVrModeFrame );
 			InputEvents.NumKeyEvents = 0;
 		}
 
@@ -1454,7 +1453,9 @@ void AppLocal::RecenterYaw( const bool showBlack )
 	{
 		DrawBlackFrame();
 	}
-	vrapi_RecenterPose( OvrMobile );
+	// Note: vrapi_RecenterPose() has been deprecated
+	// Generally, the system is expected to handle user-requested recenters
+	// and apps are expected to handle any app-provoked recentering on their own.
 
 	RecenterLastViewMatrix();
 }

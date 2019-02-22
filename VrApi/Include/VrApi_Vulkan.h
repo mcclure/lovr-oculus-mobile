@@ -47,7 +47,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_GetInstanceExtensionsVulkan( char * extensionNa
 OVR_VRAPI_EXPORT ovrResult vrapi_GetDeviceExtensionsVulkan( char * extensionNames, uint32_t * extensionNamesSize );
 
 /// Initialization parameters unique to Vulkan.
-typedef struct
+typedef struct ovrSystemCreateInfoVulkan_
 {
 	VkInstance			Instance;
 	VkPhysicalDevice	PhysicalDevice;

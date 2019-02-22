@@ -29,7 +29,7 @@ ovrControllerGUI *ovrControllerGUI::Create( ovrVrController &vrControllerApp )
 										vrControllerApp.app->GetFileSys(),
 										vrControllerApp.GetGuiSys().GetReflection(),
 										vrControllerApp.GetLocale(), menuFiles,
-										2.0f, VRMenuFlags_t( VRMENU_FLAG_PLACE_ON_HORIZON ))) 
+										2.0f, VRMenuFlags_t( VRMENU_FLAG_SHORT_PRESS_HANDLED_BY_APP )))
 	{
 		delete menu;
 		return nullptr;

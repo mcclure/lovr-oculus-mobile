@@ -1,5 +1,6 @@
 # This file is included in all .mk files to ensure their compilation flags are in sync
 # across debug and release builds.
+ENABLE_SANITIZER := 0
 
 LOCAL_CFLAGS	:= -DANDROID_NDK
 LOCAL_CFLAGS	+= -Werror			# error on warnings
@@ -16,6 +17,15 @@ LOCAL_CPPFLAGS += -std=c++11
 
 ifeq ($(OVR_DEBUG),1)
   LOCAL_CFLAGS += -DOVR_BUILD_DEBUG=1 -O0 -g
+
+  ifeq ($(ENABLE_SANITIZER),1)
+    $(info "-----------ENABLE_SANITIZER-----------")
+    ifeq ($(USE_ASAN),1)
+      LOCAL_CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+      LOCAL_CPPFLAGS += -fsanitize=address -fno-omit-frame-pointer
+      LOCAL_LDFLAGS += -fsanitize=address
+    endif
+  endif
 else
   LOCAL_CFLAGS += -O3
 endif

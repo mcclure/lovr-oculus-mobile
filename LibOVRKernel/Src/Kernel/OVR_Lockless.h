@@ -64,7 +64,9 @@ public:
 	{
 		if ( this != &other )
 		{
-			this->SetState( other.GetState() );
+			T state;
+			other.GetState( state );
+			this->SetState( state );
 		}
 		return *this;
 	}
