@@ -36,6 +36,6 @@ public class MainActivity extends android.app.NativeActivity {
 	/** Load jni .so on initialization */
 	static {
 		System.loadLibrary( "vrapi" );
-		System.loadLibrary( "vrcubeworld" );
+		System.loadLibrary( "lovractivity" );
 	}
 }

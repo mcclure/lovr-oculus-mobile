@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-		package="com.oculus.vrcubeworldna"
-		android:versionCode="1" 
-		android:versionName="1.0" android:installLocation="auto" >
+		package="org.lovr.test"
+		android:versionCode="2" 
+		android:versionName="1.0.2" android:installLocation="auto" >
 
 	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="21" />
 	<!-- Tell the system this app requires OpenGL ES 3.1. -->
@@ -13,7 +13,8 @@
 	<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-	<application android:allowBackup="false" android:label="vrcubeworldna">
+	<!-- YOUR NAME HERE -->
+	<application android:allowBackup="false" android:label="LovrTest">
 		<meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
 		<!-- The activity is the built-in NativeActivity framework class. -->
 		<!-- launchMode is set to singleTask because there should never be multiple copies of the app running. -->
@@ -28,7 +29,7 @@
 				android:excludeFromRecents="false"
 				android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode">
 			<!-- Tell NativeActivity the name of the .so -->
-			<meta-data android:name="android.app.lib_name" android:value="vrcubeworld" />
+			<meta-data android:name="android.app.lib_name" android:value="lovractivity" />
 			<!-- This filter lets the apk show up as a launchable icon. -->
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />

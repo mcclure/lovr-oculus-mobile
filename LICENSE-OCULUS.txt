@@ -1,3 +1,5 @@
+THE FOLLOWING APPLIES TO FILES IN THIS DIRECTORY ORIGINATING WITH OCULUS. FILES FROM THE LOVR PROJECT ARE AVAILABLE UNDER DIFFERENT TERMS. THE FILES UNDER "cmakelib" ARE PROVIDED BY LOVR.
+
 Oculus Software Development Kit License Agreement
 
 Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
