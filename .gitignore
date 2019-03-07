@@ -12,7 +12,6 @@
 /LovrApp/Projects/Android/.externalNativeBuild
 /LovrApp/Projects/Android/build
 /LovrApp/Projects/Android/.gradle
-/LovrApp/assets/oculussig*
 /LovrApp/Projects/Android/android.debug.keystore
 /build
 /cmakelib/.externalNativeBuild
