@@ -147,7 +147,6 @@ OpenGL-ES Utility Functions
 typedef struct
 {
 	bool multi_view;					// GL_OVR_multiview, GL_OVR_multiview2
-	bool EXT_texture_border_clamp;		// GL_EXT_texture_border_clamp, GL_OES_texture_border_clamp
 } OpenGLExtensions_t;
 
 OpenGLExtensions_t glExtensions;
@@ -177,9 +176,6 @@ static void EglInitExtensions()
 	{
 		glExtensions.multi_view = strstr( allExtensions, "GL_OVR_multiview2" ) &&
 								  strstr( allExtensions, "GL_OVR_multiview_multisampled_render_to_texture" );
-
-		glExtensions.EXT_texture_border_clamp = strstr( allExtensions, "GL_EXT_texture_border_clamp" ) ||
-												strstr( allExtensions, "GL_OES_texture_border_clamp" );
 	}
 }
 
@@ -498,20 +494,10 @@ static bool ovrFramebuffer_Create( ovrFramebuffer * frameBuffer, const bool useM
 		const GLuint colorTexture = vrapi_GetTextureSwapChainHandle( frameBuffer->ColorTextureSwapChain, i );
 		GLenum colorTextureTarget = frameBuffer->UseMultiview ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D;
 		GL( glBindTexture( colorTextureTarget, colorTexture ) );
-		if ( glExtensions.EXT_texture_border_clamp )
-		{
-			GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER ) );
-			GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER ) );
-			GLfloat borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			GL( glTexParameterfv( colorTextureTarget, GL_TEXTURE_BORDER_COLOR, borderColor ) );
-		}
-		else
-		{
-			// Just clamp to edge. However, this requires manually clearing the border
-			// around the layer to clear the edge texels.
-			GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE ) );
-			GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE ) );
-		}
+		GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER ) );
+		GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER ) );
+		GLfloat borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		GL( glTexParameterfv( colorTextureTarget, GL_TEXTURE_BORDER_COLOR, borderColor ) );
 		GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR ) );
 		GL( glTexParameteri( colorTextureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR ) );
 		GL( glBindTexture( colorTextureTarget, 0 ) );
@@ -738,40 +724,6 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, cons
 		drawData.framebuffer = frameBuffer->FrameBuffers[frameBuffer->TextureSwapChainIndex];
 
 		bridgeLovrDraw(&drawData);
-
-		// Explicitly clear the border texels to black when GL_CLAMP_TO_BORDER is not available.
-		if ( glExtensions.EXT_texture_border_clamp == false )
-		{
-			// FIXME: This long thing was in the sample code. Is this necessary?? What platforms is it necessary on?
-			// It doesn't get invoked on the Oculus Go.
-			GL( glEnable( GL_SCISSOR_TEST ) );
-			GL( glDepthMask( GL_TRUE ) );
-			GL( glEnable( GL_DEPTH_TEST ) );
-			GL( glDepthFunc( GL_LEQUAL ) );
-			GL( glEnable( GL_CULL_FACE ) );
-			GL( glCullFace( GL_BACK ) );
-			GL( glViewport( 0, 0, frameBuffer->Width, frameBuffer->Height ) );
-			GL( glScissor( 0, 0, frameBuffer->Width, frameBuffer->Height ) );
-			GL( glClearColor( 0.125f, 0.0f, 0.125f, 1.0f ) ); // FIXME: Clear color?
-			GL( glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT ) );
-
-			GL( glUseProgram( 0 ) );
-
-			// Clear to fully opaque black.
-			GL( glClearColor( 0.0f, 0.0f, 0.0f, 1.0f ) );
-			// bottom
-			GL( glScissor( 0, 0, frameBuffer->Width, 1 ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-			// top
-			GL( glScissor( 0, frameBuffer->Height - 1, frameBuffer->Width, 1 ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-			// left
-			GL( glScissor( 0, 0, 1, frameBuffer->Height ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-			// right
-			GL( glScissor( frameBuffer->Width - 1, 0, 1, frameBuffer->Height ) );
-			GL( glClear( GL_COLOR_BUFFER_BIT ) );
-		}
 
 		ovrFramebuffer_Resolve( frameBuffer );
 		ovrFramebuffer_Advance( frameBuffer );
