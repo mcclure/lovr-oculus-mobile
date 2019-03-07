@@ -156,10 +156,10 @@ void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeL
 	Pose.x = HeadPose.Pose.Position.x;
 	Pose.y = HeadPose.Pose.Position.y;
 	Pose.z = HeadPose.Pose.Position.z;
-	Pose.q[0] = HeadPose.Pose.Orientation.w;
-	Pose.q[1] = HeadPose.Pose.Orientation.x;
-	Pose.q[2] = HeadPose.Pose.Orientation.y;
-	Pose.q[3] = HeadPose.Pose.Orientation.z;
+	Pose.q[0] = HeadPose.Pose.Orientation.x;
+	Pose.q[1] = HeadPose.Pose.Orientation.y;
+	Pose.q[2] = HeadPose.Pose.Orientation.z;
+	Pose.q[3] = HeadPose.Pose.Orientation.w;
 
 	Velocity.x = HeadPose.LinearVelocity.x;
 	Velocity.y = HeadPose.LinearVelocity.y;
