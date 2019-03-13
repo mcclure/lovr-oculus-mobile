@@ -44,7 +44,15 @@ Help would be appreciated if you know how to do any of the following: Make the b
 
 ## Adding game code:
 
-The game code should be put in `LovrApp/assets`. Alternately, you can place your own directory somewhere and put the path to it on the `assets.srcDirs = ['../../assets', '../../../your/path/here']` line of `LovrApp/Projects/Android/build.gradle`. This will be uploaded when LovrApp's installDebug runs.
+You have three options:
+
+1. Put the game code in `LovrApp/assets`.
+2. Create a directory on your hard drive with your code in it, and create a file `LovrApp/local_assets` (or `LovrApp/local_assets.txt`) containing the **path** to the code.
+3. Create a directory and add the path to it to the `assets.srcDirs = ['../../assets', '../../../your/path/here']` line of `LovrApp/Projects/Android/build.gradle`.
+
+Files in any of these directories will be uploaded when LovrApp's installDebug runs.
+
+Option #2 is best if you are building from git, since local_assets is in gitignore.
 
 ## To ship your own app:
 

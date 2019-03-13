@@ -37,6 +37,29 @@ android {
       jniLibs.srcDir 'libs'
       res.srcDirs = ['../../res']
       assets.srcDirs = ['../../assets']
+
+      def addPathFrom = {
+        def pathFilePath = it // Closure argument
+        def pathFile = file(pathFilePath) // File object pointed to by closure argument
+        if (pathFile.exists()) {
+          def path = pathFile.text.trim() // Contents of the file specified by pathFilePath
+          if (!path)
+            throw new InvalidUserDataException(pathFilePath + " exists but is empty")
+          // User-specified path interpreted relative to PROJECTPATH/../.. :
+          def truePathObject = file("../..").toPath().resolve(path)
+          def truePathFile = file(truePathObject) // File object for user-specified path
+          if (!truePathFile.exists())
+            throw new InvalidUserDataException(pathFilePath + " points to \""
+              + truePathObject.toAbsolutePath() + "\", but this does not exist")
+          def truePath = truePathObject.toRealPath() // User-specified path, absolute + normalized
+          if (!truePathFile.isDirectory())
+            throw new InvalidUserDataException(pathFilePath + " points to \"" + truePath
+              + "\", but this is a file and not a directory")
+          assets.srcDirs += [truePath] // Add user-speicfied path to srcDirs
+        }
+      }
+      addPathFrom('../../local_assets')
+      addPathFrom('../../local_assets.txt')
     }
   }
 }
