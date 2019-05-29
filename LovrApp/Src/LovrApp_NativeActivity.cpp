@@ -75,7 +75,9 @@ std::string ovr_GetPackageCodePath(JNIEnv * jni, jobject activityObject)
 
 extern "C" {
 
-#include "lovr/src/headset/oculus_mobile_bridge.h"
+#include "lovr/src/modules/headset/oculus_mobile_bridge.h"
+
+static BridgeLovrDevice currentDevice;
 
 #define FILENAMESIZE 1024
 
@@ -151,7 +153,7 @@ typedef struct
 
 OpenGLExtensions_t glExtensions;
 
-void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeLovrVel &Velocity) {
+void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeLovrAngularVector &Velocity, BridgeLovrAngularVector &Acceleration) {
 	Pose.x = HeadPose.Pose.Position.x;
 	Pose.y = HeadPose.Pose.Position.y;
 	Pose.z = HeadPose.Pose.Position.z;
@@ -166,6 +168,13 @@ void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeL
 	Velocity.ax = HeadPose.AngularVelocity.x;
 	Velocity.ay = HeadPose.AngularVelocity.y;
 	Velocity.az = HeadPose.AngularVelocity.z;
+
+	Acceleration.x = HeadPose.LinearAcceleration.x;
+	Acceleration.y = HeadPose.LinearAcceleration.y;
+	Acceleration.z = HeadPose.LinearAcceleration.z;
+	Acceleration.ax = HeadPose.AngularAcceleration.x;
+	Acceleration.ay = HeadPose.AngularAcceleration.y;
+	Acceleration.az = HeadPose.AngularAcceleration.z;
 }
 
 static void EglInitExtensions()
@@ -691,7 +700,7 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, cons
 
 	// Unpack data for Lovr update
 	
-	BridgeLovrUnpack(updatedTracking.HeadPose, updateData.lastHeadPose, updateData.lastHeadVelocity);
+	BridgeLovrUnpack(updatedTracking.HeadPose, updateData.lastHeadPose, updateData.lastHeadMovement.velocity, updateData.lastHeadMovement.acceleration);
 
 	memcpy(updateData.eyeViewMatrix[0], &eyeViewMatrixTransposed[0].M[0][0], 16*sizeof(float));
 	memcpy(updateData.eyeViewMatrix[1], &eyeViewMatrixTransposed[1].M[0][0], 16*sizeof(float));
@@ -1147,10 +1156,14 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 {
 	bool backButtonDownThisFrame = false;
 
-	updateData.goPresent = false;
+	updateData.controllerCount = 0;
 
 	for ( int i = 0; ; i++ )
 	{
+		if (updateData.controllerCount >= BRIDGE_LOVR_CONTROLLERMAX)
+			break;
+		BridgeLovrController &controller = updateData.controllers[updateData.controllerCount];
+
 		ovrInputCapabilityHeader cap;
 		ovrResult result = vrapi_EnumerateInputDevices( app->Ovr, i, &cap );
 		if ( result < 0 )
@@ -1160,33 +1173,57 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 
 		if ( cap.Type == ovrControllerType_Headset )
 		{
+			memset(&controller, 0, sizeof(controller));
+
 			ovrInputStateHeadset headsetInputState;
 			headsetInputState.Header.ControllerType = ovrControllerType_Headset;
 			result = vrapi_GetCurrentInputState( app->Ovr, i, &headsetInputState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= headsetInputState.Buttons & ovrButton_Back;
+
+				updateData.controllerCount++;
 			}
 		}
 		else if ( cap.Type == ovrControllerType_TrackedRemote )
 		{
 			ovrInputStateTrackedRemote trackedRemoteState;
+			ovrTracking hmtTracking;
+
 			trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
 			result = vrapi_GetCurrentInputState( app->Ovr, i, &trackedRemoteState.Header );
+
+			if (result == ovrSuccess)
+				result = vrapi_GetInputTrackingState( app->Ovr, i, predictedDisplayTime, &hmtTracking );
+
 			if ( result == ovrSuccess )
 			{
+				memset(&controller, 0, sizeof(controller));
+
+				ovrInputTrackedRemoteCapabilities remoteCaps;
+				remoteCaps.Header = cap;
+				result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCaps.Header );
+				if (result == ovrSuccess) {
+					controller.hand = (BridgeLovrHand)remoteCaps.ControllerCapabilities;
+				}
+
+				controller.handset = true;
+				controller.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
+				controller.buttonTouch = (BridgeLovrTouch)(unsigned int)trackedRemoteState.Touches;
+				if (currentDevice == BRIDGE_LOVR_DEVICE_QUEST) {
+					controller.trackpad.x = trackedRemoteState.Joystick.x;
+					controller.trackpad.y = trackedRemoteState.Joystick.y;
+					controller.trigger = trackedRemoteState.IndexTrigger;
+					controller.grip = trackedRemoteState.GripTrigger;
+				} else {
+					controller.trackpad.x = trackedRemoteState.TrackpadPosition.x;
+					controller.trackpad.y = trackedRemoteState.TrackpadPosition.y;
+				}
+				BridgeLovrUnpack(hmtTracking.HeadPose, controller.pose, controller.movement.velocity, controller.movement.acceleration);
+
+				updateData.controllerCount++;
 				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
 			}
-
-			ovrTracking hmtTracking;
-			ovrResult result = vrapi_GetInputTrackingState( app->Ovr, i, predictedDisplayTime, &hmtTracking );
-
-			updateData.goPresent = true;
-			updateData.goButtonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
-			updateData.goButtonTouch = trackedRemoteState.TrackpadStatus ? BRIDGE_LOVR_BUTTON_TOUCHPAD : BRIDGE_LOVR_BUTTON_NONE;
-			updateData.goTrackpad.x = trackedRemoteState.TrackpadPosition.x;
-			updateData.goTrackpad.y = trackedRemoteState.TrackpadPosition.y;
-			BridgeLovrUnpack(hmtTracking.HeadPose, updateData.goPose, updateData.goVelocity);
 		}
 		else if ( cap.Type == ovrControllerType_Gamepad )
 		{
@@ -1431,9 +1468,12 @@ void android_main( struct android_app * app )
 				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_GEAR;
 			} else if (deviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSGO_END) {
 				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_GO;
+			} else if (deviceType >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END) {
+				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_QUEST;
 			} else {
 				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_UNKNOWN;
 			}
+			currentDevice = bridgeData.deviceType;
 
 			bridgeLovrInit(&bridgeData);
 
