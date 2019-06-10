@@ -1,4 +1,4 @@
-This is a repository for building LovrApp, a standalone Android app which is based on the [LÖVR](lovr.org) VR API.
+This is a repository for building LovrApp, a standalone Android app which is based on the [LÖVR](https://lovr.org) VR API.
 
 # Usage
 
@@ -61,6 +61,16 @@ Decide on a name for your app and also an identifier (this is something like "co
 Edit `LovrApp/Projects/build.gradle`. Change "project.archivesBaseName" and "applicationId" to reflect your identifier.
 
 Edit `LovrApp/Projects/Android/AndroidManifest.xml`. Change "package=" at the top to your identifier and change "android:label=" partway down (right after YOUR NAME HERE) to your name.
+
+## To build the autoloader test app:
+
+When built without any changes, this repo produces an "org.lovr.appsample" app that prints a "game not found" message. If you look in the Github "releases" section, however, you'll find a "org.lovr.test" app that loads a game from the SD card where you can easily copy it using `adb sync`. Run the app for full instructions.
+
+To build the `org.lovr.test` app yourself:
+
+* `git clone` a copy of [[https://github.com/mcclure/lodr]]. Save the path to the `lodr` directory.
+* In the lovr-oculus-mobile repo, in the `LovrApp` directory, create a file `local_assets.txt` containing the path to the `lodr` directory.
+* Edit the file `LovrApp/Projects/build.gradle` and change the "archivesBaseName" to `test`.
 
 ## Debugging:
 
