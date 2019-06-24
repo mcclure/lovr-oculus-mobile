@@ -119,8 +119,6 @@ public:
 
 	float					GetEyeHeight() const;
 
-	ovrMatrix4f				GetExternalVelocity() const;
-
 	// When head tracking is reset, any joystick offsets should be cleared
 	// so the viewer is looking ehere the application wants.
 	void					ClearStickAngles();

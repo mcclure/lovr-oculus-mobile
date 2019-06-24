@@ -134,6 +134,101 @@ public:
 	T		 Slots[2];
 };
 
+// This style of lockless updater is more like the one in LocklessBuffer.h used in the Tracking Service.
+// We have encountered issues with LocklessUpdater in debug builds that do not appear in LocklessUpdater2.
+// LocklessUpdater2 is simpler in that it has only one count variable, which is only updated by SetState().
+// The updates happen both before and after writes to Slot memory, so that the lsb of count indicates whether
+// a write is in progress, and (count >> 1) is used to derive the read and write indices.
+
+// This class is a workalike replacement for LocklessUpdater, but it has a different memory layout and protocol,
+// so all users of the shared memory must be using matching class definitions.
+
+template<class T>
+class LocklessUpdater2
+{
+public:
+	LocklessUpdater2() : Count( 0 ) {}
+
+	LocklessUpdater2( const LocklessUpdater2 & other ) : LocklessUpdater2()
+	{
+		SetState( other.GetState() );
+	}
+
+	LocklessUpdater2 & operator = ( const LocklessUpdater2 & other )
+	{
+		if ( this != &other )
+		{
+			T state;
+			other.GetState( state );
+			this->SetState( state );
+		}
+		return *this;
+	}
+
+	T GetState() const
+	{
+		// This is the original code path with the copy on return, which exists for backwards compatibility
+		// To avoid this copy, use GetState below
+		T state;
+		GetState( state );
+		return state;
+	}
+
+	void GetState( T & state ) const
+	{
+		for ( ; ; )
+		{
+			// Atomically load Count into a temporary variable (c), to determine the index
+			// of the last-written buffer.
+			int c = Count.load( std::memory_order_acquire );
+
+			c &= ~int( 1 ); // mask bit 0 so the differences below work
+
+			//  The last-written buffer is specified by bit 1 of the the variable c.
+			const int readIndex = ( c >> 1 ) & 1;
+
+			// read the buffer into the buffer parameter
+			state = Slots[ readIndex ];
+
+			// After copying the data from that buffer, Count is atomically loaded into another temporary variable (c2).
+			// If the count changed at all, we know that a write to the buffers occured. Depending on the number
+			// of increments between c and c2, we can tell which buffers were written to. Our read is ok as long
+			// as the write was to the buffer we were not reading from.
+			const int c2 = Count.load( std::memory_order_acquire );
+
+			// * ( c2 - c ) == 0, no writes occured while the buffer was read the data is good.
+			// * ( c2 - c ) == 1, a write started, but it was in the buffer that wasn't read, so the data
+			//   read from the buffer is good.
+			// * ( c2 - c ) == 2, a write ended, but it was in the buffer that wasn't read, so the data
+			//   read from the buffer is good.
+			// * ( c2 - c ) == 3, a new write began in the buffer that was read, so the buffer is likely
+			//   to have partial data in it and must be re-read.
+			// * ( c2 - c ) > 3, multiple writes happened, at least one of which overwrote the buffer that
+			//   was  read, so the buffer may have partial data and should be re-read.
+			if ( ( c2 - c ) < 3 )
+			{
+				return;
+			}
+		}
+	}
+
+	void	SetState( const T & state )
+	{
+		int writeIndex = ( ( Count.fetch_add( 1 ) >> 1 ) + 1 ) & 1;
+
+		Slots[writeIndex] = state;
+
+		// memory barrier with release ensures that no write to memory before the fence
+		// can be reordered with a memory operation occurring after the fence.
+		std::atomic_thread_fence( std::memory_order_release );
+		// atomic increment
+		Count.fetch_add( 1 );
+	}
+
+	std::atomic<int> Count;
+	T		 Slots[2];
+};
+
 
 #ifdef OVR_LOCKLESS_TEST
 void StartLocklessTest();

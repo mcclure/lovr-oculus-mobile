@@ -42,7 +42,7 @@ class KeyState
 public:
 	static const int MAX_EVENTS = 2;
 
-					KeyState( float const doubleTapTime );
+					KeyState( float const shortPressTime );
 
 	void			HandleEvent( double const time, bool const down, int const repeatCount );
 

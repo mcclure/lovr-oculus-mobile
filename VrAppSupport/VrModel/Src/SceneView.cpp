@@ -844,18 +844,6 @@ float OvrSceneView::GetEyeHeight() const
 	return EyeHeight;
 }
 
-ovrMatrix4f OvrSceneView::GetExternalVelocity() const
-{
-	if ( YawMod > 0.0f )
-	{
-		return Matrix4f::Identity();
-	}
-	else
-	{
-		return ovrMatrix4f_CalculateExternalVelocity( &CenterEyeViewMatrix, YawVelocity );
-	}
-}
-
 // This is called by Frame(), but it must be explicitly called when FootPos is
 // updated, or calls to GetCenterEyePosition() won't reflect changes until the
 // following frame.

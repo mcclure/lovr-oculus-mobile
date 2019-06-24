@@ -31,6 +31,10 @@ class CommandOptions:
         self.keystore_pswd = args.keystore_pswd
         self.keyalias = args.keyalias
         self.keyalias_pswd = args.keyalias_pswd
+        self.scan = args.scan
+        self.build_cache = args.build_cache
+        self.configure_on_demand = args.configure_on_demand
+        self.parallel = args.parallel
 
     @classmethod
     def parse(cls, argv):
@@ -125,6 +129,30 @@ class CommandOptions:
         dest='keyalias_pswd',
         action='store',
         )
+    parser.add_argument(
+        '--scan',
+        help="Perform a Gradle build scan",
+        dest='scan',
+        action='store_true',
+        )    
+    parser.add_argument(
+        '--no-build-cache',
+        help="Disable Gradle build cache",
+        dest='build_cache',
+        action='store_false',
+        )
+    parser.add_argument(
+        '--no-configure-on-demand',
+        help="Disable Gradle configure on demand",
+        dest='configure_on_demand',
+        action='store_false',
+        )
+    parser.add_argument(
+        '--no-parallel',
+        help="Disable Gradle parallel builds",
+        dest='parallel',
+        action='store_false',
+        )
 
 class BuildFailedException(Exception):
     pass
@@ -137,6 +165,16 @@ try:
     STRING_TYPES = [ str, unicode ]
 except:
     STRING_TYPES = [ str, ]
+
+def print_command_line(cmdline):
+    if type( cmdline ) in STRING_TYPES:
+        print( cmdline )
+    else:
+        printable = ""
+        for cmd in cmdline:
+            printable += cmd
+            printable += " "
+        print( printable )
 
 def build_command_list(cmdline, shell):
     """
@@ -155,6 +193,8 @@ def build_command_list(cmdline, shell):
     return map(lambda x: str(x).encode(encoding, 'ignore'), cmds)
 
 def call( cmdline, targetDir=".", suppressErrors=False, grabStdOut=False, verbose=True ):
+    print_command_line( cmdline )
+
     useShell = os.name != "posix"
     cmds = build_command_list(cmdline, useShell)
 
@@ -240,8 +280,12 @@ def run_gradle_task(opts, task, args = None):
     # lifecycle logging is enabled when a log level is not specified.
     if opts.loglevel != "lifecycle": flags.append('-%s' % opts.loglevel)
     if opts.profile: flags.append('--profile')
+    if opts.scan: flags.append('--scan')
     if opts.disable_sig_check: flags.append('-Pdisable_sig_check')
     if opts.clear_logcat: flags.append('-Pclear_logcat')
+    if opts.build_cache: flags.append('--build-cache')
+    if opts.configure_on_demand: flags.append('--configure-on-demand')
+    if opts.parallel : flags.append('--parallel')
 
     gradle_file_path = find_gradle_root_project()
     with util.chdir(os.path.dirname(gradle_file_path)):

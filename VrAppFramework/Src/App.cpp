@@ -32,7 +32,6 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #include "VrApi.h"
 #include "VrApi_Helpers.h"
 #include "VrApi_Input.h"
-#include "VrApi_SystemUtils.h"
 
 
 #include "GlSetup.h"

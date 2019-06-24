@@ -188,6 +188,7 @@ typedef enum ovrDeviceType_
 	VRAPI_DEVICE_TYPE_A8_STAR 				= 12,
 	VRAPI_DEVICE_TYPE_NOTE9           		= 13,
 	VRAPI_DEVICE_TYPE_A9_2018				= 14,
+	VRAPI_DEVICE_TYPE_S10					= 15,
 	VRAPI_DEVICE_TYPE_GEARVR_END			= 63,
 
 	// Standalone Devices
@@ -199,6 +200,7 @@ typedef enum ovrDeviceType_
 	VRAPI_DEVICE_TYPE_OCULUSQUEST_START		= 256,
 	VRAPI_DEVICE_TYPE_OCULUSQUEST			= VRAPI_DEVICE_TYPE_OCULUSQUEST_START + 3,
 	VRAPI_DEVICE_TYPE_OCULUSQUEST_END		= 319,
+
 
 
 	VRAPI_DEVICE_TYPE_UNKNOWN				= -1,
@@ -219,6 +221,7 @@ typedef enum ovrHeadsetType_
 	VRAPI_HEADSET_TYPE_MIVR_STANDALONE		= 65,			//< China-only SKU
 
 	VRAPI_HEADSET_TYPE_OCULUSQUEST			= 256,
+
 
 	VRAPI_HEADSET_TYPE_UNKNOWN				= -1,
 } ovrHeadsetType;
@@ -302,6 +305,7 @@ typedef enum ovrSystemProperty_
 	/// Returns VRAPI_TRUE if Multiview rendering support is available for this system,
 	/// otherwise VRAPI_FALSE.
 	VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE						= 128,
+
 	/// Returns VRAPI_TRUE if submission of SRGB Layers is supported for this system,
 	/// otherwise VRAPI_FALSE.
 	VRAPI_SYS_PROP_SRGB_LAYER_SOURCE_AVAILABLE				= 129,
@@ -319,6 +323,7 @@ typedef enum ovrProperty_
 	VRAPI_LATCH_BACK_BUTTON_ENTIRE_FRAME		= 18,		//< Used to determine if the 'short press' back button should lasts an entire frame.
 	VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT	=19,//< Used to not send the remote back button java events to the apps.
 	VRAPI_EAT_NATIVE_GAMEPAD_EVENTS		= 20,				//< Used to tell the runtime not to eat gamepad events.  If this is false on a native app, the app must be listening for the events.
+	VRAPI_ACTIVE_INPUT_DEVICE_ID		= 24,		//< Used by apps to query which input device is most 'active' or primary, a -1 means no active input device
 } ovrProperty;
 
 
@@ -528,6 +533,8 @@ typedef enum ovrTrackingStatus_
 {
 	VRAPI_TRACKING_STATUS_ORIENTATION_TRACKED	= 1 << 0,	//< Orientation is currently tracked.
 	VRAPI_TRACKING_STATUS_POSITION_TRACKED		= 1 << 1,	//< Position is currently tracked.
+	VRAPI_TRACKING_STATUS_ORIENTATION_VALID		= 1 << 2,	//< Orientation reported is valid.
+	VRAPI_TRACKING_STATUS_POSITION_VALID		= 1 << 3,	//< Position reported is valid.
 	VRAPI_TRACKING_STATUS_HMD_CONNECTED			= 1 << 7	//< HMD is available & connected.
 } ovrTrackingStatus;
 
@@ -579,6 +586,9 @@ typedef enum ovrTrackingSpace_
 {
 	VRAPI_TRACKING_SPACE_LOCAL				= 0,	// Eye level origin - controlled by system recentering
 	VRAPI_TRACKING_SPACE_LOCAL_FLOOR		= 1,	// Floor level origin - controlled by system recentering
+	VRAPI_TRACKING_SPACE_LOCAL_TILTED		= 2,	// Tilted pose for "bed mode" - controlled by system recentering
+	VRAPI_TRACKING_SPACE_STAGE				= 3,	// Floor level origin - controlled by Guardian setup
+	VRAPI_TRACKING_SPACE_LOCAL_FIXED_YAW	= 7,	// Position of local space, but yaw stays constant
 } ovrTrackingSpace;
 
 /// Tracked device type id used to simplify interaction checks with Guardian
@@ -685,7 +695,10 @@ typedef enum ovrFrameLayerFlags_
 {
 	/// enum 1 << 0 used to be VRAPI_FRAME_LAYER_FLAG_WRITE_ALPHA.
 
-	/// Correct for chromatic aberration. Quality/perf trade-off.
+	/// NOTE: On Oculus standalone devices, chromatic aberration correction is enabled
+	/// by default.
+	/// For Gear VR devices, this must be explicitly enabled by specifying the layer
+	/// flag as it is a quality / performance trade off.
 	VRAPI_FRAME_LAYER_FLAG_CHROMATIC_ABERRATION_CORRECTION						= 1 << 1,
 	/// Used for some HUDs, but generally considered bad practice.
 	VRAPI_FRAME_LAYER_FLAG_FIXED_TO_VIEW										= 1 << 2,
@@ -789,7 +802,7 @@ typedef struct ovrFrameLayerTexture_
 	ovrRigidBodyPosef		HeadPose;
 
 	/// \unused parameter.
-	unsigned long long		Reserved;
+	unsigned char			Pad[8];
 } ovrFrameLayerTexture;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameLayerTexture, 200 );
@@ -870,18 +883,11 @@ typedef struct ovrFrameParms_
 	/// Latency Mode.
 	ovrExtraLatencyMode		ExtraLatencyMode;
 
-	/// \deprecated
-	/// Rotation from a joypad can be added on generated frames to reduce
-	/// judder in FPS style experiences when the application framerate is
-	/// lower than the V-sync rate.
-	/// This will be applied to the view space distorted
-	/// eye vectors before applying the rest of the time warp.
-	/// This will only be added when the same ovrFrameParms is used for
-	/// more than one V-sync.
-	ovrMatrix4f				ExternalVelocity;
+	/// \unused parameter.
+	ovrMatrix4f				Reserved;
 
-	/// Unused parameter.
-	void *					Reserved;
+	/// \unused parameter.
+	void *					Reserved1;
 
 	/// CPU/GPU performance parameters.
 	ovrPerformanceParms		PerformanceParms;
@@ -921,8 +927,7 @@ typedef struct ovrLayerHeader2_
 	ovrVector4f			ColorScale;
 	ovrFrameLayerBlend	SrcBlend;
 	ovrFrameLayerBlend	DstBlend;
-
-	/// Unused parameter.
+	/// \unused parameter.
 	void *				Reserved;
 } ovrLayerHeader2;
 
@@ -1123,7 +1128,7 @@ typedef struct ovrSubmitFrameDescription2_
 	uint64_t			FrameIndex;
 	double 				DisplayTime;
 	/// \unused parameter.
-	unsigned long long	Reserved;
+	unsigned char		Pad[8];
 	uint32_t			LayerCount;
 	const ovrLayerHeader2 *	const * Layers;
 } ovrSubmitFrameDescription2;
@@ -1141,5 +1146,6 @@ typedef enum ovrPerfThreadType_
 	VRAPI_PERF_THREAD_TYPE_MAIN			= 0,
 	VRAPI_PERF_THREAD_TYPE_RENDERER		= 1,
 } ovrPerfThreadType;
+
 
 #endif	// OVR_VrApi_Types_h

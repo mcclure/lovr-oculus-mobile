@@ -68,6 +68,7 @@ public:
 		, Caps( caps )
 		, LastRecenterCount( lastRecenterCount )
 	{
+		IsActiveInputDevice = false;
 	}
 
 	virtual ~ovrInputDevice_TrackedRemote()
@@ -101,6 +102,7 @@ public:
 
 	Vector2f									MinTrackpad;
 	Vector2f									MaxTrackpad;
+	bool										IsActiveInputDevice;
 
 private:
 	ovrInputTrackedRemoteCapabilities	Caps;
@@ -261,6 +263,11 @@ private:
 	std::vector< ovrInputDeviceBase* >	InputDevices;
 
 	ovrControllerRibbon *		Ribbons[ovrArmModel::HAND_MAX];
+
+
+	ovrDeviceType				DeviceType;
+
+	uint32_t					ActiveInputDeviceID;
 
 private:
 	void					ClearAndHideMenuItems();

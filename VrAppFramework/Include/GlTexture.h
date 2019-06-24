@@ -16,8 +16,6 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #include "Kernel/OVR_MemBuffer.h"
 #include "OVR_GlUtils.h"
 
-#include "VrApi_Types.h"
-
 // Explicitly using unsigned instead of GLUint / GLenum to avoid including GL headers
 
 namespace OVR {

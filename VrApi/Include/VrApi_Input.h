@@ -253,7 +253,7 @@ typedef struct ovrInputStateTrackedRemote_
 	uint8_t				BatteryPercentRemaining;	
 	/// Increments every time the remote is recentered. If this changes, the application may need
 	/// to adjust its arm model accordingly.
-	uint8_t				RecenterCount;				
+	uint8_t				RecenterCount;	
 	/// Reserved for future use.
 	uint16_t			Reserved;
 

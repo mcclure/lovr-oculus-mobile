@@ -23,7 +23,15 @@ class VrAppPlugin implements Plugin<Project> {
   boolean isPackageInstalled( IDevice device, String packageName ) {
 	CollectingOutputReceiver receiver = new CollectingOutputReceiver();
     device.executeShellCommand( "pm list packages " + packageName, receiver );
-    return !receiver.getOutput().isEmpty();
+    def out = receiver.getOutput();
+    def ret = false;
+    out.split('\n').each {
+      if ( it =~ packageName )
+      {
+        ret = true;
+      }
+    }
+    return ret;
   }
 
   boolean checkOsig( IDevice device, String deviceSerial, FileTree sigDir ) {
