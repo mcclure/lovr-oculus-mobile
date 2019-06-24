@@ -13,7 +13,6 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #define OVR_SurfaceTexture_h
 
 #include "Kernel/OVR_Types.h"
-#include "VrApi_Types.h"
 
 namespace OVR {
 

@@ -466,25 +466,6 @@ static inline ovrMatrix4f ovrMatrix4f_TanAngleMatrixForCubeMap( const ovrMatrix4
     return ovrMatrix4f_Inverse( &m );
 }
 
-/// Utility function to calculate external velocity for smooth stick yaw turning.
-/// To reduce judder in FPS style experiences when the application framerate is
-/// lower than the vsync rate, the rotation from a joypad can be applied to the
-/// view space distorted eye vectors before applying the time warp.
-static inline ovrMatrix4f ovrMatrix4f_CalculateExternalVelocity( const ovrMatrix4f * viewMatrix, const float yawRadiansPerSecond )
-{
-	const float angle = yawRadiansPerSecond * ( -1.0f / 60.0f );
-	const float sinHalfAngle = sinf( angle * 0.5f );
-	const float cosHalfAngle = cosf( angle * 0.5f );
-
-	// Yaw is always going to be around the world Y axis
-	ovrQuatf quat;
-	quat.x = viewMatrix->M[0][1] * sinHalfAngle;
-	quat.y = viewMatrix->M[1][1] * sinHalfAngle;
-	quat.z = viewMatrix->M[2][1] * sinHalfAngle;
-	quat.w = cosHalfAngle;
-	return ovrMatrix4f_CreateFromQuaternion( &quat );
-}
-
 /// Utility function to rotate a point about a pivot
 static inline ovrVector3f ovrVector3f_RotateAboutPivot( const ovrQuatf * rotation, const ovrVector3f * pivot, const ovrVector3f * point )
 {
@@ -598,10 +579,10 @@ static inline ovrFrameParms vrapi_DefaultFrameParms( const ovrJava * java, const
 	parms.LayerCount = 1;
 	parms.SwapInterval = 1;
 	parms.ExtraLatencyMode = VRAPI_EXTRA_LATENCY_MODE_OFF;
-	parms.ExternalVelocity.M[0][0] = 1.0f;
-	parms.ExternalVelocity.M[1][1] = 1.0f;
-	parms.ExternalVelocity.M[2][2] = 1.0f;
-	parms.ExternalVelocity.M[3][3] = 1.0f;
+	parms.Reserved.M[0][0] = 1.0f;
+	parms.Reserved.M[1][1] = 1.0f;
+	parms.Reserved.M[2][2] = 1.0f;
+	parms.Reserved.M[3][3] = 1.0f;
 	parms.PerformanceParms = vrapi_DefaultPerformanceParms();
 	parms.Java = *java;
 

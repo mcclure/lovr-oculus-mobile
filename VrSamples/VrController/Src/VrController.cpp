@@ -511,6 +511,8 @@ ovrVrController::ovrVrController()
 	, ControllerModelOculusTouchRight( nullptr )
 	, LastGamepadUpdateTimeInSeconds( 0 )
 	, Ribbons{ nullptr, nullptr }
+	, DeviceType( ovrDeviceType::VRAPI_DEVICE_TYPE_UNKNOWN )
+	, ActiveInputDeviceID( uint32_t (-1) )
 {
 }
 
@@ -834,12 +836,12 @@ void ovrVrController::EnteredVrMode( const ovrIntentType intentType, const char 
 			pose.Translation = Vector3f( 0.0f, 1.0f, -2.0f );
 			Menu->SetMenuPose( pose );
 
-			const ovrDeviceType deviceType = ( ovrDeviceType )app->GetSystemProperty( VRAPI_SYS_PROP_DEVICE_TYPE );
-			if ( deviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSGO_END )
+			DeviceType = ( ovrDeviceType )app->GetSystemProperty( VRAPI_SYS_PROP_DEVICE_TYPE );
+			if ( DeviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && DeviceType <= VRAPI_DEVICE_TYPE_OCULUSGO_END )
 			{
 				SetObjectText( *GuiSys, Menu, "panel", "VrController (Oculus Go)" );
 			}
-			else if ( deviceType >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START && deviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END )
+			else if ( DeviceType >= VRAPI_DEVICE_TYPE_OCULUSQUEST_START && DeviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END )
 			{
 				SetObjectText( *GuiSys, Menu, "panel", "VrController (Oculus Quest)" );
 			}
@@ -1002,6 +1004,10 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 		showHeadset = false;
 	}
 
+	int iActiveInputDeviceID;
+	vrapi_GetPropertyInt( app->GetJava(), VRAPI_ACTIVE_INPUT_DEVICE_ID, &iActiveInputDeviceID );
+	ActiveInputDeviceID = (uint32_t) iActiveInputDeviceID;
+
 	ClearAndHideMenuItems();
 
 	// for each device, query its current tracking state and input state
@@ -1113,6 +1119,17 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 					SetObjectText( *GuiSys, Menu, "secondary_input_touch_pos", "Pos( %.2f, %.2f ) Min( %.2f, %.2f ) Max( %.2f, %.2f )",
 						headsetInputState.TrackpadPosition.x, headsetInputState.TrackpadPosition.y,
 						minTrackpad.x, minTrackpad.y, maxTrackpad.x, maxTrackpad.y );
+
+					if ( hsDevice.GetDeviceID() == ActiveInputDeviceID )
+					{
+						SetObjectColor( *GuiSys, Menu, "secondary_input_header",
+										Vector4f( 0.25f, 0.75f, 0.25f, 1.0f ) );
+					}
+					else
+					{
+						SetObjectColor( *GuiSys, Menu, "secondary_input_header",
+										Vector4f( 0.25f, 0.25f, 0.75f, 1.0f ) );
+					}
 		/*
 					OVR_LOG_WITH_TAG( "Buttons", "%s, trackpad = %s",
 							buttons.ToCStr(), headsetInputState.TrackpadStatus ? "down" : "up" );
@@ -1148,11 +1165,15 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 				//	r.x, r.y, r.z, r.w,
 				//	MATH_FLOAT_RADTODEGREEFACTOR * yaw, MATH_FLOAT_RADTODEGREEFACTOR * pitch, MATH_FLOAT_RADTODEGREEFACTOR * roll,
 				//	remoteTracking.HeadPose.Pose.Position.x, remoteTracking.HeadPose.Pose.Position.y, remoteTracking.HeadPose.Pose.Position.z );
-
+				trDevice.IsActiveInputDevice = ( trDevice.GetDeviceID() == ActiveInputDeviceID );
 				result = PopulateRemoteControllerInfo( trDevice, recenteredController );
+
 				if ( result == ovrSuccess )
 				{
-					hasActiveController = true;
+					if ( trDevice.IsActiveInputDevice )
+					{
+						hasActiveController = true;
+					}
 				}
 			}
 		}
@@ -1183,11 +1204,22 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 
 					if ( gamepadInputState.Buttons & ovrButton_Enter )
 					{
-						SetObjectText( *GuiSys, Menu, "tertiary_input_header", "Gamepad ID: %u  START PRESSED", deviceID );
+						SetObjectText( *GuiSys, Menu, "tertiary_input_header", "Gamepad (START PRESSED)" );
 					}
 					else
 					{
-						SetObjectText( *GuiSys, Menu, "tertiary_input_header", "Gamepad ID: %u", deviceID );
+						SetObjectText( *GuiSys, Menu, "tertiary_input_header", "Gamepad" );
+					}
+
+					if ( deviceID == ActiveInputDeviceID )
+					{
+						SetObjectColor( *GuiSys, Menu, "tertiary_input_header",
+							Vector4f( 0.25f, 0.75f, 0.25f, 1.0f ) );
+					}
+					else
+					{
+						SetObjectColor( *GuiSys, Menu, "tertiary_input_header",
+							Vector4f( 0.25f, 0.25f, 0.75f, 1.0f ) );
 					}
 
 					SetObjectText( *GuiSys, Menu, "tertiary_input_lstick", "LStick x: %.2f y: %.2f", gamepadInputState.LeftJoystick.x, gamepadInputState.LeftJoystick.y );
@@ -1391,7 +1423,17 @@ ovrFrameResult ovrVrController::Frame( const ovrFrameInput & vrFrame )
 			trDevice.UpdateHaptics( app->GetOvrMobile(), vrFrame );
 
 			// only do the trace for the user's dominant hand
-			if ( trDevice.GetHand() == dominantHand )
+			bool updateLaser = false;
+			if ( DeviceType >= VRAPI_DEVICE_TYPE_OCULUSGO_START && DeviceType <= VRAPI_DEVICE_TYPE_OCULUSQUEST_END )
+			{
+				updateLaser = trDevice.IsActiveInputDevice;
+			}
+			else
+			{
+				updateLaser = trDevice.GetHand() == dominantHand;
+			}
+
+			if ( updateLaser )
 			{
 				traceMat = mat;
 				pointerStart = traceMat.Transform( Vector3f( 0.0f ) );
@@ -1731,6 +1773,17 @@ ovrResult ovrVrController::PopulateRemoteControllerInfo( ovrInputDevice_TrackedR
 		remoteInputState.TrackpadPosition.x,
 		remoteInputState.TrackpadPosition.y );
 	buttons += temp;
+
+	if ( trDevice.IsActiveInputDevice )
+	{
+		SetObjectColor( *GuiSys, Menu, headerObjectName.ToCStr(),
+						Vector4f( 0.25f, 0.75f, 0.25f, 1.0f ) );
+	}
+	else
+	{
+		SetObjectColor( *GuiSys, Menu, headerObjectName.ToCStr(),
+						Vector4f( 0.25f, 0.25f, 0.75f, 1.0f ) );
+	}
 
 	const ovrInputTrackedRemoteCapabilities* inputTrackedRemoteCapabilities = reinterpret_cast<const ovrInputTrackedRemoteCapabilities*>( trDevice.GetCaps() );
 

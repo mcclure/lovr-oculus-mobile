@@ -284,7 +284,7 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 		{
 			ovrInputStateHeadset headsetInputState;
 			headsetInputState.Header.ControllerType = ovrControllerType_Headset;
-			result = vrapi_GetCurrentInputState( ovr, i, &headsetInputState.Header );
+			result = vrapi_GetCurrentInputState( ovr, cap.DeviceID, &headsetInputState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= headsetInputState.Buttons & ovrButton_Back;
@@ -311,7 +311,7 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 
 			ovrInputStateTrackedRemote trackedRemoteState;
 			trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
-			result = vrapi_GetCurrentInputState( ovr, i, &trackedRemoteState.Header );
+			result = vrapi_GetCurrentInputState( ovr, cap.DeviceID, &trackedRemoteState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
@@ -345,7 +345,6 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 							vrFrame.Input.sticks[1][1] = trackedRemoteState.Joystick.y;
 						}
 					}
-
 
 					if ( remoteCapabilities.ControllerCapabilities & ovrControllerCaps_ModelOculusTouch )
 					{
@@ -412,7 +411,7 @@ void VrFrameBuilder::AdvanceVrFrame( const ovrInputEvents & inputEvents, ovrMobi
 		{
 			ovrInputStateGamepad gamepadState;
 			gamepadState.Header.ControllerType = ovrControllerType_Gamepad;
-			result = vrapi_GetCurrentInputState( ovr, i, &gamepadState.Header );
+			result = vrapi_GetCurrentInputState( ovr, cap.DeviceID, &gamepadState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= gamepadState.Buttons & ovrButton_Back;

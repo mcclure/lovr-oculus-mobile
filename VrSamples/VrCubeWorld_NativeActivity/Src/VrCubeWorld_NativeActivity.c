@@ -1450,7 +1450,7 @@ void * RenderThreadFunction( void * parm )
 		}
 
 		// Render.
-		ovrLayer_Union2 layers[ovrMaxLayerCount] = {};
+		ovrLayer_Union2 layers[ovrMaxLayerCount] = { 0 };
 		int layerCount = 0;
 		int frameFlags = 0;
 
@@ -1484,13 +1484,13 @@ void * RenderThreadFunction( void * parm )
 			frameFlags |= VRAPI_FRAME_FLAG_FLUSH | VRAPI_FRAME_FLAG_FINAL;
 		}
 
-		const ovrLayerHeader2 * layerList[ovrMaxLayerCount] = {};
+		const ovrLayerHeader2 * layerList[ovrMaxLayerCount] = { 0 };
 		for ( int i = 0; i < layerCount; i++ )
 		{
 			layerList[i] = &layers[i].Header;
 		}
 
-		ovrSubmitFrameDescription2 frameDesc = {};
+		ovrSubmitFrameDescription2 frameDesc = { 0 };
 		frameDesc.Flags = frameFlags;
 		frameDesc.SwapInterval = renderThread->SwapInterval;
 		frameDesc.FrameIndex = renderThread->FrameIndex;
@@ -1701,7 +1701,7 @@ static void ovrApp_PushBlackFinal( ovrApp * app )
 		&layer.Header
 	};
 
-	ovrSubmitFrameDescription2 frameDesc = {};
+	ovrSubmitFrameDescription2 frameDesc = { 0 };
 	frameDesc.Flags = frameFlags;
 	frameDesc.SwapInterval = 1;
 	frameDesc.FrameIndex = app->FrameIndex;
@@ -1797,7 +1797,7 @@ static void ovrApp_HandleInput( ovrApp * app )
 		{
 			ovrInputStateHeadset headsetInputState;
 			headsetInputState.Header.ControllerType = ovrControllerType_Headset;
-			result = vrapi_GetCurrentInputState( app->Ovr, i, &headsetInputState.Header );
+			result = vrapi_GetCurrentInputState( app->Ovr, cap.DeviceID, &headsetInputState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= headsetInputState.Buttons & ovrButton_Back;
@@ -1807,7 +1807,7 @@ static void ovrApp_HandleInput( ovrApp * app )
 		{
 			ovrInputStateTrackedRemote trackedRemoteState;
 			trackedRemoteState.Header.ControllerType = ovrControllerType_TrackedRemote;
-			result = vrapi_GetCurrentInputState( app->Ovr, i, &trackedRemoteState.Header );
+			result = vrapi_GetCurrentInputState( app->Ovr, cap.DeviceID, &trackedRemoteState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
@@ -1817,7 +1817,7 @@ static void ovrApp_HandleInput( ovrApp * app )
 		{
 			ovrInputStateGamepad gamepadState;
 			gamepadState.Header.ControllerType = ovrControllerType_Gamepad;
-			result = vrapi_GetCurrentInputState( app->Ovr, i, &gamepadState.Header );
+			result = vrapi_GetCurrentInputState( app->Ovr, cap.DeviceID, &gamepadState.Header );
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= ( ( gamepadState.Buttons & ovrButton_Back ) != 0 ) || ( ( gamepadState.Buttons & ovrButton_B ) != 0 );
@@ -2022,7 +2022,7 @@ void android_main( struct android_app * app )
 				&iconLayer.Header,
 			};
 
-			ovrSubmitFrameDescription2 frameDesc = {};
+			ovrSubmitFrameDescription2 frameDesc = { 0 };
 			frameDesc.Flags = frameFlags;
 			frameDesc.SwapInterval = 1;
 			frameDesc.FrameIndex = appState.FrameIndex;
@@ -2068,7 +2068,7 @@ void android_main( struct android_app * app )
 			&worldLayer.Header
 		};
 
-		ovrSubmitFrameDescription2 frameDesc = {};
+		ovrSubmitFrameDescription2 frameDesc = { 0 };
 		frameDesc.Flags = 0;
 		frameDesc.SwapInterval = appState.SwapInterval;
 		frameDesc.FrameIndex = appState.FrameIndex;

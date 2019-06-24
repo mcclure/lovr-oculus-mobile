@@ -16,7 +16,7 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #include "VrApi_Version.h"
 #include "VrApi_Types.h"
 
-/** \mainpage 
+/** \mainpage
 
 VrApi
 =====
@@ -157,7 +157,7 @@ while ( !exit )
 				&layer.Header
 			};
 
-			ovrSubmitFrameDescription2 frameDesc = {};
+			ovrSubmitFrameDescription2 frameDesc = { 0 };
 			frameDesc.FrameIndex = frameIndex;
 			frameDesc.DisplayTime = predictedDisplayTime;
 			frameDesc.LayerCount = 1;
@@ -336,7 +336,7 @@ The ATW brings this down to 8-16 milliseconds.
 |   *   |   *   |   *   |  - eye image display periods (* = predicted time in middle of display period)
      \     / \ / \ /
     ^ \   / ^ |   +---- The asynchronous time warp projects the second eye image onto the display.
-    |  \ /  | +---- The asynchronous time warp projects the first eye image onto the display. 
+    |  \ /  | +---- The asynchronous time warp projects the first eye image onto the display.
     |   |   |
     |   |   +---- Call vrapi_SubmitFrame before this point.
     |   |         vrapi_SubmitFrame inserts a GPU fence and hands over eye images to the asynchronous time warp.
@@ -356,7 +356,7 @@ The ATW brings this down to 8-16 milliseconds.
 |   *   |   *   |   *   |   *   |  - display periods (* = predicted time in middle of display period)
      \             / \ / \ /
     ^ \           / ^ |   +---- The asynchronous time warp projects second eye image onto the display.
-    |  \         /  | +---- The asynchronous time warp projects first eye image onto the display. 
+    |  \         /  | +---- The asynchronous time warp projects first eye image onto the display.
     |   \       /   |
     |    \     /    +---- Submit frame before this point.
     |     \   /           Frame submission inserts a GPU fence and hands over eye textures
@@ -377,7 +377,7 @@ The ATW brings this down to 8-16 milliseconds.
 *       |       *       |       *       |  - eye image display periods (* = predicted time in middle of display period)
      \             / \ / \ / \ / \ /
     ^ \           / ^ |   |   |   +---- The asynchronous time warp re-projects the second eye image onto the display.
-    |  \         /  | |   |   +---- The asynchronous time warp re-projects the first eye image onto the display. 
+    |  \         /  | |   |   +---- The asynchronous time warp re-projects the first eye image onto the display.
     |   \       /   | |   +---- The asynchronous time warp projects the second eye image onto the display.
     |    \     /    | +---- The asynchronous time warp projects the first eye image onto the display.
     |     \   /     |
@@ -399,7 +399,7 @@ The ATW brings this down to 8-16 milliseconds.
 *       |       *       |       *       |       *       |  - eye image display periods (* = predicted time in middle of display period)
      \                             / \ / \ / \ / \ /
     ^ \                           / ^ |   |   |   +---- The asynchronous time warp re-projects the second eye image onto the display.
-    |  \                         /  | |   |   +---- The asynchronous time warp re-projects the first eye image onto the display. 
+    |  \                         /  | |   |   +---- The asynchronous time warp re-projects the first eye image onto the display.
     |   \                       /   | |   +---- The asynchronous time warp projects the second eye image onto the display.
     |    \                     /    | +---- The asynchronous time warp projects the first eye image onto the display.
     |     \                   /     |
@@ -408,7 +408,7 @@ The ATW brings this down to 8-16 milliseconds.
     |        +------+------+              The asynchronous time warp checks the fence and uses the new eye images if rendering has completed.
     |               |
     |               +---- Generate GPU commands and execute commands on GPU.
-    |                
+    |
     +---- vrapi_SubmitFrame releases the renderer thread.
 \endverbatim
 
@@ -738,6 +738,7 @@ OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateTextureSwapChain( ovrTextureT
 /// here will not be used (ie both video decompression or camera preview override the size automatically).
 OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateAndroidSurfaceSwapChain( int width, int height );
 
+
 /// Destroy the given texture swap chain.
 /// Must be called from a thread with the same OpenGL ES context current when vrapi_CreateTextureSwapChain was called.
 OVR_VRAPI_EXPORT void vrapi_DestroyTextureSwapChain( ovrTextureSwapChain * chain );
@@ -801,7 +802,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_SetPerfThread( ovrMobile * ovr, const ovrPerfTh
 
 /// If VRAPI_EXTRA_LATENCY_MODE_ON specified, adds an extra frame of latency for full GPU utilization.
 /// Default is VRAPI_EXTRA_LATENCY_MODE_OFF.
-/// 
+///
 /// The latency mode specified will be applied on the next call to vrapi_SubmitFrame(2).
 OVR_VRAPI_EXPORT ovrResult vrapi_SetExtraLatencyMode( ovrMobile * ovr, const ovrExtraLatencyMode mode );
 

@@ -13,6 +13,7 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 
 #include "PointList.h"
 #include "SurfaceRender.h"
+#include "VrApi_Types.h"		// for vrapi math types
 
 namespace OVR {
 
