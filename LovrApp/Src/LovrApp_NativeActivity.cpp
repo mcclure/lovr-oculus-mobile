@@ -1362,9 +1362,6 @@ void android_main( struct android_app * app )
 	appState.UseMultiview &= ( glExtensions.multi_view &&
 							vrapi_GetSystemPropertyInt( &appState.Java, VRAPI_SYS_PROP_MULTIVIEW_AVAILABLE ) );
 
-	// FIXME FIXME FIXME FIXME This should be turned back on
-	appState.UseMultiview = false;
-
 	ALOGV( "AppState UseMultiview : %d", appState.UseMultiview );
 
 	appState.CpuLevel = CPU_LEVEL;
