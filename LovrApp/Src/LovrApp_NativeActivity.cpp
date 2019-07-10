@@ -668,7 +668,7 @@ static void ovrRenderer_Create( ovrRenderer * renderer, const ovrJava * java, co
 	for ( int eye = 0; eye < renderer->NumBuffers; eye++ )
 	{
 		ovrFramebuffer_Create( &renderer->FrameBuffer[eye], useMultiview,
-								GL_RGBA8,
+								GL_SRGB8_ALPHA8,
 								vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH ),
 								vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT ),
 								NUM_MULTI_SAMPLES );
@@ -1095,6 +1095,7 @@ static void ovrApp_HandleVrModeChanges( ovrApp * app )
 			parms.Flags &= ~VRAPI_MODE_FLAG_RESET_WINDOW_FULLSCREEN;
 
 			parms.Flags |= VRAPI_MODE_FLAG_NATIVE_WINDOW;
+			parms.Flags |= VRAPI_MODE_FLAG_FRONT_BUFFER_SRGB;
 			parms.Display = (size_t)app->Egl.Display;
 			parms.WindowSurface = (size_t)app->NativeWindow;
 			parms.ShareContext = (size_t)app->Egl.Context;
