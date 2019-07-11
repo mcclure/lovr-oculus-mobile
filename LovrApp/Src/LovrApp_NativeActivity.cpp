@@ -800,6 +800,8 @@ void * RenderThreadFunction( void * parm )
 	ovrEgl egl;
 	ovrEgl_CreateContext( &egl, renderThread->ShareEgl );
 
+	setEGLattrib(EGL_GL_COLORSPACE_KHR, EGL_GL_COLORSPACE_SRGB_KHR);
+
 	ovrRenderer renderer;
 	ovrRenderer_Create( &renderer, &java, renderThread->UseMultiview );
 
