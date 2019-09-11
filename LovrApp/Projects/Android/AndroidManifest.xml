@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- This will be merged with either AndroidManifest-Debug or AndroidManifest-Release, as appropriate -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 		package="org.lovr.appsample"
 		android:versionCode="2" 
@@ -26,15 +27,9 @@
 				android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
 				android:launchMode="singleTask"
 				android:screenOrientation="landscape"
-				android:excludeFromRecents="false"
 				android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode">
 			<!-- Tell NativeActivity the name of the .so -->
 			<meta-data android:name="android.app.lib_name" android:value="lovractivity" />
-			<!-- This filter lets the apk show up as a launchable icon. -->
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
 		</activity>
 	</application>
 </manifest>

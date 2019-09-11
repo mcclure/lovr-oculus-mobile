@@ -33,6 +33,13 @@ android {
   sourceSets {
     main {
       manifest.srcFile 'AndroidManifest.xml'
+      debug {
+        manifest.srcFile 'AndroidManifest-Debug.xml'
+      }
+      release {
+        manifest.srcFile 'AndroidManifest-Release.xml'
+      }
+
       java.srcDirs = ['../../java']
       jniLibs.srcDir 'libs'
       res.srcDirs = ['../../res']

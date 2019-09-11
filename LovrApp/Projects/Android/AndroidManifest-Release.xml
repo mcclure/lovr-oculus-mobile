@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uses special keys for release (required by Oculus store) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application>
+		<activity
+			android:name="com.oculus.gles3jni.MainActivity"
+			android:excludeFromRecents="true">
+			<intent-filter>
+				<!-- This filter lets the apk show up as a launchable icon. -->
+				<action android:name="android.intent.action.MAIN" />
+				<category android:name="android.intent.category.INFO" />
+			</intent-filter>
+		</activity>
+	</application>
+</manifest>

@@ -54,13 +54,27 @@ Files in any of these directories will be uploaded when LovrApp's installDebug r
 
 Option #2 is best if you are building from git, since local_assets is in gitignore.
 
-## To ship your own app:
+## To create your app:
 
 Decide on a name for your app and also an identifier (this is something like "com.companyname.gametitle").
 
 Edit `LovrApp/Projects/build.gradle`. Change "project.archivesBaseName" and "applicationId" to reflect your identifier.
 
 Edit `LovrApp/Projects/Android/AndroidManifest.xml`. Change "package=" at the top to your identifier and change "android:label=" partway down (right after YOUR NAME HERE) to your name.
+
+# To ship your app:
+
+LovrApp is set up so that a "debug" build uses Oculus's recommended settings for development and a "release" build uses the appropriate settings for store submission. There are some required properties for the AndroidManifest.xml file which are not set by LovrApp becuase they differ between Oculus Go and Oculus Quest. See [this page](https://developer.oculus.com/distribute/latest/concepts/publish-mobile-manifest/) for the remaining Oculus Store configuration requirements.
+
+At ship time, it is also probably a good idea to search all gradle files for instances of:
+
+    abiFilters 'armeabi-v7a','arm64-v8a'
+
+and replace it with:
+
+    abiFilters 'arm64-v8a'
+
+and then do another build. This will reduce your binary size. `armeabi-v7a` is only needed if your application is intended to run on Samsung Gear; it is not useful on Oculus Go or Oculus Quest.
 
 ## To build the autoloader test app:
 
@@ -71,6 +85,10 @@ To build the `org.lovr.test` app yourself:
 * `git clone` a copy of [[https://github.com/mcclure/lodr]]. Save the path to the `lodr` directory.
 * In the lovr-oculus-mobile repo, in the `LovrApp` directory, create a file `local_assets.txt` containing the path to the `lodr` directory.
 * Edit the file `LovrApp/Projects/build.gradle` and change the "archivesBaseName" to `test`.
+
+The command to upload a Lua project to the SD card so `org.lovr.test` can run it is:
+
+    adb push --sync . /sdcard/Android/data/org.lovr.test/files/.lodr
 
 ## Debugging:
 
@@ -92,12 +110,13 @@ Known limitations and planned improvement for LovrApp and Lovr for Oculus Mobile
 
 - No Gear controller (headset button) support
 - No gamepad support
-- Currently uses Lua rather than LuaJIT (this is nontrivial to fix-- the problem is LuaJIT builds two helper tools during its own build, but this does not work in a cross compile environment without weird tricks)
-- Currently draws each eye separately (no stereo rendering)
 - `getEyePose` in oculus mobile driver is wrong (just redirects to getPose)
 - Avatar SDK support (to display controller model) should be added
 - "Focus" events should be issued on pause and resume
 - lovr.conf MSAA setting is ignored
+- Display masks are not supported, but could be
+- Microphones are not supported, but could be
+- It would be nice to have Windows build instructions above
 - Can 32-bit build be removed?
 
 # License
