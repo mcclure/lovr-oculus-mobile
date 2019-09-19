@@ -10,14 +10,14 @@ android {
 
 		externalNativeBuild {
 			ndk {
-				abiFilters 'armeabi-v7a','arm64-v8a'
+				abiFilters 'arm64-v8a'
 			}
 			ndkBuild {
 				targets "vrsound"
 
 				def numProcs = Runtime.runtime.availableProcessors()
 				arguments "V=0", "-j$numProcs", "-C$project.buildDir.parent"
-				abiFilters 'armeabi-v7a','arm64-v8a'
+				abiFilters 'arm64-v8a'
 			}
 		}
 	}

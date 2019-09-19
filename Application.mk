@@ -7,7 +7,7 @@
 # NOTE: this is ignored from here now, and must be specified in build.gradle!
 APP_PLATFORM := android-21
 
-APP_ABI := armeabi-v7a
+APP_ABI := 'arm64-v8a'
 
 # Statically link the C++_STATIC STL. This may not be safe for multi-so libraries but
 # we don't know of any problems yet.

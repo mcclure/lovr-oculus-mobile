@@ -66,16 +66,6 @@ Edit `LovrApp/Projects/Android/AndroidManifest.xml`. Change "package=" at the to
 
 LovrApp is set up so that a "debug" build uses Oculus's recommended settings for development and a "release" build uses the appropriate settings for store submission. There are some required properties for the AndroidManifest.xml file which are not set by LovrApp becuase they differ between Oculus Go and Oculus Quest. See [this page](https://developer.oculus.com/distribute/latest/concepts/publish-mobile-manifest/) for the remaining Oculus Store configuration requirements.
 
-At ship time, it is also probably a good idea to search all gradle files for instances of:
-
-    abiFilters 'armeabi-v7a','arm64-v8a'
-
-and replace it with:
-
-    abiFilters 'arm64-v8a'
-
-and then do another build. This will reduce your binary size. `armeabi-v7a` is only needed if your application is intended to run on Samsung Gear; it is not useful on Oculus Go or Oculus Quest.
-
 ## To build the autoloader test app:
 
 When built without any changes, this repo produces an "org.lovr.appsample" app that prints a "game not found" message. If you look in the Github "releases" section, however, you'll find a "org.lovr.test" app that loads a game from the SD card where you can easily copy it using `adb sync`. Run the app for full instructions.
@@ -89,6 +79,18 @@ To build the `org.lovr.test` app yourself:
 The command to upload a Lua project to the SD card so `org.lovr.test` can run it is:
 
     adb push --sync . /sdcard/Android/data/org.lovr.test/files/.lodr
+
+## If you want to run on Samsung Gear VR
+
+The build scripts in this repo are set up for Oculus Go and Quest. If you want to ship on Samsung Gear you may want to search all gradle files for instances of:
+
+    abiFilters 'arm64-v8a'
+
+and replace it with:
+
+    abiFilters 'armeabi-v7a','arm64-v8a'
+
+and then do another build. This will allow your build to run on 32-bit phones.
 
 ## Debugging:
 
