@@ -38,7 +38,7 @@ Notes:
       (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd LovrApp/Projects/Android && $GRADLE installDebug))
 
 * To see all the things gradlew can do in a particular directory run it with "tasks" as the argument.
-* The reason for the long PATH/ANDROID_HOME line is to get the java and android tools into scope for that line. You could also just modify the env vars in your bashrc.
+* The reason for the long `(export PATH`/ANDROID_HOME line is to get the java and android tools into scope for that line. It would also work to modify the env vars in your bashrc. But you *do* have to set the environment variables somehow or else you could run the wrong version of Java and get confusing errors like "Could not determine java version from '13'". 
 
 Help would be appreciated if you know how to do any of the following: Make the build work in Android Studio; make the build work in Windows; make the build work in a single gradle pass without having to invoke `gradlew` three times.
 
