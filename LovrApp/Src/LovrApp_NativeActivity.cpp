@@ -684,6 +684,67 @@ static void ovrRenderer_Destroy( ovrRenderer * renderer )
 	}
 }
 
+// Haptics handling for bridge
+
+#define VIBRATE_DEVICES 2
+
+// TODO: Check ovrControllerCaps_HasBufferedHapticVibration and if present use vrapi_SetHapticVibrationBuffer
+struct {
+	ovrMobile *ovr;
+	double currentTime;
+	bool anyFrames; // False on first frame
+	struct {
+		ovrDeviceID device;
+		bool vibrating;
+		bool canCall;
+		double clearTime;
+	} deviceState[VIBRATE_DEVICES];
+} vibrateFunctionState;
+
+bool vibrateFunction(int controller, float strength, float duration) {
+	if (!vibrateFunctionState.deviceState[controller].canCall) // Per docs may not call more than once a frame
+		return false;
+	vibrateFunctionState.deviceState[controller].canCall = false; // Don't clear this at the end of the frame
+	vibrateFunctionState.deviceState[controller].clearTime = vibrateFunctionState.currentTime + duration;
+	vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, strength );
+	vibrateFunctionState.deviceState[controller].vibrating = strength > 0;
+	return true;
+}
+
+void vibrateFunctionFrameSetup(double currentTime) {
+	vibrateFunctionState.currentTime = currentTime;
+	for ( int idx = 0; idx < VIBRATE_DEVICES; idx++ ) {
+		vibrateFunctionState.deviceState[idx].canCall = true;
+	}
+}
+
+void vibrateFunctionInit(ovrMobile *ovr, double currentTime) {
+	vibrateFunctionState.ovr = ovr;
+	vibrateFunctionFrameSetup(currentTime);
+}
+
+void vibrateFunctionInitController(int controller, ovrDeviceID device) {
+	vibrateFunctionState.deviceState[controller].device = device;
+}
+
+void vibrateFunctionPreframe(double currentTime) {
+	if (vibrateFunctionState.anyFrames) // Ignore first call to this function (so lovr.load and first lovr.update are same frame)
+		vibrateFunctionFrameSetup(currentTime);
+}
+
+void vibrateFunctionPostframe() {
+	for ( int idx = 0; idx < VIBRATE_DEVICES; idx++ ) {
+		// The duration isn't exposed in the API so we emulate it ourselves.
+		if (vibrateFunctionState.deviceState[idx].canCall && // May not call more than once a frame
+			vibrateFunctionState.deviceState[idx].vibrating &&
+			vibrateFunctionState.deviceState[idx].clearTime <= vibrateFunctionState.currentTime) {
+			vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[idx].device, 0 );
+			vibrateFunctionState.deviceState[idx].vibrating = false;
+		}
+	}
+	vibrateFunctionState.anyFrames = true;
+}
+
 static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, const ovrJava * java,
 											const ovrTracking2 * tracking, ovrMobile * ovr,
 											unsigned long long * completionFence, BridgeLovrUpdateData &updateData )
@@ -706,6 +767,8 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, cons
 	memcpy(updateData.eyeViewMatrix[1], &eyeViewMatrixTransposed[1].M[0][0], 16*sizeof(float));
 	memcpy(updateData.projectionMatrix[0], &projectionMatrixTransposed[0].M[0][0], 16*sizeof(float));
 	memcpy(updateData.projectionMatrix[1], &projectionMatrixTransposed[1].M[0][0], 16*sizeof(float));
+
+	vibrateFunctionPreframe(updateData.displayTime);
 
 	bridgeLovrUpdate(&updateData);
 
@@ -737,6 +800,8 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame( ovrRenderer * renderer, cons
 		ovrFramebuffer_Resolve( frameBuffer );
 		ovrFramebuffer_Advance( frameBuffer );
 	}
+
+	vibrateFunctionPostframe();
 
 	ovrFramebuffer_SetNone();
 
@@ -1210,6 +1275,9 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 					controller.hand = (BridgeLovrHand)remoteCaps.ControllerCapabilities;
 				}
 
+				// FIXME: Will get very confused if a controller is ever not left or right hand
+				vibrateFunctionInitController(remoteCaps.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID);
+
 				controller.handset = true;
 				controller.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
 				controller.buttonTouch = (BridgeLovrTouch)(unsigned int)trackedRemoteState.Touches;
@@ -1474,6 +1542,9 @@ void android_main( struct android_app * app )
 				bridgeData.deviceType = BRIDGE_LOVR_DEVICE_UNKNOWN;
 			}
 			currentDevice = bridgeData.deviceType;
+
+			bridgeData.vibrateFunction = vibrateFunction;
+			vibrateFunctionInit(appState.Ovr, bridgeData.zeroDisplayTime);
 
 			bridgeLovrInit(&bridgeData);
 
