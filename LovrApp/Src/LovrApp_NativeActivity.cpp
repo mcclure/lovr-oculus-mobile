@@ -30,6 +30,8 @@ Copyright	:	Copyright (c) Facebook Technologies, LLC and its affiliates. All rig
 #include <GLES3/gl3.h>
 #include <GLES3/gl3ext.h>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 #include "jni.h"
 
@@ -686,60 +688,127 @@ static void ovrRenderer_Destroy( ovrRenderer * renderer )
 
 // Haptics handling for bridge
 
-#define VIBRATE_DEVICES 2
+#define VIBRATE_DEVICES 2 // Max supported vibrating devices
 
-// TODO: Check ovrControllerCaps_HasBufferedHapticVibration and if present use vrapi_SetHapticVibrationBuffer
+// There are two APIs for vibration: "simple" which only lets you set a "current" vibration value, "buffer" which lets you queue an array of vibration samples.
+// In Simple mode we set the requested value and preserve a "when to stop" timestamp. This will be imprecise because it will cut only on frames, which can be inconsistent.
+// In Buffered mode we calculate buffers for the entire span of the vibration (fading out linearly) and submit them all with calculated timestamps.
+//
+// FIXME: In buffered mode, it doesn't do the right thing with long vibrations. I think this is because it can't call vrapi_SetHapticVibrationBuffer more than once per frame.
+//        The solution might be to only queue one buffer at a time and then queue the next at some later point.
+// FIXME: Lovr has no documented behavior for vibrating for exactly 0 seconds. This code in both modes interprets this as "vibrate for the smallest possible unit of time"
 struct {
 	ovrMobile *ovr;
-	double currentTime;
-	bool anyFrames; // False on first frame
+	double currentTime; // Timestamp of frame being processed now
+	bool anyFrames;     // False on first frame
+	ovrHapticBuffer *buffer;            // Only used in buffered mode. Metadata object submitted to SetHapticVibrationBuffer
+	std::vector<uint8_t> bufferBacking; // Only used in buffered mode. Storage for buffer in ovrHapticBuffer object 
 	struct {
 		ovrDeviceID device;
-		bool vibrating;
-		bool canCall;
-		double clearTime;
+		bool useBuffer; // Per the API, you can have buffer-supporting and buffer-nonsupporting devices connected at once. It is unclear if this ever happens in the real world
+		bool canCall; // True if no vibrate call has yet been made this frame
+		union {
+			struct {
+				bool vibrating;             // Only used in simple mode
+				double clearTime;           // Only used in simple mode
+			} simple;
+			struct {
+				// Every buffered-mode device reports its own sample rate and max-samples-per-buffer-submission
+				uint32_t samplesMax;		// Only used in buffered mode
+				uint32_t sampleDurationMs;  // Only used in buffered mode
+			} buffered;
+		};
 	} deviceState[VIBRATE_DEVICES];
 } vibrateFunctionState;
 
-bool vibrateFunction(int controller, float strength, float duration) {
+// Call when vibrate() is called by developer
+static bool vibrateFunction(int controller, float strength, float duration) {
 	if (!vibrateFunctionState.deviceState[controller].canCall) // Per docs may not call more than once a frame
 		return false;
-	vibrateFunctionState.deviceState[controller].canCall = false; // Don't clear this at the end of the frame
-	vibrateFunctionState.deviceState[controller].clearTime = vibrateFunctionState.currentTime + duration;
-	vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, strength );
-	vibrateFunctionState.deviceState[controller].vibrating = strength > 0;
+	vibrateFunctionState.deviceState[controller].canCall = false; // Don't call again or clear this at the end of the frame
+	if (vibrateFunctionState.deviceState[controller].useBuffer) {
+		if (strength > 0) {
+			if (strength > 1) // Prevent overflow
+				strength = 1;
+			// How many samples must we submit to cover entire vibration?
+			uint32_t tailLength = duration*1000/vibrateFunctionState.deviceState[controller].buffered.sampleDurationMs;
+			if (tailLength == 0) // Prevent divide by zero
+				tailLength = 1;
+			uint32_t remainingLength = tailLength; // Count down to 0 as we generate samples
+			uint32_t tailAt = 0;                   // How many samples have we generated?
+			float downStep = strength/tailLength;  // Difference between one sample and the next
+			float submitTime = vibrateFunctionState.currentTime; // Timestamp for sample we are building currently
+			while (remainingLength > 0) {          // Iterate once per submission
+				uint32_t sampleLength = std::min(tailLength, vibrateFunctionState.deviceState[controller].buffered.samplesMax);
+				remainingLength -= sampleLength;
+				if (sampleLength > vibrateFunctionState.bufferBacking.size()) {
+					vibrateFunctionState.bufferBacking.reserve(sampleLength);
+					vibrateFunctionState.buffer->HapticBuffer = &vibrateFunctionState.bufferBacking[0];
+				}
+				vibrateFunctionState.buffer->BufferTime = submitTime;
+				vibrateFunctionState.buffer->NumSamples = sampleLength;
+				vibrateFunctionState.buffer->Terminated = remainingLength == 0;
+				for(int c = 0; c < sampleLength; c++, tailAt++) {
+					vibrateFunctionState.bufferBacking[c] = std::min(std::max(strength - tailAt*downStep, 0.f) * 256.f, 255.f);
+				}
+				vrapi_SetHapticVibrationBuffer( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, vibrateFunctionState.buffer );
+				submitTime += sampleLength * vibrateFunctionState.deviceState[controller].buffered.sampleDurationMs / 1000.f;
+			}
+		} else { // Strength 0, no need to use buffers
+			vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, strength );
+		}
+	} else {
+		vibrateFunctionState.deviceState[controller].simple.clearTime = vibrateFunctionState.currentTime + duration;
+		vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, strength );
+		vibrateFunctionState.deviceState[controller].simple.vibrating = strength > 0;
+	}
 	return true;
 }
 
-void vibrateFunctionFrameSetup(double currentTime) {
+// Shared code for frame init and whole-program init
+static void vibrateFunctionFrameSetup(double currentTime) {
 	vibrateFunctionState.currentTime = currentTime;
 	for ( int idx = 0; idx < VIBRATE_DEVICES; idx++ ) {
 		vibrateFunctionState.deviceState[idx].canCall = true;
 	}
 }
 
-void vibrateFunctionInit(ovrMobile *ovr, double currentTime) {
+// Call once at start of program
+static void vibrateFunctionInit(ovrMobile *ovr, double currentTime) {
 	vibrateFunctionState.ovr = ovr;
 	vibrateFunctionFrameSetup(currentTime);
 }
 
-void vibrateFunctionInitController(int controller, ovrDeviceID device) {
+// Call once per controller at start of program
+// Note: At present due to a bug this is currently called once per controller per frame
+void vibrateFunctionInitController(int controller, ovrDeviceID device, bool useBuffer, uint32_t samplesMax, uint32_t sampleDurationMs) {
 	vibrateFunctionState.deviceState[controller].device = device;
+	if (useBuffer && !vibrateFunctionState.deviceState[controller].useBuffer) {
+		ALOGV("Enabling buffered vibrate, controller %d: sampleMax %d sampleDurationMs %d\n", controller, samplesMax, sampleDurationMs);
+		vibrateFunctionState.deviceState[controller].useBuffer = useBuffer;
+		vibrateFunctionState.deviceState[controller].buffered.samplesMax = samplesMax;
+		vibrateFunctionState.deviceState[controller].buffered.sampleDurationMs = sampleDurationMs;
+		if (!vibrateFunctionState.buffer)
+			vibrateFunctionState.buffer = (ovrHapticBuffer *)malloc(sizeof(ovrHapticBuffer));
+	}
 }
 
+// Call once at start of each frame
 void vibrateFunctionPreframe(double currentTime) {
 	if (vibrateFunctionState.anyFrames) // Ignore first call to this function (so lovr.load and first lovr.update are same frame)
 		vibrateFunctionFrameSetup(currentTime);
 }
 
+// Call once at end of each frame
 void vibrateFunctionPostframe() {
 	for ( int idx = 0; idx < VIBRATE_DEVICES; idx++ ) {
-		// The duration isn't exposed in the API so we emulate it ourselves.
-		if (vibrateFunctionState.deviceState[idx].canCall && // May not call more than once a frame
-			vibrateFunctionState.deviceState[idx].vibrating &&
-			vibrateFunctionState.deviceState[idx].clearTime <= vibrateFunctionState.currentTime) {
+		// The duration isn't exposed in the Simple API so we emulate it ourselves.
+		if (!vibrateFunctionState.deviceState[idx].useBuffer && // This is for simple
+			vibrateFunctionState.deviceState[idx].canCall && // May not call more than once a frame
+			vibrateFunctionState.deviceState[idx].simple.vibrating &&
+			vibrateFunctionState.deviceState[idx].simple.clearTime <= vibrateFunctionState.currentTime) {
 			vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[idx].device, 0 );
-			vibrateFunctionState.deviceState[idx].vibrating = false;
+			vibrateFunctionState.deviceState[idx].simple.vibrating = false;
 		}
 	}
 	vibrateFunctionState.anyFrames = true;
@@ -1276,7 +1345,8 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				}
 
 				// FIXME: Will get very confused if a controller is ever not left or right hand
-				vibrateFunctionInitController(remoteCaps.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID);
+				vibrateFunctionInitController(remoteCaps.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID,
+					remoteCaps.ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration, remoteCaps.HapticSamplesMax, remoteCaps.HapticSampleDurationMS);
 
 				controller.handset = true;
 				controller.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
