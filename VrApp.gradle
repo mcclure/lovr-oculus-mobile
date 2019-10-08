@@ -109,12 +109,12 @@ class VrAppPlugin implements Plugin<Project> {
 
     project.android {
 
-	  compileSdkVersion 21
+	  compileSdkVersion 26
 	  buildToolsVersion '27.0.3'
 
 	  defaultConfig {
-		  minSdkVersion 21
-		  targetSdkVersion 21
+		  minSdkVersion 23
+		  targetSdkVersion 23
 
 		  externalNativeBuild {
 			  ndk {
@@ -153,7 +153,7 @@ class VrAppPlugin implements Plugin<Project> {
 			  storePassword keystorePassword
 			  keyAlias keystoreKeyAlias
 			  keyPassword keystoreKeyPassword
-			  v2SigningEnabled false
+			  v2SigningEnabled true
 		  }
 
 		  release {
@@ -161,7 +161,7 @@ class VrAppPlugin implements Plugin<Project> {
 			  storePassword keystorePassword
 			  keyAlias keystoreKeyAlias
 			  keyPassword keystoreKeyPassword
-			  v2SigningEnabled false
+			  v2SigningEnabled true
 		  }
 	  }
 
