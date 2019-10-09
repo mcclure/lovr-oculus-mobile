@@ -690,6 +690,12 @@ static void ovrRenderer_Destroy( ovrRenderer * renderer )
 
 #define VIBRATE_DEVICES 2 // Max supported vibrating devices
 
+typedef enum {
+	VIBRATE_NONE,
+	VIBRATE_SIMPLE,
+	VIBRATE_BUFFERED
+} VibrateMode;
+
 // There are two APIs for vibration: "simple" which only lets you set a "current" vibration value, "buffer" which lets you queue an array of vibration samples.
 // In Simple mode we set the requested value and preserve a "when to stop" timestamp. This will be imprecise because it will cut only on frames, which can be inconsistent.
 // In Buffered mode we calculate buffers for the entire span of the vibration (fading out linearly) and submit them all with calculated timestamps.
@@ -705,7 +711,7 @@ struct {
 	std::vector<uint8_t> bufferBacking; // Only used in buffered mode. Storage for buffer in ovrHapticBuffer object 
 	struct {
 		ovrDeviceID device;
-		bool useBuffer; // Per the API, you can have buffer-supporting and buffer-nonsupporting devices connected at once. It is unclear if this ever happens in the real world
+		VibrateMode mode; // Per the API, you can have buffer-supporting and buffer-nonsupporting devices connected at once. It is unclear if this ever happens in the real world
 		bool canCall; // True if no vibrate call has yet been made this frame
 		union {
 			struct {
@@ -723,10 +729,12 @@ struct {
 
 // Call when vibrate() is called by developer
 static bool vibrateFunction(int controller, float strength, float duration) {
+	if (vibrateFunctionState.deviceState[controller].mode == VIBRATE_NONE) // Fail if haptics aren't supported
+		return false;
 	if (!vibrateFunctionState.deviceState[controller].canCall) // Per docs may not call more than once a frame
 		return false;
 	vibrateFunctionState.deviceState[controller].canCall = false; // Don't call again or clear this at the end of the frame
-	if (vibrateFunctionState.deviceState[controller].useBuffer) {
+	if (vibrateFunctionState.deviceState[controller].mode == VIBRATE_BUFFERED) {
 		if (strength > 0) {
 			if (strength > 1) // Prevent overflow
 				strength = 1;
@@ -781,16 +789,16 @@ static void vibrateFunctionInit(ovrMobile *ovr, double currentTime) {
 
 // Call once per controller at start of program
 // Note: At present due to a bug this is currently called once per controller per frame
-void vibrateFunctionInitController(int controller, ovrDeviceID device, bool useBuffer, uint32_t samplesMax, uint32_t sampleDurationMs) {
+void vibrateFunctionInitController(int controller, ovrDeviceID device, VibrateMode mode, uint32_t samplesMax, uint32_t sampleDurationMs) {
 	vibrateFunctionState.deviceState[controller].device = device;
-	if (useBuffer && !vibrateFunctionState.deviceState[controller].useBuffer) {
+	if (mode == VIBRATE_BUFFERED && vibrateFunctionState.deviceState[controller].mode != VIBRATE_BUFFERED) {
 		ALOGV("Enabling buffered vibrate, controller %d: sampleMax %d sampleDurationMs %d\n", controller, samplesMax, sampleDurationMs);
-		vibrateFunctionState.deviceState[controller].useBuffer = useBuffer;
 		vibrateFunctionState.deviceState[controller].buffered.samplesMax = samplesMax;
 		vibrateFunctionState.deviceState[controller].buffered.sampleDurationMs = sampleDurationMs;
 		if (!vibrateFunctionState.buffer)
 			vibrateFunctionState.buffer = (ovrHapticBuffer *)malloc(sizeof(ovrHapticBuffer));
 	}
+	vibrateFunctionState.deviceState[controller].mode = mode;
 }
 
 // Call once at start of each frame
@@ -803,7 +811,7 @@ void vibrateFunctionPreframe(double currentTime) {
 void vibrateFunctionPostframe() {
 	for ( int idx = 0; idx < VIBRATE_DEVICES; idx++ ) {
 		// The duration isn't exposed in the Simple API so we emulate it ourselves.
-		if (!vibrateFunctionState.deviceState[idx].useBuffer && // This is for simple
+		if (vibrateFunctionState.deviceState[idx].mode == VIBRATE_SIMPLE && // This is for simple
 			vibrateFunctionState.deviceState[idx].canCall && // May not call more than once a frame
 			vibrateFunctionState.deviceState[idx].simple.vibrating &&
 			vibrateFunctionState.deviceState[idx].simple.clearTime <= vibrateFunctionState.currentTime) {
@@ -1344,9 +1352,19 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 					controller.hand = (BridgeLovrHand)remoteCaps.ControllerCapabilities;
 				}
 
+				// Determine best supported vibration mode
+				VibrateMode vibrateMode;
+				if (remoteCaps.ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration) {
+					vibrateMode = VIBRATE_BUFFERED;
+				} else if (remoteCaps.ControllerCapabilities & ovrControllerCaps_HasSimpleHapticVibration) {
+					vibrateMode = VIBRATE_SIMPLE;
+				} else {
+					vibrateMode = VIBRATE_NONE;
+				}
+
 				// FIXME: Will get very confused if a controller is ever not left or right hand
 				vibrateFunctionInitController(remoteCaps.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID,
-					remoteCaps.ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration, remoteCaps.HapticSamplesMax, remoteCaps.HapticSampleDurationMS);
+					vibrateMode, remoteCaps.HapticSamplesMax, remoteCaps.HapticSampleDurationMS);
 
 				controller.handset = true;
 				controller.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
