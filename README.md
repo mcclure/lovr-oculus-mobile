@@ -16,7 +16,7 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
       PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb devices
 
-    ...to get the ID number for the device.  (If you do not see your device in the list, see "notes" below.)
+      ...to get the ID number for the device.  (If you do not see your device in the list, see "notes" below.)
 
 * Plug the id number from adb into [https://dashboard.oculus.com/tools/osig-generator/]
 
@@ -64,7 +64,43 @@ Edit `LovrApp/Projects/Android/AndroidManifest.xml`. Change "package=" at the to
 
 # To ship your app:
 
-LovrApp is set up so that a "debug" build uses Oculus's recommended settings for development and a "release" build uses the appropriate settings for store submission. There are some required properties for the AndroidManifest.xml file which are not set by LovrApp becuase they differ between Oculus Go and Oculus Quest. See [this page](https://developer.oculus.com/distribute/latest/concepts/publish-mobile-manifest/) for the remaining Oculus Store configuration requirements.
+LovrApp is set up so that a "debug" build uses Oculus's recommended settings for development and a "release" build uses the appropriate settings for store submission on Quest. The store submssion requirements do change from time to time, so you may find the store backend asks for additional configuration changes at upload time. See [this page](https://developer.oculus.com/distribute/latest/concepts/publish-mobile-manifest/) for the most up to date Oculus Store configuration requirements.
+
+## Creating a signing key
+
+Before uploading anything to the Oculus Store, you should make sure you are using the right keystore. If you build without specifying a keystore, gradle will create one for you. It is very important you back this up in a safe place **before** you upload anything to the Oculus dashboard, as you cannot change it later so losing your keystore means getting locked out from updating your own app.
+
+Better than just backing it up would be creating your own keystore, since you can input your business name and a password:
+
+    keytool -genkey -v -keystore YOURNAME-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias YOURNAME
+
+The easiest way to install your new keystore is to put a copy at the exact path `LovrApp/Projects/Android/android.debug.keystore`
+
+## If you want to ship on Oculus Go
+
+The build scripts in this repo create release builds for Quest. As of this writing, there are some steps you must perform if you want to submit a release build to the Go store. First, edit `VrApp.gradle`. There are two instances of `v2SigningEnabled true`. Change both of these to say
+
+    v1SigningEnabled true
+
+Next, edit `LovrApp/Projects/Android/AndroidManifest.xml`. **Delete** this line:
+
+	<uses-feature
+			android:name="android.hardware.vr.headtracking"
+			android:version="1"
+			android:required="false"
+			/>
+
+## If you want to run on Samsung Gear VR
+
+The build scripts in this repo are set up for Oculus Go and Quest. If you want to ship on Samsung Gear you may want to search all gradle files for instances of:
+
+    abiFilters 'arm64-v8a'
+
+and replace it with:
+
+    abiFilters 'armeabi-v7a','arm64-v8a'
+
+and then do another build. This will allow your build to run on 32-bit phones.
 
 ## To build the autoloader test app:
 
@@ -79,18 +115,6 @@ To build the `org.lovr.test` app yourself:
 The command to upload a Lua project to the SD card so `org.lovr.test` can run it is:
 
     adb push --sync . /sdcard/Android/data/org.lovr.test/files/.lodr
-
-## If you want to run on Samsung Gear VR
-
-The build scripts in this repo are set up for Oculus Go and Quest. If you want to ship on Samsung Gear you may want to search all gradle files for instances of:
-
-    abiFilters 'arm64-v8a'
-
-and replace it with:
-
-    abiFilters 'armeabi-v7a','arm64-v8a'
-
-and then do another build. This will allow your build to run on 32-bit phones.
 
 ## Debugging:
 
@@ -116,10 +140,10 @@ Known limitations and planned improvement for LovrApp and Lovr for Oculus Mobile
 - Avatar SDK support (to display controller model) should be added
 - "Focus" events should be issued on pause and resume
 - lovr.conf MSAA setting is ignored
+- The play bounds feature is not supported, but could be
 - Display masks are not supported, but could be
 - Microphones are not supported, but could be
 - It would be nice to have Windows build instructions above
-- Can 32-bit build be removed?
 
 # License
 
