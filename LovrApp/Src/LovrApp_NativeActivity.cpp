@@ -736,8 +736,17 @@ struct {
 
 // One step in the loop of feeding in haptic buffers. We can only call this once per frame.
 static void vibrateBufferedStep(int controller) {
-	vibrateFunctionState.deviceState[controller].canCall = false; // Ensure no more calls this frame
 	auto &state = vibrateFunctionState.deviceState[controller].buffered;
+
+	// The buffered vibration feature is not fully documented. The function takes a start time and a list of samples.
+	// The documentation says it can only be called once per frame. But there seem to be additional restrictions.
+	// It appears you can only have one "pending" vibration buffer at a time. It is as if there is a "current" vibration
+	// buffer, and a "next" vibration buffer. Overwriting the "next" vibration buffer when it is already filled appears
+	// to truncate vibration. Therefore we wait for the "current" to finish and the "next" to free up before calling again.
+	if (vibrateFunctionState.currentTime <= state.submitTime)
+		return;
+
+	vibrateFunctionState.deviceState[controller].canCall = false; // Ensure no more calls this frame
 	float downStep = state.strength/state.tailLength;  // Difference between one sample and the next
 
 	uint32_t sampleLength = std::min(state.tailLength, state.samplesMax); // Samples to process this frame
