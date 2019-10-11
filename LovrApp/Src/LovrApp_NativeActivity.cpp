@@ -722,10 +722,41 @@ struct {
 				// Every buffered-mode device reports its own sample rate and max-samples-per-buffer-submission
 				uint32_t samplesMax;		// Only used in buffered mode
 				uint32_t sampleDurationMs;  // Only used in buffered mode
+				// Vibration state machine
+				bool vibrating;
+				uint32_t tailLength;
+				uint32_t remainingLength;
+				float strength;
+				float submitTime;
+				uint32_t tailAt;
 			} buffered;
 		};
 	} deviceState[VIBRATE_DEVICES];
 } vibrateFunctionState;
+
+// One step in the loop of feeding in haptic buffers. We can only call this once per frame.
+static void vibrateBufferedStep(int controller) {
+	vibrateFunctionState.deviceState[controller].canCall = false; // Ensure no more calls this frame
+	auto &state = vibrateFunctionState.deviceState[controller].buffered;
+	float downStep = state.strength/state.tailLength;  // Difference between one sample and the next
+
+	uint32_t sampleLength = std::min(state.tailLength, state.samplesMax); // Samples to process this frame
+	state.remainingLength -= sampleLength;
+	if (sampleLength > vibrateFunctionState.bufferBacking.size()) {
+		vibrateFunctionState.bufferBacking.reserve(sampleLength);
+		vibrateFunctionState.buffer->HapticBuffer = &vibrateFunctionState.bufferBacking[0];
+	}
+	vibrateFunctionState.buffer->BufferTime = state.submitTime;
+	vibrateFunctionState.buffer->NumSamples = sampleLength;
+	vibrateFunctionState.buffer->Terminated = state.remainingLength == 0;
+	for(int c = 0; c < sampleLength; c++, state.tailAt++) {
+		vibrateFunctionState.bufferBacking[c] = std::min(std::max(state.strength - state.tailAt*downStep, 0.f) * 256.f, 255.f);
+	}
+	vrapi_SetHapticVibrationBuffer( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, vibrateFunctionState.buffer );
+	state.submitTime += sampleLength * state.sampleDurationMs / 1000.f;
+
+	state.vibrating = state.remainingLength > 0;
+}
 
 // Call when vibrate() is called by developer
 static bool vibrateFunction(int controller, float strength, float duration) {
@@ -735,35 +766,25 @@ static bool vibrateFunction(int controller, float strength, float duration) {
 		return false;
 	vibrateFunctionState.deviceState[controller].canCall = false; // Don't call again or clear this at the end of the frame
 	if (vibrateFunctionState.deviceState[controller].mode == VIBRATE_BUFFERED) {
+		auto &state = vibrateFunctionState.deviceState[controller].buffered;
 		if (strength > 0) {
 			if (strength > 1) // Prevent overflow
 				strength = 1;
 			// How many samples must we submit to cover entire vibration?
-			uint32_t tailLength = duration*1000/vibrateFunctionState.deviceState[controller].buffered.sampleDurationMs;
-			if (tailLength == 0) // Prevent divide by zero
-				tailLength = 1;
-			uint32_t remainingLength = tailLength; // Count down to 0 as we generate samples
-			uint32_t tailAt = 0;                   // How many samples have we generated?
-			float downStep = strength/tailLength;  // Difference between one sample and the next
-			float submitTime = vibrateFunctionState.currentTime; // Timestamp for sample we are building currently
-			while (remainingLength > 0) {          // Iterate once per submission
-				uint32_t sampleLength = std::min(tailLength, vibrateFunctionState.deviceState[controller].buffered.samplesMax);
-				remainingLength -= sampleLength;
-				if (sampleLength > vibrateFunctionState.bufferBacking.size()) {
-					vibrateFunctionState.bufferBacking.reserve(sampleLength);
-					vibrateFunctionState.buffer->HapticBuffer = &vibrateFunctionState.bufferBacking[0];
-				}
-				vibrateFunctionState.buffer->BufferTime = submitTime;
-				vibrateFunctionState.buffer->NumSamples = sampleLength;
-				vibrateFunctionState.buffer->Terminated = remainingLength == 0;
-				for(int c = 0; c < sampleLength; c++, tailAt++) {
-					vibrateFunctionState.bufferBacking[c] = std::min(std::max(strength - tailAt*downStep, 0.f) * 256.f, 255.f);
-				}
-				vrapi_SetHapticVibrationBuffer( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, vibrateFunctionState.buffer );
-				submitTime += sampleLength * vibrateFunctionState.deviceState[controller].buffered.sampleDurationMs / 1000.f;
-			}
+			state.tailLength = duration*1000/state.sampleDurationMs;
+			if (state.tailLength == 0) // Prevent divide by zero
+				state.tailLength = 1;
+			state.remainingLength = state.tailLength; // Count down to 0 as we generate samples
+			state.tailAt = 0;                   // How many samples have we generated?
+			state.submitTime = vibrateFunctionState.currentTime; // Timestamp for sample we are building currently
+
+			state.vibrating = true;
+			state.strength = strength;
+
+			vibrateBufferedStep(controller);
 		} else { // Strength 0, no need to use buffers
 			vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[controller].device, strength );
+			state.vibrating = false;
 		}
 	} else {
 		vibrateFunctionState.deviceState[controller].simple.clearTime = vibrateFunctionState.currentTime + duration;
@@ -817,6 +838,10 @@ void vibrateFunctionPostframe() {
 			vibrateFunctionState.deviceState[idx].simple.clearTime <= vibrateFunctionState.currentTime) {
 			vrapi_SetHapticVibrationSimple( vibrateFunctionState.ovr, vibrateFunctionState.deviceState[idx].device, 0 );
 			vibrateFunctionState.deviceState[idx].simple.vibrating = false;
+		} else if (vibrateFunctionState.deviceState[idx].mode == VIBRATE_BUFFERED &&
+				   vibrateFunctionState.deviceState[idx].canCall &&
+			       vibrateFunctionState.deviceState[idx].buffered.vibrating) {
+			vibrateBufferedStep(idx);
 		}
 	}
 	vibrateFunctionState.anyFrames = true;
