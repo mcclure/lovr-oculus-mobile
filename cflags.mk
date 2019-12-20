@@ -1,5 +1,6 @@
 # This file is included in all .mk files to ensure their compilation flags are in sync
 # across debug and release builds.
+# NOTE: This file will not get translated to BUCK. For enabling ASAN on buck, update build_defs/mobile_oxx.bzl
 ENABLE_SANITIZER := 0
 
 LOCAL_CFLAGS	:= -DANDROID_NDK

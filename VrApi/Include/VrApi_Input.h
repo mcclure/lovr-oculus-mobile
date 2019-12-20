@@ -12,7 +12,6 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #ifndef OVR_VrApi_Input_h
 #define OVR_VrApi_Input_h
 
-
 #include <stddef.h>
 #include <stdint.h>
 #include "VrApi_Config.h"
@@ -25,7 +24,7 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 ///
 /// ovrButton_Home, ovrButton_VolUp, ovrButtonVolDown and ovrButton_Back are system buttons that are never
 /// reported to applications.
-/// ovrButton_Back button has system-level handling for long presses, but application-level handling for 
+/// ovrButton_Back button has system-level handling for long presses, but application-level handling for
 /// short-presses. Since a short-press is determined by the time interval between down and up events, the
 /// ovrButton_Back flag is only set when the back button comes up in less than the short-press time (0.25
 /// seconds). The ovrButton_Back flag always signals a short press and will only remain set for a single frame.
@@ -83,6 +82,7 @@ typedef enum ovrControllerType_
 	ovrControllerType_TrackedRemote	= ( 1 << 2 ),
 	ovrControllerType_Headset		= ( 1 << 3 ),
 	ovrControllerType_Gamepad		= ( 1 << 4 ),	//< Xbox in CAPI
+	ovrControllerType_Hand			= ( 1 << 5 ),
 
 	ovrControllerType_EnumSize		= 0x7fffffff
 } ovrControllerType;
@@ -130,6 +130,10 @@ typedef enum ovrControllerCapabilities_
 	ovrControllerCaps_EnumSize 					= 0x7fffffff
 } ovrControllerCapabilties;
 
+//-----------------------------------------------------------------
+// Tracked Remote Capabilities
+//-----------------------------------------------------------------
+
 /// Details about the Oculus Remote input device.
 typedef struct ovrInputTrackedRemoteCapabilities_
 {
@@ -162,14 +166,14 @@ typedef struct ovrInputTrackedRemoteCapabilities_
 } ovrInputTrackedRemoteCapabilities;
 
 /// Capabilities for the Head Mounted Tracking device (i.e. the headset).
-/// Note that the GearVR headset firmware always sends relative coordinates 
+/// Note that the GearVR headset firmware always sends relative coordinates
 /// with the initial touch position offset by (1280,720). There is no way
-/// to get purely raw coordinates from the headset. In addition, these 
-/// coordinates get adjusted for acceleration resulting in a slow movement 
-/// from one edge to the other the having a coordinate range of about 300 
+/// to get purely raw coordinates from the headset. In addition, these
+/// coordinates get adjusted for acceleration resulting in a slow movement
+/// from one edge to the other the having a coordinate range of about 300
 /// units, while a fast movement from edge to edge may result in a range
 /// close to 900 units.
-/// This means the headset touchpad needs to be handled differently than 
+/// This means the headset touchpad needs to be handled differently than
 /// the GearVR Controller touchpad.
 typedef struct ovrInputHeadsetCapabilities_
 {
@@ -206,6 +210,7 @@ typedef struct ovrInputGamepadCapabilities_
 	uint64_t			Reserved[20];
 } ovrInputGamepadCapabilities;
 
+
 /// The buffer data for playing haptics
 typedef struct ovrHapticBuffer_
 {
@@ -232,8 +237,8 @@ typedef struct ovrInputStateHeader_
 	double				TimeInSeconds;
 } ovrInputStateHeader;
 
-/// ovrInputStateTrackedRemote describes the complete input state for the 
-/// orientation-tracked remote. The TrackpadPosition coordinates returned 
+/// ovrInputStateTrackedRemote describes the complete input state for the
+/// orientation-tracked remote. The TrackpadPosition coordinates returned
 /// for the GearVR Controller are in raw, absolute units.
 typedef struct ovrInputStateTrackedRemote_
 {
@@ -250,10 +255,10 @@ typedef struct ovrInputStateTrackedRemote_
 	ovrVector2f         TrackpadPosition;
 
 	/// The percentage of max battery charge remaining.
-	uint8_t				BatteryPercentRemaining;	
+	uint8_t				BatteryPercentRemaining;
 	/// Increments every time the remote is recentered. If this changes, the application may need
 	/// to adjust its arm model accordingly.
-	uint8_t				RecenterCount;	
+	uint8_t				RecenterCount;
 	/// Reserved for future use.
 	uint16_t			Reserved;
 
@@ -274,7 +279,7 @@ typedef struct ovrInputStateTrackedRemote_
 } ovrInputStateTrackedRemote;
 
 
-/// ovrInputStateHeadset describes the complete input state for the 
+/// ovrInputStateHeadset describes the complete input state for the
 /// GearVR headset. The TrackpadPosition coordinates return for the
 /// headset are relative coordinates, centered at (1280,720). See the
 /// comments on ovrInputHeadsetCapabilities for more information.
@@ -314,6 +319,325 @@ typedef struct ovrInputStateGamepad_
 	// Reserved for future use.
 	uint64_t			Reserved[20];
 } ovrInputStateGamepad;
+
+
+//-----------------------------------------------------------------
+// Hand tracking
+//-----------------------------------------------------------------
+
+//-----------------------------------------------------------------
+// Hand capabilities
+typedef enum ovrHandCapabilities_
+{
+	ovrHandCaps_LeftHand			= ( 1 << 0 ),	// if set, this is the left hand
+	ovrHandCaps_RightHand			= ( 1 << 1 ),	// if set, this is the right hand
+	ovrHandCaps_EnumSize			= 0x7fffffff
+} ovrHandCapabilities;
+
+typedef enum ovrHandStateCapabilities_
+{
+	ovrHandStateCaps_PinchIndex		= ( 1 << 0 ),	// if set, index finger pinch is supported
+	ovrHandStateCaps_PinchMiddle	= ( 1 << 1 ),	// if set, middle finger pinch is supported
+	ovrHandStateCaps_PinchRing		= ( 1 << 2 ),	// if set, ring finger pinch is supported
+	ovrHandStateCaps_PinchPinky		= ( 1 << 3 ),	// if set, pinky finger pinch is supported
+	ovrHandStateCaps_EnumSize		= 0x7fffffff
+} ovrHandStateCapabilities;
+
+typedef struct ovrInputHandCapabilities_
+{
+	ovrInputCapabilityHeader	Header;
+
+	// Mask of hand capabilities described by ovrHandCapabilities
+	uint32_t					HandCapabilities;
+
+	// Mask of hand state capabilities described by ovrInputHandStateCapabilities
+	uint32_t					StateCapabilities;
+} ovrInputHandCapabilities;
+
+typedef enum ovrHandTrackingStatus_
+{
+	ovrHandTrackingStatus_Untracked	= 0,	// not tracked
+	ovrHandTrackingStatus_Tracked	= 1,	// tracked
+	ovrHandTrackingStatus_EnumSize = 0x7fffffff
+} ovrHandTrackingStatus;
+
+//-----------------------------------------------------------------
+// Hand state
+
+typedef enum ovrHandFingers_
+{
+	ovrHandFinger_Thumb		= 0,
+	ovrHandFinger_Index		= 1,
+	ovrHandFinger_Middle	= 2,
+	ovrHandFinger_Ring		= 3,
+	ovrHandFinger_Pinky		= 4,
+	ovrHandFinger_Max,
+	ovrHandFinger_EnumSize = 0x7fffffff
+} ovrHandFingers;
+
+typedef enum ovrHandPinchStrength_
+{
+	ovrHandPinchStrength_Index	= 0,	// hand is in the index finger pinch state
+	ovrHandPinchStrength_Middle	= 1,	// hand is in the middle finger pinch state
+	ovrHandPinchStrength_Ring	= 2,	// hand is in the ring finger pinch state
+	ovrHandPinchStrength_Pinky	= 3,	// hand is in the pinky finger pinch state
+	ovrHandPinchStrength_Max 	= 4,
+	ovrHandPinchStrength_EnumSize 	= 0x7fffffff
+} ovrHandPinchStrength;
+
+typedef int16_t ovrVertexIndex;
+
+typedef enum ovrHandBone_
+{
+	ovrHandBone_Invalid						= -1,
+	ovrHandBone_WristRoot 					= 0,	// root frame of the hand, where the wrist is located
+	ovrHandBone_ForearmStub					= 1,	// frame for user's forearm
+	ovrHandBone_Thumb0						= 2,	// thumb trapezium bone
+	ovrHandBone_Thumb1						= 3,	// thumb metacarpal bone
+	ovrHandBone_Thumb2						= 4,	// thumb proximal phalange bone
+	ovrHandBone_Thumb3						= 5,	// thumb distal phalange bone
+	ovrHandBone_Index1						= 6,	// index proximal phalange bone
+	ovrHandBone_Index2						= 7,	// index intermediate phalange bone
+	ovrHandBone_Index3						= 8,	// index distal phalange bone
+	ovrHandBone_Middle1						= 9,	// middle proximal phalange bone
+	ovrHandBone_Middle2						= 10,	// middle intermediate phalange bone
+	ovrHandBone_Middle3						= 11,	// middle distal phalange bone
+	ovrHandBone_Ring1						= 12,	// ring proximal phalange bone
+	ovrHandBone_Ring2						= 13,	// ring intermediate phalange bone
+	ovrHandBone_Ring3						= 14,	// ring distal phalange bone
+	ovrHandBone_Pinky0						= 15,	// pinky metacarpal bone
+	ovrHandBone_Pinky1						= 16,	// pinky proximal phalange bone
+	ovrHandBone_Pinky2						= 17,	// pinky intermediate phalange bone
+	ovrHandBone_Pinky3						= 18,	// pinky distal phalange bone
+	ovrHandBone_MaxSkinnable				= 19,
+
+	// Bone tips are position only. They are not used for skinning but useful for hit-testing.
+	// NOTE: ovrHandBone_ThumbTip == ovrHandBone_MaxSkinnable since the extended tips need to be contiguous
+	ovrHandBone_ThumbTip					= ovrHandBone_MaxSkinnable + 0,	// tip of the thumb
+	ovrHandBone_IndexTip					= ovrHandBone_MaxSkinnable + 1,	// tip of the index finger
+	ovrHandBone_MiddleTip					= ovrHandBone_MaxSkinnable + 2,	// tip of the middle finger
+	ovrHandBone_RingTip						= ovrHandBone_MaxSkinnable + 3,	// tip of the ring finger
+	ovrHandBone_PinkyTip					= ovrHandBone_MaxSkinnable + 4,	// tip of the pinky
+	ovrHandBone_Max 						= ovrHandBone_MaxSkinnable + 5,
+	ovrHandBone_EnumSize 					= 0x7fff
+} ovrHandBone;
+typedef int16_t ovrHandBoneIndex;
+
+typedef enum ovrConfidence_
+{
+	ovrConfidence_LOW		= 0x00000000,
+	ovrConfidence_HIGH		= 0x3f800000
+} ovrConfidence;
+
+/// Unified version struct
+typedef enum ovrHandVersion_
+{
+	ovrHandVersion_1						= 0xdf000001,	/// Current
+
+
+	ovrHandVersion_EnumSize 				= 0x7fffffff
+} ovrHandVersion;
+
+// ovrBoneCapsule
+//    _---_
+//  -"     "-
+// /         \
+// |----A----|
+// |    |    |
+// |    |    |
+// |    |-r->|
+// |    |    |
+// |    |    |
+// |----B----|
+// \         /
+//  -.     .-
+//    '---'
+typedef struct ovrBoneCapsule_
+{
+	// Index of the bone this capsule is on.
+	ovrHandBoneIndex 	BoneIndex;
+	// Points at either end of the cylinder inscribed in the capsule. Also the center points for
+	// spheres at either end of the capsule. Points A and B in the diagram above.
+	ovrVector3f			Points[2];
+	// The radius of the capsule cylinder and of the half-sphere caps on the ends of the capsule.
+	float				Radius;
+} ovrBoneCapsule;
+
+typedef enum ovrHandConstants_
+{
+	ovrHand_MaxVertices				= 3000,
+	ovrHand_MaxIndices				= ovrHand_MaxVertices * 6,
+	ovrHand_MaxFingers				= ovrHandFinger_Max,
+	ovrHand_MaxPinchStrengths		= ovrHandPinchStrength_Max,
+	ovrHand_MaxSkinnableBones		= ovrHandBone_MaxSkinnable,
+	ovrHand_MaxBones				= ovrHandBone_Max,
+	ovrHand_MaxCapsules				= 19,
+	ovrHand_EnumSize 				= 0x7fffffff
+} ovrHandConstants;
+
+typedef enum ovrInputStateHandStatus_
+{
+	ovrInputStateHandStatus_PointerValid			= ( 1 << 1 ),	// if this is set the PointerPose and PinchStrength contain valid data, otherwise they should not be used.
+	ovrInputStateHandStatus_IndexPinching			= ( 1 << 2 ),	// if this is set the pinch gesture for that finger is on
+	ovrInputStateHandStatus_MiddlePinching			= ( 1 << 3 ),	// if this is set the pinch gesture for that finger is on
+	ovrInputStateHandStatus_RingPinching			= ( 1 << 4 ),	// if this is set the pinch gesture for that finger is on
+	ovrInputStateHandStatus_PinkyPinching			= ( 1 << 5 ),	// if this is set the pinch gesture for that finger is on
+	ovrInputStateHandStatus_SystemGestureProcessing	= ( 1 << 6 ),	// if this is set the hand is currently processing a system gesture
+	ovrInputStateHandStatus_EnumSize = 0x7fffffff
+} ovrInputStateHandStatus;
+
+// Pass this structure to vrapi_GetCurrentInputState() with a device id for a hand to get the current,
+// second-order state of the hand.
+typedef struct ovrInputStateHand_
+{
+	ovrInputStateHeader			Header;
+
+	// For each pinch type, indicates how far the fingers are into that pinch state. Range 0.0 to 1.0, where 1.0 is fully pinching.
+	// Indexable via the ovrHandPinchStrength enums.
+	float						PinchStrength[ovrHandPinchStrength_Max];
+
+	// World space position and orientation of the pointer attached to the hand. This describes
+	// a pointing ray useful for UI interactions.
+	// Note that the pointer pose is not valid unless the ovrInputStateHandStatus_PointerValid flag
+	// is set in the InputStateStatus field.
+	ovrPosef					PointerPose;
+
+	// Status flags for this hand's input state. Mask of ovrInputStateHandStatus flags.
+	uint32_t					InputStateStatus;
+} ovrInputStateHand;
+
+//-----------------------------------------------------------------
+// Hand pose
+
+// Header for all hand pose structures.
+typedef struct ovrHandPoseHeader_
+{
+	// The version number of the Pose structure.
+	// When requesting a pose with vrapi_GetHandPose this MUST be set to the proper version.
+	// If this is not set to a known version, or if the version it is set to is no longer
+	// supported for the current SDK, ovr_GetHand* functions will return ovrError_InvalidParameter.
+	ovrHandVersion			Version;
+
+	/// Reserved for later use
+	double					Reserved;
+} ovrHandPoseHeader;
+
+// Pass this structure to vrapi_GetHandPose() to get the pose of the hand at a particular time.
+typedef struct ovrHandPose_
+{
+	ovrHandPoseHeader			Header;
+
+	// Status of tracking for this pose. This is not a bit field, but an exclusive state.
+	ovrHandTrackingStatus		Status;
+
+	// Root pose of the hand in world space. Not to be confused with the root bone's transform.
+	// The root bone can still be offset from this by the skeleton's rest pose.
+	ovrPosef					RootPose;
+
+	// Current rotation of each bone.
+	ovrQuatf					BoneRotations[ovrHandBone_Max];
+
+	// Time stamp for the pose that was requested in global system time.
+	double						RequestedTimeStamp;
+
+	// Time stamp of the captured sample that the pose was extrapolated from.
+	double						SampleTimeStamp;
+
+	// Tracking confidence.
+	// This is the amount of confidence that the system has that the entire hand pose is correct.
+	ovrConfidence				HandConfidence;
+
+	// Scale of the hand relative to the original hand model. This value may change at any time
+	// based on the size of the hand being tracked. The default is 1.0. 
+	float						HandScale;
+
+	// Per-finger tracking confidence.
+	// This is the amount of confidence the system has that the individual finger poses are correct.
+	ovrConfidence				FingerConfidences[ovrHandFinger_Max];
+} ovrHandPose;
+
+OVR_VRAPI_EXPORT ovrResult vrapi_GetHandPose(	ovrMobile * ovr, const ovrDeviceID deviceID,
+												const double absTimeInSeconds,
+												ovrHandPoseHeader * header );
+
+//-----------------------------------------------------------------
+// Hand skeleton
+
+// Header for all mesh structures.
+typedef struct ovrHandSkeletonHeader_
+{
+	// The version number of the skeleton structure.
+	ovrHandVersion		Version;
+} ovrHandSkeletonHeader;
+
+typedef struct ovrHandSkeleton_V1_
+{
+	// Version of the mesh structure.
+	ovrHandSkeletonHeader	Header;
+
+	// The number of bones in this skeleton.
+	uint32_t				NumBones;
+
+	// The number of capsules on this skeleton.
+	uint32_t				NumCapsules;
+
+	// reserved for future use
+	uint32_t				Reserved[5];
+
+	// An array of count NumBones transforms for each bone in local (parent) space.
+	ovrPosef 				BonePoses[ovrHand_MaxBones];
+
+	// An array of count NumBones indicating the parent bone index for each bone.
+	ovrHandBoneIndex		BoneParentIndices[ovrHand_MaxBones];
+
+	// An array of count NumCapsules ovrHandCapsules. Note that the number of capsules
+	// is not necessarily the same as the number of bones.
+	ovrBoneCapsule  		Capsules[ovrHand_MaxCapsules];
+} ovrHandSkeleton;
+
+OVR_VRAPI_EXPORT ovrResult vrapi_GetHandSkeleton( ovrMobile * ovr, const ovrHandedness handedness, ovrHandSkeletonHeader * header );
+
+
+//-----------------------------------------------------------------
+// Hand mesh
+
+// Header for all mesh structures.
+typedef struct ovrHandMeshHeader_
+{
+	// The version number of the mesh structure.
+	ovrHandVersion		Version;
+} ovrHandMeshHeader;
+
+typedef struct ovrHandMesh_V1_
+{
+	// All mesh structures will start with this header and the version.
+	ovrHandMeshHeader		Header;
+
+	// Number of unique vertices in the mesh.
+	uint32_t				NumVertices;
+	// Number of unique indices in the mesh.
+	uint32_t				NumIndices;
+
+	// Reserved for future use
+	uint32_t				Reserved[13];
+
+	// An array of count NumVertices positions for each vertex.
+	ovrVector3f				VertexPositions[ovrHand_MaxVertices];
+	// An array of count NumIndices of vertex indices specifying triangles that make up the mesh.
+	ovrVertexIndex			Indices[ovrHand_MaxIndices];
+	// An array of count NumVertices of normals for each vertex.
+	ovrVector3f				VertexNormals[ovrHand_MaxVertices];
+	// An array of count NumVertices of texture coordinates for each vertex.
+	ovrVector2f				VertexUV0[ovrHand_MaxVertices];
+	// An array of count NumVertices of blend indices for each of the bones that each vertex is weighted to.
+	// Always valid. An index of < 0 means no blend weight.
+	ovrVector4s				BlendIndices[ovrHand_MaxVertices];
+	// An array of count NumVertices of weights for each of the bones affecting each vertex.
+	ovrVector4f				BlendWeights[ovrHand_MaxVertices];
+} ovrHandMesh;
+
+OVR_VRAPI_EXPORT ovrResult vrapi_GetHandMesh( ovrMobile * ovr, const ovrHandedness handedness, ovrHandMeshHeader * header );
+
 
 #if defined( __cplusplus )
 extern "C" {
@@ -356,6 +680,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_SetHapticVibrationSimple( ovrMobile * ovr, cons
 /// Input: ovr, deviceID, pointer to a hapticBuffer with filled in data.
 OVR_VRAPI_EXPORT ovrResult vrapi_SetHapticVibrationBuffer( ovrMobile * ovr, const ovrDeviceID deviceID, const ovrHapticBuffer * hapticBuffer );
 
+
 /// Returns the current input state for controllers, without positional tracking info.
 ///
 /// Input: ovr, deviceID, pointer to a capabilities structure (with Type field set)
@@ -365,7 +690,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_SetHapticVibrationBuffer( ovrMobile * ovr, cons
 ///     corresponds to the type of structure being passed.
 ///     The pointer to the ovrInputStateHeader should be a pointer to a Header field in
 ///     structure matching the value of the Type field.
-/// 
+///
 ///     ovrInputStateTrackedRemote state;
 ///     state.Header.Type = ovrControllerType_TrackedRemote;
 ///     if ( vrapi_GetCurrentInputState( ovr, remoteDeviceID, &state.Header ) >= 0 ) {
@@ -376,7 +701,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_GetCurrentInputState( ovrMobile * ovr, const ov
 /// in seconds. Pass absTime value of 0.0 to request the most recent sensor reading.
 /// Input: ovr, device ID, prediction time
 /// Output: ovrTracking structure containing the device's predicted tracking state.
-OVR_VRAPI_EXPORT ovrResult vrapi_GetInputTrackingState( ovrMobile * ovr, const ovrDeviceID deviceID, 
+OVR_VRAPI_EXPORT ovrResult vrapi_GetInputTrackingState( ovrMobile * ovr, const ovrDeviceID deviceID,
 														const double absTimeInSeconds, ovrTracking * tracking );
 
 /// Can be called from any thread while in VR mode. Recenters the tracked remote to the current yaw of the headset.
@@ -384,7 +709,7 @@ OVR_VRAPI_EXPORT ovrResult vrapi_GetInputTrackingState( ovrMobile * ovr, const o
 /// Output: None
 OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_RecenterInputPose( ovrMobile * ovr, const ovrDeviceID deviceID ) );
 
-/// Enable or disable emulation for the GearVR Controller. 
+/// Enable or disable emulation for the GearVR Controller.
 /// Emulation is false by default.
 /// If emulationOn == true, then the back button and touch events on the GearVR Controller will be sent through the Android
 /// dispatchKeyEvent and dispatchTouchEvent path as if they were from the headset back button and touchpad.
@@ -395,6 +720,5 @@ OVR_VRAPI_EXPORT ovrResult vrapi_SetRemoteEmulation( ovrMobile * ovr, const bool
 #if defined( __cplusplus )
 }   // extern "C"
 #endif
-
 
 #endif	// OVR_VrApi_Input_h

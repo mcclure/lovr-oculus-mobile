@@ -2,7 +2,7 @@
 
 Filename	:	VrCubeWorld_NativeActivity.c
 Content		:	This sample uses the Android NativeActivity class. This sample does
-				not use the application framework and also does not use LibOVRKernel.
+				not use the application framework.
 				This sample only uses the VrApi.
 Created		:	March, 2015
 Authors		:	J.M.P. van Waveren
@@ -63,11 +63,11 @@ typedef void (GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(G
 #include "VrApi_Input.h"
 
 #define DEBUG 1
-#define LOG_TAG "VrCubeWorld"
+#define OVR_LOG_TAG "VrCubeWorld"
 
-#define ALOGE(...) __android_log_print( ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__ )
+#define ALOGE(...) __android_log_print( ANDROID_LOG_ERROR, OVR_LOG_TAG, __VA_ARGS__ )
 #if DEBUG
-#define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__ )
+#define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, OVR_LOG_TAG, __VA_ARGS__ )
 #else
 #define ALOGV(...)
 #endif
@@ -383,7 +383,7 @@ ovrGeometry
 
 typedef struct
 {
-	GLuint			Index;
+	GLint			Index;
  	GLint			Size;
  	GLenum			Type;
  	GLboolean		Normalized;
@@ -1811,6 +1811,8 @@ static void ovrApp_HandleInput( ovrApp * app )
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
+				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_B;
+				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Y;
 			}
 		}
 		else if ( cap.Type == ovrControllerType_Gamepad )

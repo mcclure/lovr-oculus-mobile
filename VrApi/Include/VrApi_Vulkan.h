@@ -54,6 +54,9 @@ typedef struct ovrSystemCreateInfoVulkan_
 	VkDevice			Device;
 } ovrSystemCreateInfoVulkan;
 
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrSystemCreateInfoVulkan, 12 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrSystemCreateInfoVulkan, 24 );
+
 /// Initializes the API for Vulkan support.
 /// This is lightweight and does not create any threads.
 /// This is called after vrapi_Initialize and before texture swapchain creation, or
@@ -66,6 +69,10 @@ OVR_VRAPI_EXPORT void vrapi_DestroySystemVulkan();
 
 /// Get the VkImage at the given index within the chain.
 OVR_VRAPI_EXPORT VkImage vrapi_GetTextureSwapChainBufferVulkan( ovrTextureSwapChain * chain, int index );
+
+/// Get the foveation VkImage and corresponding size at the given index within the chain.
+/// In case of failure, this returns a null image handle and zero width and height.
+OVR_VRAPI_EXPORT ovrResult vrapi_GetTextureSwapChainBufferFoveationVulkan( ovrTextureSwapChain * chain, int index, VkImage * image, uint32_t * imageWidth, uint32_t * imageHeight );
 
 #if defined( __cplusplus )
 }	// extern "C"

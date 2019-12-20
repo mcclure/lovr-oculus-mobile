@@ -16,6 +16,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := vrapi
 
+
 LOCAL_SRC_FILES := ../../../Libs/Android/$(TARGET_ARCH_ABI)/$(BUILDTYPE)/lib$(LOCAL_MODULE).so
 
 # only export public headers
@@ -26,4 +27,3 @@ LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)/../../../Include
 ifneq (,$(wildcard $(LOCAL_PATH)/$(LOCAL_SRC_FILES)))
   include $(PREBUILT_SHARED_LIBRARY)
 endif
-

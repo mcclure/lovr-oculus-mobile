@@ -8,7 +8,7 @@ Authors     :
 Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All rights reserved.
 
 *************************************************************************************/
-package com.oculus.gles3jni;
+package com.oculus.sdk.vrcubeworldvk;
 
 /*
 When using NativeActivity, we currently need to handle loading of dependent 
