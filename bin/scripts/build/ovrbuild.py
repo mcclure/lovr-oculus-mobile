@@ -78,7 +78,7 @@ class CommandOptions:
         )
     parser.add_argument(
         '-log',
-        type=str, 
+        type=str,
         help="specify gradle log level [quiet,lifecycle,info,debug]",
         dest='loglevel',
         default='quiet'
@@ -134,7 +134,7 @@ class CommandOptions:
         help="Perform a Gradle build scan",
         dest='scan',
         action='store_true',
-        )    
+        )
     parser.add_argument(
         '--no-build-cache',
         help="Disable Gradle build cache",
@@ -155,7 +155,8 @@ class CommandOptions:
         )
 
 class BuildFailedException(Exception):
-    pass
+    def __init__(self, message):
+        self.message = message
 
 class NoSourceException(Exception):
     pass
@@ -213,11 +214,12 @@ def call( cmdline, targetDir=".", suppressErrors=False, grabStdOut=False, verbos
             # will throw an exception.  Rather than have the script determine whether a source build is necessary before
             # executing the command, we choose to run it anyway and catch the exception,
             gradleTask = "clean" if command_options.should_clean else "assembleDebug" if command_options.is_debug_build else "assembleRelease"
-            if ("Task '%s' not found in root project 'OculusRoot'" % gradleTask) in err:
+            err_decoded = err.decode("utf-8")
+            if ("Task '%s' not found in root project 'OculusRoot'" % gradleTask) in err_decoded:
               raise NoSourceException( targetDir )
             error_string = "command (%s) failed with returncode: %d" % (cmdline, p.returncode)
             if verbose:
-                print(err)
+                print(err_decoded)
             if suppressErrors:
                 print(error_string)
             else:
@@ -328,4 +330,3 @@ def build():
     except BuildFailedException as e:
         print( e.message )
         exit(-1)
-

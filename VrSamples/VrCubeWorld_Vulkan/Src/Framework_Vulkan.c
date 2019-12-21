@@ -10,6 +10,7 @@ Copyright	:	Copyright (c) Facebook Technologies, LLC and its affiliates. All rig
 *************************************************************************************/
 
 #include "Framework_Vulkan.h"
+#include <sys/system_properties.h>
 
 static void ParseExtensionString( char * extensionNames, uint32_t * numExtensions, const char * extensionArrayPtr[], const uint32_t arrayCount )
 {
@@ -35,6 +36,35 @@ static void ParseExtensionString( char * extensionNames, uint32_t * numExtension
 	*numExtensions = extensionCount;
 }
 
+static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback( VkDebugReportFlagsEXT msgFlags, VkDebugReportObjectTypeEXT objType, uint64_t srcObject, size_t location,
+									int32_t msgCode, const char * pLayerPrefix, const char * pMsg, void * pUserData )
+{
+	const char * reportType = "Unknown";
+	if ( ( msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) != 0 )
+	{
+		reportType = "Error";
+	}
+	else if ( ( msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT ) == 0 )
+	{
+		reportType = "Warning";
+	}
+	else if ( ( msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT ) == 0 )
+	{
+		reportType = "Performance Warning";
+	}
+	else if ( ( msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT ) == 0 )
+	{
+		reportType = "Information";
+	}
+	else if ( ( msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT ) == 0 )
+	{
+		reportType = "Debug";
+	}
+
+	ALOGE( "%s: [%s] Code %d : %s", reportType, pLayerPrefix, msgCode, pMsg );
+	return VK_FALSE;
+}
+
 /*
 ================================================================================================================================
 
@@ -50,6 +80,12 @@ bool ovrVkInstance_Create( ovrVkInstance * instance, const char * requiredExtens
 {
 	memset( instance, 0, sizeof( ovrVkInstance ) );
 
+#if defined( _DEBUG )
+	instance->validate = VK_TRUE;
+#else
+	instance->validate = VK_FALSE;
+#endif
+
 	instance->loader = dlopen( VULKAN_LOADER, RTLD_NOW | RTLD_LOCAL );
 	if ( instance->loader == NULL )
 	{
@@ -64,37 +100,67 @@ bool ovrVkInstance_Create( ovrVkInstance * instance, const char * requiredExtens
 	char * extensionNames = (char *)requiredExtensionNames;
 
 	// Add any additional instance extensions.
-	//strcat_s( extensionNames, " VK_EXT_debug_report" );
+	// TODO: Differentiate between required and validation/debug.
+	if ( instance->validate )
+	{
+		strcat( extensionNames, " "VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
+	}
+	strcat( extensionNames, " "VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
 
 	const char * enabledExtensionNames[32] = { 0 };
 	uint32_t enabledExtensionCount = 0;
 
 	ParseExtensionString( extensionNames, &enabledExtensionCount, enabledExtensionNames, 32 );
 #if defined( _DEBUG )
-	ALOGV( "Requested Extensions: " );
+	ALOGV( "Enabled Extensions: " );
 	for ( uint32_t i = 0; i < enabledExtensionCount; i++ )
 	{
 		ALOGV( "\t(%d):%s", i, enabledExtensionNames[i] );
 	}
 #endif
 
+	// TODO: Differentiate between required and validation/debug.
 	static const char * requestedLayers[] =
 	{
-#if defined( _DEBUG )
+		"VK_LAYER_LUNARG_core_validation",
+		"VK_LAYER_LUNARG_parameter_validation",
+		"VK_LAYER_LUNARG_object_tracker",
+		"VK_LAYER_GOOGLE_threading",
+		"VK_LAYER_GOOGLE_unique_objects"
+#if USE_API_DUMP == 1
 		"VK_LAYER_LUNARG_api_dump",
 #endif
 	};
+	const uint32_t requestedCount = sizeof( requestedLayers ) / sizeof( requestedLayers[0] );
 
 	// Request debug layers
 	const char * enabledLayerNames[32] = { 0 };
-	uint32_t enabledLayerCount = sizeof( requestedLayers ) / sizeof( requestedLayers[0] );
-	for ( uint32_t i = 0; i < enabledLayerCount; i++ )
+	uint32_t enabledLayerCount = 0;
+	if ( instance->validate )
 	{
-		enabledLayerNames[i] = requestedLayers[i];
+		uint32_t availableLayerCount = 0;
+		VK( instance->vkEnumerateInstanceLayerProperties( &availableLayerCount, NULL ) );
+
+		VkLayerProperties * availableLayers = malloc( availableLayerCount * sizeof( VkLayerProperties ) );
+		VK( instance->vkEnumerateInstanceLayerProperties( &availableLayerCount, availableLayers ) );
+
+		for ( uint32_t i = 0; i < requestedCount; i++ )
+		{
+			for ( uint32_t j = 0; j < availableLayerCount; j++ )
+			{
+				if ( strcmp( requestedLayers[i], availableLayers[j].layerName ) == 0 )
+				{
+					enabledLayerNames[enabledLayerCount++] = requestedLayers[i];
+					break;
+				}
+			}
+		}
+
+		free( availableLayers );
 	}
 
 #if defined( _DEBUG )
-	ALOV( "Requested Layers " );
+	ALOV( "Enabled Layers " );
 	for ( uint32_t i = 0; i < enabledLayerCount; i++ )
 	{
 		ALOGV( "\t(%d):%s", i, enabledLayerNames[i] );
@@ -111,6 +177,14 @@ bool ovrVkInstance_Create( ovrVkInstance * instance, const char * requiredExtens
 	ALOGV( "--------------------------------\n" );
 
 	// Create the instance.
+
+	VkDebugReportCallbackCreateInfoEXT debugReportCallbackCreateInfo;
+	debugReportCallbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+	debugReportCallbackCreateInfo.pNext = NULL;
+	debugReportCallbackCreateInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+	debugReportCallbackCreateInfo.pfnCallback = DebugReportCallback;
+	debugReportCallbackCreateInfo.pUserData = NULL;
+
 	VkApplicationInfo app;
 	app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app.pNext = NULL;
@@ -122,7 +196,9 @@ bool ovrVkInstance_Create( ovrVkInstance * instance, const char * requiredExtens
 
 	VkInstanceCreateInfo instanceCreateInfo;
 	instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	instanceCreateInfo.pNext = NULL;
+	// if validation is enabled, pass the VkDebugReportCallbackCreateInfoEXT through
+	// to vkCreateInstance so validation is enabled for the vkCreateInstance call.
+	instanceCreateInfo.pNext = ( instance->validate ) ? &debugReportCallbackCreateInfo : NULL;
 	instanceCreateInfo.flags = 0;
 	instanceCreateInfo.pApplicationInfo = &app;
 	instanceCreateInfo.enabledLayerCount = enabledLayerCount;
@@ -136,7 +212,9 @@ bool ovrVkInstance_Create( ovrVkInstance * instance, const char * requiredExtens
 	GET_INSTANCE_PROC_ADDR( vkDestroyInstance );
 	GET_INSTANCE_PROC_ADDR( vkEnumeratePhysicalDevices );
 	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceFeatures );
+	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceFeatures2KHR );
 	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceProperties );
+	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceProperties2KHR );
 	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceMemoryProperties );
 	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceQueueFamilyProperties );
 	GET_INSTANCE_PROC_ADDR( vkGetPhysicalDeviceFormatProperties );
@@ -146,11 +224,26 @@ bool ovrVkInstance_Create( ovrVkInstance * instance, const char * requiredExtens
 	GET_INSTANCE_PROC_ADDR( vkCreateDevice );
 	GET_INSTANCE_PROC_ADDR( vkGetDeviceProcAddr );
 
+	if ( instance->validate )
+	{
+		GET_INSTANCE_PROC_ADDR( vkCreateDebugReportCallbackEXT );
+		GET_INSTANCE_PROC_ADDR( vkDestroyDebugReportCallbackEXT );
+		if ( instance->vkCreateDebugReportCallbackEXT != NULL )
+		{
+			VK( instance->vkCreateDebugReportCallbackEXT( instance->instance, &debugReportCallbackCreateInfo, VK_ALLOCATOR, &instance->debugReportCallback ) );
+		}
+	}
+
 	return true;
 }
 
 void ovrVkInstance_Destroy( ovrVkInstance * instance )
 {
+	if ( instance->validate && instance->vkDestroyDebugReportCallbackEXT != NULL )
+	{
+		VC( instance->vkDestroyDebugReportCallbackEXT( instance->instance, instance->debugReportCallback, VK_ALLOCATOR ) );
+	}
+
 	VC( instance->vkDestroyInstance( instance->instance, VK_ALLOCATOR ) );
 
 	if ( instance->loader != NULL )
@@ -178,6 +271,13 @@ bool ovrVkDevice_SelectPhysicalDevice( ovrVkDevice * device, ovrVkInstance * ins
 {
 	memset( device, 0, sizeof( ovrVkDevice ) );
 
+	char value[128];
+	bool enableMultiview = true;
+	if ( __system_property_get( "debug.oculus.cube.mv", value ) > 0 )
+	{
+		enableMultiview = !( atoi( value ) == 0 );
+	}
+
 	device->instance = instance;
 
 	char * extensionNames = (char *)requiredExtensionNames;
@@ -191,27 +291,21 @@ bool ovrVkDevice_SelectPhysicalDevice( ovrVkDevice * device, ovrVkInstance * ins
 	}
 #endif
 
+	// TODO: Differentiate between required and validation/debug.
 	static const char * requestedLayers[] =
 	{
-#if defined( _DEBUG )
+		"VK_LAYER_LUNARG_core_validation",
+		"VK_LAYER_LUNARG_parameter_validation",
+		"VK_LAYER_LUNARG_object_tracker",
+		"VK_LAYER_GOOGLE_threading",
+		"VK_LAYER_GOOGLE_unique_objects"
+#if USE_API_DUMP == 1
 		"VK_LAYER_LUNARG_api_dump",
 #endif
 	};
+	const int requestedCount = sizeof( requestedLayers ) / sizeof( requestedLayers[0] );
 
-	// Request debug layers
-	device->enabledLayerCount = sizeof( requestedLayers ) / sizeof( requestedLayers[0] );
-	for ( uint32_t i = 0; i < device->enabledLayerCount; i++ )
-	{
-		device->enabledLayerNames[i] = requestedLayers[i];
-	}
-
-#if defined( _DEBUG )
-	ALOV( "Requested Layers " );
-	for ( uint32_t i = 0; i < device->enabledLayerCount; i++ )
-	{
-		ALOGV( "\t(%d):%s", i, device->enabledLayerNames[i] );
-	}
-#endif
+	device->enabledLayerCount = 0;
 
 	uint32_t physicalDeviceCount = 0;
 	VK( instance->vkEnumeratePhysicalDevices( instance->instance, &physicalDeviceCount, NULL ) );
@@ -298,7 +392,7 @@ bool ovrVkDevice_SelectPhysicalDevice( ovrVkDevice * device, ovrVkInstance * ins
 
 		// Check the device extensions.
 		bool requiredExtensionsAvailable = true;
-#if 0
+
 		{
 			uint32_t availableExtensionCount = 0;
 			VK( instance->vkEnumerateDeviceExtensionProperties( physicalDevices[physicalDeviceIndex], NULL, &availableExtensionCount, NULL ) );
@@ -306,11 +400,20 @@ bool ovrVkDevice_SelectPhysicalDevice( ovrVkDevice * device, ovrVkInstance * ins
 			VkExtensionProperties * availableExtensions = (VkExtensionProperties *) malloc( availableExtensionCount * sizeof( VkExtensionProperties ) );
 			VK( instance->vkEnumerateDeviceExtensionProperties( physicalDevices[physicalDeviceIndex], NULL, &availableExtensionCount, availableExtensions ) );
 
-			// TODO: Check that the extensions exist.
+			for ( int extensionIdx = 0; extensionIdx < availableExtensionCount; extensionIdx++ )
+			{
+				if ( strcmp( availableExtensions[extensionIdx].extensionName, VK_KHR_MULTIVIEW_EXTENSION_NAME ) == 0 )
+				{
+					device->supportsMultiview = true && enableMultiview;
+				}
+				if ( strcmp( availableExtensions[extensionIdx].extensionName, VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME ) == 0 )
+				{
+					device->supportsFragmentDensity = true;
+				}
+			}
 
 			free( availableExtensions );
 		}
-#endif
 
 		if ( !requiredExtensionsAvailable )
 		{
@@ -319,27 +422,36 @@ bool ovrVkDevice_SelectPhysicalDevice( ovrVkDevice * device, ovrVkInstance * ins
 			continue;
 		}
 
-		// Check the device layers.
-		bool requiredLayersAvailable = true;
+		// Enable requested device layers, if available.
+		if ( instance->validate )
 		{
-#if 0
 			uint32_t availableLayerCount = 0;
 			VK( instance->vkEnumerateDeviceLayerProperties( physicalDevices[physicalDeviceIndex], &availableLayerCount, NULL ) );
 
-			VkLayerProperties * availableLayers = (VkLayerProperties *) malloc( availableLayerCount * sizeof( VkLayerProperties ) );
+			VkLayerProperties * availableLayers = malloc( availableLayerCount * sizeof( VkLayerProperties ) );
 			VK( instance->vkEnumerateDeviceLayerProperties( physicalDevices[physicalDeviceIndex], &availableLayerCount, availableLayers ) );
 
-			// TODO: Check that the layers exist.
+			for ( uint32_t i = 0; i < requestedCount; i++ )
+			{
+				for ( uint32_t j = 0; j < availableLayerCount; j++ )
+				{
+					if ( strcmp( requestedLayers[i], availableLayers[j].layerName ) == 0 )
+					{
+						device->enabledLayerNames[device->enabledLayerCount++] = requestedLayers[i];
+						break;
+					}
+				}
+			}
 
 			free( availableLayers );
-#endif
-		}
 
-		if ( !requiredLayersAvailable )
-		{
-			ALOGV( "Required device layers not supported.\n" );
-			free( queueFamilyProperties );
-			continue;
+#if defined( _DEBUG )
+			ALOV( "Enabled Layers " );
+			for ( uint32_t i = 0; i < device->enabledLayerCount; i++ )
+			{
+				ALOGV( "\t(%d):%s", i, device->enabledLayerNames[i] );
+			}
+#endif
 		}
 
 		device->physicalDevice = physicalDevices[physicalDeviceIndex];
@@ -347,10 +459,54 @@ bool ovrVkDevice_SelectPhysicalDevice( ovrVkDevice * device, ovrVkInstance * ins
 		device->queueFamilyProperties = queueFamilyProperties;
 		device->workQueueFamilyIndex = workQueueFamilyIndex;
 		device->presentQueueFamilyIndex = presentQueueFamilyIndex;
+		device->physicalDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+		device->physicalDeviceFeatures.pNext = NULL;
+		device->physicalDeviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		device->physicalDeviceProperties.pNext = NULL;
 
-		VC( instance->vkGetPhysicalDeviceFeatures( physicalDevices[physicalDeviceIndex], &device->physicalDeviceFeatures ) );
-		VC( instance->vkGetPhysicalDeviceProperties( physicalDevices[physicalDeviceIndex], &device->physicalDeviceProperties ) );
+		VkPhysicalDeviceMultiviewFeatures deviceMultiviewFeatures;
+		VkPhysicalDeviceMultiviewProperties deviceMultiviewProperties;
+
+		if ( device->supportsMultiview )
+		{
+			// device feature request, including sample extensions
+			deviceMultiviewFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES;
+			deviceMultiviewFeatures.pNext = NULL;
+			deviceMultiviewFeatures.multiview = VK_FALSE;
+			deviceMultiviewFeatures.multiviewGeometryShader = VK_FALSE;
+			deviceMultiviewFeatures.multiviewTessellationShader = VK_FALSE;
+			device->physicalDeviceFeatures.pNext = &deviceMultiviewFeatures;
+
+			// device properties request, including sample extensions
+			deviceMultiviewProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES;
+			deviceMultiviewProperties.pNext = NULL;
+			deviceMultiviewProperties.maxMultiviewViewCount = 0;
+			deviceMultiviewProperties.maxMultiviewInstanceIndex = 0;
+			device->physicalDeviceProperties.pNext = &deviceMultiviewProperties;
+		}
+
+		VC( instance->vkGetPhysicalDeviceFeatures2KHR( physicalDevices[physicalDeviceIndex], &device->physicalDeviceFeatures ) );
+		VC( instance->vkGetPhysicalDeviceProperties2KHR( physicalDevices[physicalDeviceIndex], &device->physicalDeviceProperties ) );
 		VC( instance->vkGetPhysicalDeviceMemoryProperties( physicalDevices[physicalDeviceIndex], &device->physicalDeviceMemoryProperties ) );
+
+		if ( device->supportsMultiview )
+		{
+			ALOGV( "Device %s multiview rendering, with %d views and %u max instances", deviceMultiviewFeatures.multiview ? "supports" : "does not support",
+			       deviceMultiviewProperties.maxMultiviewViewCount, deviceMultiviewProperties.maxMultiviewInstanceIndex );
+
+			// only enable multiview for the app if deviceMultiviewFeatures.multiview is 1.
+			device->supportsMultiview = deviceMultiviewFeatures.multiview;
+		}
+
+		if ( device->supportsMultiview )
+		{
+			device->enabledExtensionNames[device->enabledExtensionCount++] = VK_KHR_MULTIVIEW_EXTENSION_NAME;
+		}
+
+		if ( device->supportsFragmentDensity )
+		{
+			device->enabledExtensionNames[device->enabledExtensionCount++] = VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME;
+		}
 
 		break;
 	}
@@ -383,7 +539,7 @@ bool ovrVkDevice_Create( ovrVkDevice * device, ovrVkInstance * instance )
 	//
 	// Create the logical device
 	//
-	const uint32_t discreteQueuePriorities = device->physicalDeviceProperties.limits.discreteQueuePriorities;
+	const uint32_t discreteQueuePriorities = device->physicalDeviceProperties.properties.limits.discreteQueuePriorities;
 	// One queue, at mid priority
 	const float queuePriority = ( discreteQueuePriorities <= 2 ) ? 0.0f : 0.5f;
 
@@ -771,30 +927,25 @@ void ovrVkDepthBuffer_Create( ovrVkContext * context, ovrVkDepthBuffer * depthBu
 	VK( context->device->vkAllocateMemory( context->device->device, &memoryAllocateInfo, VK_ALLOCATOR, &depthBuffer->memory ) );
 	VK( context->device->vkBindImageMemory( context->device->device, depthBuffer->image, depthBuffer->memory, 0 ) );
 
-	depthBuffer->views = (VkImageView *) malloc( numLayers * sizeof( VkImageView ) );
-	depthBuffer->numViews = numLayers;
+	VkImageViewCreateInfo imageViewCreateInfo;
+	imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	imageViewCreateInfo.pNext = NULL;
+	imageViewCreateInfo.flags = 0;
+	imageViewCreateInfo.image = depthBuffer->image;
+	imageViewCreateInfo.viewType = numLayers > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+	imageViewCreateInfo.format = depthBuffer->internalFormat;
+	imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+	imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+	imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+	imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+	imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+	imageViewCreateInfo.subresourceRange.levelCount = 1;
+	imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+	imageViewCreateInfo.subresourceRange.layerCount = numLayers;
 
-	for ( int layerIndex = 0; layerIndex < numLayers; layerIndex++ )
-	{
-		VkImageViewCreateInfo imageViewCreateInfo;
-		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.pNext = NULL;
-		imageViewCreateInfo.flags = 0;
-		imageViewCreateInfo.image = depthBuffer->image;
-		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = depthBuffer->internalFormat;
-		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-		imageViewCreateInfo.subresourceRange.levelCount = 1;
-		imageViewCreateInfo.subresourceRange.baseArrayLayer = layerIndex;
-		imageViewCreateInfo.subresourceRange.layerCount = 1;
+	VK( context->device->vkCreateImageView( context->device->device, &imageViewCreateInfo, VK_ALLOCATOR, &depthBuffer->view ) );
 
-		VK( context->device->vkCreateImageView( context->device->device, &imageViewCreateInfo, VK_ALLOCATOR, &depthBuffer->views[layerIndex] ) );
-	}
 
 	//
 	// Set optimal image layout
@@ -820,7 +971,7 @@ void ovrVkDepthBuffer_Create( ovrVkContext * context, ovrVkDepthBuffer * depthBu
 		imageMemoryBarrier.subresourceRange.layerCount = numLayers;
 
 		const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 		const VkDependencyFlags flags = 0;
 
 		VC( context->device->vkCmdPipelineBarrier( context->setupCommandBuffer, src_stages, dst_stages, flags, 0, NULL, 0, NULL, 1, &imageMemoryBarrier ) );
@@ -838,14 +989,9 @@ void ovrVkDepthBuffer_Destroy( ovrVkContext * context, ovrVkDepthBuffer * depthB
 		return;
 	}
 
-	for ( int viewIndex = 0; viewIndex < depthBuffer->numViews; viewIndex++ )
-	{
-		VC( context->device->vkDestroyImageView( context->device->device, depthBuffer->views[viewIndex], VK_ALLOCATOR ) );
-	}
+	VC( context->device->vkDestroyImageView( context->device->device, depthBuffer->view, VK_ALLOCATOR ) );
 	VC( context->device->vkDestroyImage( context->device->device, depthBuffer->image, VK_ALLOCATOR ) );
 	VC( context->device->vkFreeMemory( context->device->device, depthBuffer->memory, VK_ALLOCATOR ) );
-
-	free( depthBuffer->views );
 }
 
 
@@ -875,12 +1021,20 @@ static VkAccessFlags ovrGpuBuffer_GetBufferAccess( const ovrVkBufferType type )
 			( ( type == OVR_BUFFER_TYPE_UNIFORM ) ?	VK_ACCESS_UNIFORM_READ_BIT : 0 ) ) );
 }
 
+static VkPipelineStageFlags PipelineStagesForBufferUsage( const ovrVkBufferType type )
+{
+    return	( ( type == OVR_BUFFER_TYPE_INDEX ) ?	VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT :
+            ( ( type == OVR_BUFFER_TYPE_VERTEX ) ?	VK_PIPELINE_STAGE_VERTEX_INPUT_BIT :
+            ( ( type == OVR_BUFFER_TYPE_UNIFORM ) ?	VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT : 0 ) ) );
+
+}
+
 bool ovrVkBuffer_Create( ovrVkContext * context, ovrVkBuffer * buffer, const ovrVkBufferType type,
 							const size_t dataSize, const void * data, const bool hostVisible )
 {
 	memset( buffer, 0, sizeof( ovrVkBuffer ) );
 
-	assert( dataSize <= context->device->physicalDeviceProperties.limits.maxStorageBufferRange );
+	assert( dataSize <= context->device->physicalDeviceProperties.properties.limits.maxStorageBufferRange );
 
 	buffer->type = type;
 	buffer->size = dataSize;
@@ -1252,9 +1406,11 @@ bool ovrGpuTexture_CreateInternal( ovrVkContext * context, ovrVkTexture * textur
 		// If this image is sampled.
 		( ( usageFlags & OVR_TEXTURE_USAGE_SAMPLED ) != 0 ? VK_IMAGE_USAGE_SAMPLED_BIT : 0 ) |
 		// If this image is rendered to.
-		( ( usageFlags & OVR_TEXTURE_USAGE_COLOR_ATTACHMENT ) != 0 ? VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT : 0 ) |
+		( ( usageFlags & OVR_TEXTURE_USAGE_COLOR_ATTACHMENT ) != 0 ? ( VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT ) : 0 ) |
 		// If this image is used for storage.
-		( ( usageFlags & OVR_TEXTURE_USAGE_STORAGE ) != 0 ? VK_IMAGE_USAGE_STORAGE_BIT : 0 );
+		( ( usageFlags & OVR_TEXTURE_USAGE_STORAGE ) != 0 ? VK_IMAGE_USAGE_STORAGE_BIT : 0 ) |
+		// if MSAA then transient
+		( sampleCount >  OVR_SAMPLE_COUNT_1 ? VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT : 0 );
 
 	// Create tiled image.
 	VkImageCreateInfo imageCreateInfo;
@@ -1310,8 +1466,8 @@ bool ovrGpuTexture_CreateInternal( ovrVkContext * context, ovrVkTexture * textur
 		imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
 		imageMemoryBarrier.subresourceRange.layerCount = arrayLayerCount;
 
-		const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		const VkPipelineStageFlags src_stages = PipelineStagesForTextureUsage( texture->usage, true );
+		const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 		const VkDependencyFlags flags = 0;
 
 		VC( context->device->vkCmdPipelineBarrier( context->setupCommandBuffer, src_stages, dst_stages, flags, 0, NULL, 0, NULL, 1, &imageMemoryBarrier ) );
@@ -1353,14 +1509,13 @@ bool ovrGpuTexture_CreateInternal( ovrVkContext * context, ovrVkTexture * textur
 
 bool ovrVkTexture_Create2D( ovrVkContext * context, ovrVkTexture * texture,
 									const ovrVkTextureFormat format, const ovrSampleCount sampleCount,
-									const int width, const int height, const int mipCount,
+									const int width, const int height, const int mipCount, const int numLayers,
 									const ovrVkTextureUsageFlags usageFlags )
 {
 	const int depth = 0;
-	const int layerCount = 0;
 	const int faceCount = 1;
 	return ovrGpuTexture_CreateInternal( context, texture, "data", (VkFormat)format, sampleCount, width, height, depth,
-										layerCount, faceCount, mipCount,
+										 numLayers, faceCount, mipCount,
 										usageFlags );
 }
 
@@ -1551,10 +1706,10 @@ static VkFormat ovrGpuColorBuffer_InternalSurfaceColorFormat( const ovrSurfaceCo
 
 bool ovrVkRenderPass_Create( ovrVkContext * context, ovrVkRenderPass * renderPass,
 									const ovrSurfaceColorFormat colorFormat, const ovrSurfaceDepthFormat depthFormat,
-									const ovrSampleCount sampleCount, const ovrVkRenderPassType type, const int flags, const ovrVector4f * clearColor )
+									const ovrSampleCount sampleCount, const ovrVkRenderPassType type, const int flags, const ovrVector4f * clearColor, bool isMultiview )
 {
-	assert( ( context->device->physicalDeviceProperties.limits.framebufferColorSampleCounts & (VkSampleCountFlags) sampleCount ) != 0 );
-	assert( ( context->device->physicalDeviceProperties.limits.framebufferDepthSampleCounts & (VkSampleCountFlags) sampleCount ) != 0 );
+	assert( ( context->device->physicalDeviceProperties.properties.limits.framebufferColorSampleCounts & (VkSampleCountFlags) sampleCount ) != 0 );
+	assert( ( context->device->physicalDeviceProperties.properties.limits.framebufferDepthSampleCounts & (VkSampleCountFlags) sampleCount ) != 0 );
 
 	renderPass->type = type;
 	renderPass->flags = flags;
@@ -1563,10 +1718,11 @@ bool ovrVkRenderPass_Create( ovrVkContext * context, ovrVkRenderPass * renderPas
 	renderPass->sampleCount = sampleCount;
 	renderPass->internalColorFormat = ovrGpuColorBuffer_InternalSurfaceColorFormat( colorFormat );
 	renderPass->internalDepthFormat = ovrGpuDepthBuffer_InternalSurfaceDepthFormat( depthFormat );
+	renderPass->internalFragmentDensityFormat = VK_FORMAT_R8G8_UNORM;
 	renderPass->clearColor = *clearColor;
 
 	uint32_t attachmentCount = 0;
-	VkAttachmentDescription attachments[3];
+	VkAttachmentDescription attachments[4];
 
 	// Optionally use a multi-sampled attachment.
 	if ( sampleCount > OVR_SAMPLE_COUNT_1 )
@@ -1611,6 +1767,22 @@ bool ovrVkRenderPass_Create( ovrVkContext * context, ovrVkRenderPass * renderPas
 		attachmentCount++;
 	}
 
+	uint32_t sampleMapAttachment = 0;
+	if( ( flags & OVR_RENDERPASS_FLAG_INCLUDE_FRAG_DENSITY ) != 0 )
+	{
+		sampleMapAttachment = attachmentCount;
+		attachments[attachmentCount].flags = 0;
+		attachments[attachmentCount].format = renderPass->internalFragmentDensityFormat;
+		attachments[attachmentCount].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[attachmentCount].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[attachmentCount].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[attachmentCount].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[attachmentCount].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		attachments[attachmentCount].initialLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+		attachments[attachmentCount].finalLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+		attachmentCount++;
+	}
+
 	VkAttachmentReference colorAttachmentReference;
 	colorAttachmentReference.attachment = 0;
 	colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1622,6 +1794,13 @@ bool ovrVkRenderPass_Create( ovrVkContext * context, ovrVkRenderPass * renderPas
 	VkAttachmentReference depthAttachmentReference;
 	depthAttachmentReference.attachment = ( sampleCount > OVR_SAMPLE_COUNT_1 && EXPLICIT_RESOLVE == 0 ) ? 2 : 1;
 	depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference fragmentDensityAttachmentReference;
+	if ( ( flags & OVR_RENDERPASS_FLAG_INCLUDE_FRAG_DENSITY ) != 0 )
+	{
+		fragmentDensityAttachmentReference.attachment = sampleMapAttachment;
+		fragmentDensityAttachmentReference.layout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+	}
 
 	VkSubpassDescription subpassDescription;
 	subpassDescription.flags = 0;
@@ -1645,6 +1824,31 @@ bool ovrVkRenderPass_Create( ovrVkContext * context, ovrVkRenderPass * renderPas
 	renderPassCreateInfo.pSubpasses = &subpassDescription;
 	renderPassCreateInfo.dependencyCount = 0;
 	renderPassCreateInfo.pDependencies = NULL;
+
+	VkRenderPassMultiviewCreateInfo multiviewCreateInfo;
+	const uint32_t viewMask = 0b00000011;
+	if ( isMultiview )
+	{
+		multiviewCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO;
+		multiviewCreateInfo.pNext = NULL;
+		multiviewCreateInfo.subpassCount = 1;
+		multiviewCreateInfo.pViewMasks = &viewMask;
+		multiviewCreateInfo.dependencyCount = 0;
+		multiviewCreateInfo.correlationMaskCount = 1;
+		multiviewCreateInfo.pCorrelationMasks = &viewMask;
+
+		renderPassCreateInfo.pNext = &multiviewCreateInfo;
+	}
+
+	VkRenderPassFragmentDensityMapCreateInfoEXT fragmentDensityMapCreateInfoEXT;
+	if ( ( flags & OVR_RENDERPASS_FLAG_INCLUDE_FRAG_DENSITY ) != 0 )
+	{
+		fragmentDensityMapCreateInfoEXT.sType = VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT;
+		fragmentDensityMapCreateInfoEXT.fragmentDensityMapAttachment  = fragmentDensityAttachmentReference;
+
+		fragmentDensityMapCreateInfoEXT.pNext = renderPassCreateInfo.pNext;
+		renderPassCreateInfo.pNext = &fragmentDensityMapCreateInfoEXT;
+	}
 
 	VK( context->device->vkCreateRenderPass( context->device->device, &renderPassCreateInfo, VK_ALLOCATOR, &renderPass->renderPass ) );
 
@@ -1808,7 +2012,7 @@ void ovrVkProgramParmLayout_Create( ovrVkContext * context, ovrVkProgramParmLayo
 	for ( int push0 = 0; push0 < layout->numPushConstants; push0++ )
 	{
 		// The push constants for a pipeline cannot use more than 'maxPushConstantsSize' bytes.
-		assert( layout->pushConstants[push0]->binding + ovrVkProgramParm_GetPushConstantSize( layout->pushConstants[push0]->type ) <= (int)context->device->physicalDeviceProperties.limits.maxPushConstantsSize );
+		assert( layout->pushConstants[push0]->binding + ovrVkProgramParm_GetPushConstantSize( layout->pushConstants[push0]->type ) <= (int)context->device->physicalDeviceProperties.properties.limits.maxPushConstantsSize );
 		// Make sure no push constants overlap.
 		for ( int push1 = push0 + 1; push1 < layout->numPushConstants; push1++ )
 		{
@@ -1824,10 +2028,10 @@ void ovrVkProgramParmLayout_Create( ovrVkContext * context, ovrVkProgramParmLayo
 	int numTotalStorageBufferBindings = 0;
 	for ( int stage = 0; stage < OVR_PROGRAM_STAGE_MAX; stage++ )
 	{
-		assert( numSampledTextureBindings[stage] <= (int)context->device->physicalDeviceProperties.limits.maxPerStageDescriptorSampledImages );
-		assert( numStorageTextureBindings[stage] <= (int)context->device->physicalDeviceProperties.limits.maxPerStageDescriptorStorageImages );
-		assert( numUniformBufferBindings[stage] <= (int)context->device->physicalDeviceProperties.limits.maxPerStageDescriptorUniformBuffers );
-		assert( numStorageBufferBindings[stage] <= (int)context->device->physicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers );
+		assert( numSampledTextureBindings[stage] <= (int)context->device->physicalDeviceProperties.properties.limits.maxPerStageDescriptorSampledImages );
+		assert( numStorageTextureBindings[stage] <= (int)context->device->physicalDeviceProperties.properties.limits.maxPerStageDescriptorStorageImages );
+		assert( numUniformBufferBindings[stage] <= (int)context->device->physicalDeviceProperties.properties.limits.maxPerStageDescriptorUniformBuffers );
+		assert( numStorageBufferBindings[stage] <= (int)context->device->physicalDeviceProperties.properties.limits.maxPerStageDescriptorStorageBuffers );
 
 		numTotalSampledTextureBindings += numSampledTextureBindings[stage];
 		numTotalStorageTextureBindings += numStorageTextureBindings[stage];
@@ -1835,10 +2039,10 @@ void ovrVkProgramParmLayout_Create( ovrVkContext * context, ovrVkProgramParmLayo
 		numTotalStorageBufferBindings += numStorageBufferBindings[stage];
 	}
 
-	assert( numTotalSampledTextureBindings <= (int)context->device->physicalDeviceProperties.limits.maxDescriptorSetSampledImages );
-	assert( numTotalStorageTextureBindings <= (int)context->device->physicalDeviceProperties.limits.maxDescriptorSetStorageImages );
-	assert( numTotalUniformBufferBindings <= (int)context->device->physicalDeviceProperties.limits.maxDescriptorSetUniformBuffers );
-	assert( numTotalStorageBufferBindings <= (int)context->device->physicalDeviceProperties.limits.maxDescriptorSetStorageBuffers );
+	assert( numTotalSampledTextureBindings <= (int)context->device->physicalDeviceProperties.properties.limits.maxDescriptorSetSampledImages );
+	assert( numTotalStorageTextureBindings <= (int)context->device->physicalDeviceProperties.properties.limits.maxDescriptorSetStorageImages );
+	assert( numTotalUniformBufferBindings <= (int)context->device->physicalDeviceProperties.properties.limits.maxDescriptorSetUniformBuffers );
+	assert( numTotalStorageBufferBindings <= (int)context->device->physicalDeviceProperties.properties.limits.maxDescriptorSetStorageBuffers );
 
 	//
 	// Create descriptor set layout and pipeline layout
@@ -2093,7 +2297,8 @@ bool ovrVkGraphicsPipeline_Create( ovrVkContext * context, ovrVkGraphicsPipeline
 	rasterizationStateCreateInfo.sType							= VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	rasterizationStateCreateInfo.pNext							= NULL;
 	rasterizationStateCreateInfo.flags							= 0;
-	rasterizationStateCreateInfo.depthClampEnable				= VK_TRUE;
+	// NOTE: If the depth clamping feature is not enabled, depthClampEnable must be VK_FALSE.
+	rasterizationStateCreateInfo.depthClampEnable				= VK_FALSE;
 	rasterizationStateCreateInfo.rasterizerDiscardEnable		= VK_FALSE;
 	rasterizationStateCreateInfo.polygonMode					= VK_POLYGON_MODE_FILL;
 	rasterizationStateCreateInfo.cullMode						= (VkCullModeFlags)parms->rop.cullMode;
@@ -2710,8 +2915,8 @@ void ovrVkCommandBuffer_BeginPrimary( ovrVkCommandBuffer * commandBuffer )
 		memoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
 		memoryBarrier.dstAccessMask = 0;
 
-		const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_HOST_BIT;
+		const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		const VkDependencyFlags flags = 0;
 
 		VC( device->vkCmdPipelineBarrier( commandBuffer->cmdBuffers[commandBuffer->currentBuffer],
@@ -2850,6 +3055,15 @@ void ovrVkCommandBuffer_BeginRenderPass( ovrVkCommandBuffer * commandBuffer, ovr
 	clearValues[clearValueCount].color.float32[3] = renderPass->clearColor.w;
 	clearValueCount++;
 
+	if ( renderPass->sampleCount > OVR_SAMPLE_COUNT_1 )
+	{
+		clearValues[clearValueCount].color.float32[0] = renderPass->clearColor.x;
+		clearValues[clearValueCount].color.float32[1] = renderPass->clearColor.y;
+		clearValues[clearValueCount].color.float32[2] = renderPass->clearColor.z;
+		clearValues[clearValueCount].color.float32[3] = renderPass->clearColor.w;
+		clearValueCount++;
+	}
+
 	if ( renderPass->internalDepthFormat != VK_FORMAT_UNDEFINED )
 	{
 		clearValues[clearValueCount].depthStencil.depth = 1.0f;
@@ -2861,7 +3075,7 @@ void ovrVkCommandBuffer_BeginRenderPass( ovrVkCommandBuffer * commandBuffer, ovr
 	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.pNext = NULL;
 	renderPassBeginInfo.renderPass = renderPass->renderPass;
-	renderPassBeginInfo.framebuffer = framebuffer->framebuffers[framebuffer->currentBuffer * framebuffer->numLayers + framebuffer->currentLayer ];
+	renderPassBeginInfo.framebuffer = framebuffer->framebuffers[framebuffer->currentBuffer + framebuffer->currentLayer];
 	renderPassBeginInfo.renderArea.offset.x = rect->x;
 	renderPassBeginInfo.renderArea.offset.y = rect->y;
 	renderPassBeginInfo.renderArea.extent.width = rect->width;
@@ -3083,8 +3297,8 @@ void ovrVkCommandBuffer_UnmapBuffer( ovrVkCommandBuffer * commandBuffer, ovrVkBu
 			bufferMemoryBarrier.offset = 0;
 			bufferMemoryBarrier.size = mappedBuffer->size;
 
-			const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_HOST_BIT;
+			const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			const VkDependencyFlags flags = 0;
 
 			VC( device->vkCmdPipelineBarrier( commandBuffer->cmdBuffers[commandBuffer->currentBuffer],
@@ -3114,8 +3328,8 @@ void ovrVkCommandBuffer_UnmapBuffer( ovrVkCommandBuffer * commandBuffer, ovrVkBu
 			bufferMemoryBarrier.offset = 0;
 			bufferMemoryBarrier.size = buffer->size;
 
-			const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			const VkPipelineStageFlags dst_stages = PipelineStagesForBufferUsage( buffer->type );
 			const VkDependencyFlags flags = 0;
 
 			VC( device->vkCmdPipelineBarrier( commandBuffer->cmdBuffers[commandBuffer->currentBuffer],

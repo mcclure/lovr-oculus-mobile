@@ -11,7 +11,7 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.1.2'
+    classpath 'com.android.tools.build:gradle:3.2.0'
   }
 }
 
@@ -103,14 +103,14 @@ class VrAppPlugin implements Plugin<Project> {
     // FIXME: The Task.leftShift(Closure) method has been deprecated and is scheduled to be removed in Gradle 5.0. Please use Task.doLast(Action) instead.
     project.task( "cleanWorkAround" ) {
 	  description "Workaround for .externalNativeBuild not being deleted on clean"
-    } << {
+    }.doLast {
 	  project.delete project.file( ".externalNativeBuild" )
     }
 
     project.android {
 
 	  compileSdkVersion 26
-	  buildToolsVersion '27.0.3'
+	  buildToolsVersion '28.0.3'
 
 	  defaultConfig {
 		  minSdkVersion 23
@@ -206,7 +206,7 @@ class VrAppPlugin implements Plugin<Project> {
 
   project.afterEvaluate {
 
-      Task initDeviceList = project.task( "initDeviceList()" ) << {
+      Task initDeviceList = project.task( "initDeviceList()" ).doLast {
         project.ext.deviceMap = [ : ]
         if (project.hasProperty( "should_install" ) == true || project.hasProperty( "disable_sig_check" ) == false) {
             AndroidDebugBridge.initIfNeeded( false )
@@ -233,7 +233,7 @@ class VrAppPlugin implements Plugin<Project> {
 
       project.task( "stopApk", dependsOn: initDeviceList ) {
           description "Stops app if currently running on device"
-      } << {
+      }.doLast {
           project.deviceMap.each { deviceSerial, device ->
           stopApk( device, android.defaultConfig.applicationId )
         }
@@ -245,7 +245,7 @@ class VrAppPlugin implements Plugin<Project> {
             project.deviceMap.size() != 0 &&
             project.hasProperty( "disable_sig_check" ) == false
           }
-      } << {
+      }.doLast {
           def iterator = project.deviceMap.entrySet().iterator()
           while ( iterator.hasNext() ) { 
             def deviceElem = iterator.next()
@@ -272,7 +272,7 @@ class VrAppPlugin implements Plugin<Project> {
             project.hasProperty( "disable_sig_check" ) == false
           }
           dependsOn project.OSigPreCheck
-        } << { variant.outputs.each { output ->
+        }.doLast { variant.outputs.each { output ->
             def sigfiles = project.zipTree( output.outputFile ).matching{ include "assets/oculussig*" }
             def iterator = project.deviceMap.entrySet().iterator()
             while ( iterator.hasNext() ) { 
@@ -293,7 +293,7 @@ class VrAppPlugin implements Plugin<Project> {
           dependsOn OSigPostCheck
           onlyIf { project.hasProperty( "should_install" ) }
           description "Installs and runs the APK file"
-        } << { variant.outputs.each { output ->
+        }.doLast { variant.outputs.each { output ->
             if ( output.outputFile.exists() )
             {
               if ( project.deviceMap.size() == 0 ) {

@@ -2,9 +2,9 @@
 
 Filename	:	VrCubeWorld_Vulkan.c
 Content		:	This sample demonstrates how to use the Vulkan VrApi (available for
-				the Oculus Go).
+				Oculus standalone products).
 				This sample uses the Android NativeActivity class. This sample does
-				not use the application framework and also does not use LibOVRKernel.
+				not use the application framework.
 				This sample only uses the VrApi.
 Created		:	October, 2017
 Authors		:	J.M.P. van Waveren, Gloria Kennickell
@@ -25,24 +25,24 @@ Copyright	:	Copyright (c) Facebook Technologies, LLC and its affiliates. All rig
 #include <android/native_window_jni.h>	// for native window JNI
 #include <android_native_app_glue.h>
 
+#include "Framework_Vulkan.h"
+
 #include "VrApi.h"
 #include "VrApi_Vulkan.h"
 #include "VrApi_Helpers.h"
 #include "VrApi_SystemUtils.h"
 #include "VrApi_Input.h"
 
-#include "Framework_Vulkan.h"
-
 #define DEBUG 1
-#define LOG_TAG "VrCubeWorldVk"
+#define OVR_LOG_TAG "VrCubeWorldVk"
 
 #if !defined( ALOGE )
-#define ALOGE(...) __android_log_print( ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__ )
+#define ALOGE(...) __android_log_print( ANDROID_LOG_ERROR, OVR_LOG_TAG, __VA_ARGS__ )
 #endif
 
 #if !defined( ALOGV )
 #if DEBUG
-#define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, LOG_TAG, __VA_ARGS__ )
+#define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, OVR_LOG_TAG, __VA_ARGS__ )
 #else
 #define ALOGV(...)
 #endif
@@ -50,13 +50,11 @@ Copyright	:	Copyright (c) Facebook Technologies, LLC and its affiliates. All rig
 
 static const int CPU_LEVEL				= 2;
 static const int GPU_LEVEL				= 3;
-static ovrSampleCount SAMPLE_COUNT		= OVR_SAMPLE_COUNT_1;
+static ovrSampleCount SAMPLE_COUNT		= OVR_SAMPLE_COUNT_4;
 
 /*
 	TODO:
-	- msaa
 	- enable layer for gles -> spir-v
-	- multiview (vk 1.1)
 */
 
 /*
@@ -171,7 +169,7 @@ static const char colorOnlyVertexProgramGLSL[] =
 	"layout( location = 0 ) in vec3 vertexPosition;\n"
 	"layout( location = 1 ) in vec4 vertexColor;\n"
 	"layout( location = 2 ) in mat4 vertexTransform;\n"
-	"layout( location = 0 ) out vec4 fragmentColor;\n"
+	"layout( location = 0 ) out lowp vec4 fragmentColor;\n"
 	"out gl_PerVertex { vec4 gl_Position; };\n"
 	"void main( void )\n"
 	"{\n"
@@ -181,6 +179,7 @@ static const char colorOnlyVertexProgramGLSL[] =
 
 static const unsigned int colorOnlyVertexProgramSPIRV[] =
 {
+	// 7.11.3057
 	0x07230203,0x00010000,0x00080007,0x0000002e,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x000a000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000a,0x00000018,0x0000001c,
@@ -201,32 +200,111 @@ static const unsigned int colorOnlyVertexProgramSPIRV[] =
 	0x00000001,0x00000023,0x00000040,0x00050048,0x0000000e,0x00000001,0x00000007,0x00000010,
 	0x00030047,0x0000000e,0x00000002,0x00040047,0x00000010,0x00000022,0x00000000,0x00040047,
 	0x00000010,0x00000021,0x00000000,0x00040047,0x00000018,0x0000001e,0x00000002,0x00040047,
-	0x0000001c,0x0000001e,0x00000000,0x00040047,0x0000002a,0x0000001e,0x00000000,0x00040047,
-	0x0000002c,0x0000001e,0x00000001,0x00020013,0x00000002,0x00030021,0x00000003,0x00000002,
-	0x00030016,0x00000006,0x00000020,0x00040017,0x00000007,0x00000006,0x00000004,0x0003001e,
-	0x00000008,0x00000007,0x00040020,0x00000009,0x00000003,0x00000008,0x0004003b,0x00000009,
-	0x0000000a,0x00000003,0x00040015,0x0000000b,0x00000020,0x00000001,0x0004002b,0x0000000b,
-	0x0000000c,0x00000000,0x00040018,0x0000000d,0x00000007,0x00000004,0x0004001e,0x0000000e,
-	0x0000000d,0x0000000d,0x00040020,0x0000000f,0x00000002,0x0000000e,0x0004003b,0x0000000f,
-	0x00000010,0x00000002,0x0004002b,0x0000000b,0x00000011,0x00000001,0x00040020,0x00000012,
-	0x00000002,0x0000000d,0x00040020,0x00000017,0x00000001,0x0000000d,0x0004003b,0x00000017,
-	0x00000018,0x00000001,0x00040017,0x0000001a,0x00000006,0x00000003,0x00040020,0x0000001b,
-	0x00000001,0x0000001a,0x0004003b,0x0000001b,0x0000001c,0x00000001,0x0004002b,0x00000006,
-	0x0000001e,0x3dcccccd,0x0004002b,0x00000006,0x00000020,0x3f800000,0x00040020,0x00000028,
-	0x00000003,0x00000007,0x0004003b,0x00000028,0x0000002a,0x00000003,0x00040020,0x0000002b,
-	0x00000001,0x00000007,0x0004003b,0x0000002b,0x0000002c,0x00000001,0x00050036,0x00000002,
-	0x00000004,0x00000000,0x00000003,0x000200f8,0x00000005,0x00050041,0x00000012,0x00000013,
-	0x00000010,0x00000011,0x0004003d,0x0000000d,0x00000014,0x00000013,0x00050041,0x00000012,
-	0x00000015,0x00000010,0x0000000c,0x0004003d,0x0000000d,0x00000016,0x00000015,0x0004003d,
-	0x0000000d,0x00000019,0x00000018,0x0004003d,0x0000001a,0x0000001d,0x0000001c,0x0005008e,
-	0x0000001a,0x0000001f,0x0000001d,0x0000001e,0x00050051,0x00000006,0x00000021,0x0000001f,
-	0x00000000,0x00050051,0x00000006,0x00000022,0x0000001f,0x00000001,0x00050051,0x00000006,
-	0x00000023,0x0000001f,0x00000002,0x00070050,0x00000007,0x00000024,0x00000021,0x00000022,
-	0x00000023,0x00000020,0x00050091,0x00000007,0x00000025,0x00000019,0x00000024,0x00050091,
-	0x00000007,0x00000026,0x00000016,0x00000025,0x00050091,0x00000007,0x00000027,0x00000014,
-	0x00000026,0x00050041,0x00000028,0x00000029,0x0000000a,0x0000000c,0x0003003e,0x00000029,
-	0x00000027,0x0004003d,0x00000007,0x0000002d,0x0000002c,0x0003003e,0x0000002a,0x0000002d,
-	0x000100fd,0x00010038
+	0x0000001c,0x0000001e,0x00000000,0x00030047,0x0000002a,0x00000000,0x00040047,0x0000002a,
+	0x0000001e,0x00000000,0x00040047,0x0000002c,0x0000001e,0x00000001,0x00020013,0x00000002,
+	0x00030021,0x00000003,0x00000002,0x00030016,0x00000006,0x00000020,0x00040017,0x00000007,
+	0x00000006,0x00000004,0x0003001e,0x00000008,0x00000007,0x00040020,0x00000009,0x00000003,
+	0x00000008,0x0004003b,0x00000009,0x0000000a,0x00000003,0x00040015,0x0000000b,0x00000020,
+	0x00000001,0x0004002b,0x0000000b,0x0000000c,0x00000000,0x00040018,0x0000000d,0x00000007,
+	0x00000004,0x0004001e,0x0000000e,0x0000000d,0x0000000d,0x00040020,0x0000000f,0x00000002,
+	0x0000000e,0x0004003b,0x0000000f,0x00000010,0x00000002,0x0004002b,0x0000000b,0x00000011,
+	0x00000001,0x00040020,0x00000012,0x00000002,0x0000000d,0x00040020,0x00000017,0x00000001,
+	0x0000000d,0x0004003b,0x00000017,0x00000018,0x00000001,0x00040017,0x0000001a,0x00000006,
+	0x00000003,0x00040020,0x0000001b,0x00000001,0x0000001a,0x0004003b,0x0000001b,0x0000001c,
+	0x00000001,0x0004002b,0x00000006,0x0000001e,0x3dcccccd,0x0004002b,0x00000006,0x00000020,
+	0x3f800000,0x00040020,0x00000028,0x00000003,0x00000007,0x0004003b,0x00000028,0x0000002a,
+	0x00000003,0x00040020,0x0000002b,0x00000001,0x00000007,0x0004003b,0x0000002b,0x0000002c,
+	0x00000001,0x00050036,0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,0x00000005,
+	0x00050041,0x00000012,0x00000013,0x00000010,0x00000011,0x0004003d,0x0000000d,0x00000014,
+	0x00000013,0x00050041,0x00000012,0x00000015,0x00000010,0x0000000c,0x0004003d,0x0000000d,
+	0x00000016,0x00000015,0x0004003d,0x0000000d,0x00000019,0x00000018,0x0004003d,0x0000001a,
+	0x0000001d,0x0000001c,0x0005008e,0x0000001a,0x0000001f,0x0000001d,0x0000001e,0x00050051,
+	0x00000006,0x00000021,0x0000001f,0x00000000,0x00050051,0x00000006,0x00000022,0x0000001f,
+	0x00000001,0x00050051,0x00000006,0x00000023,0x0000001f,0x00000002,0x00070050,0x00000007,
+	0x00000024,0x00000021,0x00000022,0x00000023,0x00000020,0x00050091,0x00000007,0x00000025,
+	0x00000019,0x00000024,0x00050091,0x00000007,0x00000026,0x00000016,0x00000025,0x00050091,
+	0x00000007,0x00000027,0x00000014,0x00000026,0x00050041,0x00000028,0x00000029,0x0000000a,
+	0x0000000c,0x0003003e,0x00000029,0x00000027,0x0004003d,0x00000007,0x0000002d,0x0000002c,
+	0x0003003e,0x0000002a,0x0000002d,0x000100fd,0x00010038
+};
+
+static const char colorOnlyMultiviewVertexProgramGLSL[] =
+	"#version " GLSL_VERSION "\n"
+	GLSL_EXTENSIONS
+	"#extension GL_OVR_multiview2 : enable\n"
+	"layout( std140, binding = 0 ) uniform SceneMatrices\n"
+	"{\n"
+	"	layout( offset =   0 ) mat4 ViewMatrix[2];\n"
+	"	layout( offset =  128 ) mat4 ProjectionMatrix[2];\n"
+	"};\n"
+	"layout( location = 0 ) in vec3 vertexPosition;\n"
+	"layout( location = 1 ) in vec4 vertexColor;\n"
+	"layout( location = 2 ) in mat4 vertexTransform;\n"
+	"layout( location = 0 ) out lowp vec4 fragmentColor;\n"
+	"out gl_PerVertex { vec4 gl_Position; };\n"
+	"void main( void )\n"
+	"{\n"
+	"	gl_Position = ProjectionMatrix[gl_ViewID_OVR] * ( ViewMatrix[gl_ViewID_OVR] * ( vertexTransform * vec4( vertexPosition * 0.1, 1.0 ) ) );\n"
+	"	fragmentColor = vertexColor;\n"
+	"}\n";
+
+static const unsigned int colorOnlyMultiviewVertexProgramSPIRV[] =
+{
+	// 7.11.3057
+	0x07230203,0x00010000,0x00080007,0x00000036,0x00000000,0x00020011,0x00000001,0x00020011,
+	0x00001157,0x0006000a,0x5f565053,0x5f52484b,0x746c756d,0x65697669,0x00000077,0x0006000b,
+	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
+	0x000b000f,0x00000000,0x00000004,0x6e69616d,0x00000000,0x0000000a,0x00000017,0x00000020,
+	0x00000024,0x00000032,0x00000034,0x00030003,0x00000002,0x000001b8,0x00070004,0x415f4c47,
+	0x655f4252,0x6e61686e,0x5f646563,0x6f79616c,0x00737475,0x00070004,0x455f4c47,0x735f5458,
+	0x65646168,0x6f695f72,0x6f6c625f,0x00736b63,0x00060004,0x4f5f4c47,0x6d5f5256,0x69746c75,
+	0x77656976,0x00000032,0x00040005,0x00000004,0x6e69616d,0x00000000,0x00060005,0x00000008,
+	0x505f6c67,0x65567265,0x78657472,0x00000000,0x00060006,0x00000008,0x00000000,0x505f6c67,
+	0x7469736f,0x006e6f69,0x00030005,0x0000000a,0x00000000,0x00060005,0x00000012,0x6e656353,
+	0x74614d65,0x65636972,0x00000073,0x00060006,0x00000012,0x00000000,0x77656956,0x7274614d,
+	0x00007869,0x00080006,0x00000012,0x00000001,0x6a6f7250,0x69746365,0x614d6e6f,0x78697274,
+	0x00000000,0x00030005,0x00000014,0x00000000,0x00060005,0x00000017,0x565f6c67,0x49776569,
+	0x564f5f44,0x00000052,0x00060005,0x00000020,0x74726576,0x72547865,0x66736e61,0x006d726f,
+	0x00060005,0x00000024,0x74726576,0x6f507865,0x69746973,0x00006e6f,0x00060005,0x00000032,
+	0x67617266,0x746e656d,0x6f6c6f43,0x00000072,0x00050005,0x00000034,0x74726576,0x6f437865,
+	0x00726f6c,0x00050048,0x00000008,0x00000000,0x0000000b,0x00000000,0x00030047,0x00000008,
+	0x00000002,0x00040047,0x00000010,0x00000006,0x00000040,0x00040047,0x00000011,0x00000006,
+	0x00000040,0x00040048,0x00000012,0x00000000,0x00000005,0x00050048,0x00000012,0x00000000,
+	0x00000023,0x00000000,0x00050048,0x00000012,0x00000000,0x00000007,0x00000010,0x00040048,
+	0x00000012,0x00000001,0x00000005,0x00050048,0x00000012,0x00000001,0x00000023,0x00000080,
+	0x00050048,0x00000012,0x00000001,0x00000007,0x00000010,0x00030047,0x00000012,0x00000002,
+	0x00040047,0x00000014,0x00000022,0x00000000,0x00040047,0x00000014,0x00000021,0x00000000,
+	0x00040047,0x00000017,0x0000000b,0x00001158,0x00040047,0x00000020,0x0000001e,0x00000002,
+	0x00040047,0x00000024,0x0000001e,0x00000000,0x00030047,0x00000032,0x00000000,0x00040047,
+	0x00000032,0x0000001e,0x00000000,0x00040047,0x00000034,0x0000001e,0x00000001,0x00020013,
+	0x00000002,0x00030021,0x00000003,0x00000002,0x00030016,0x00000006,0x00000020,0x00040017,
+	0x00000007,0x00000006,0x00000004,0x0003001e,0x00000008,0x00000007,0x00040020,0x00000009,
+	0x00000003,0x00000008,0x0004003b,0x00000009,0x0000000a,0x00000003,0x00040015,0x0000000b,
+	0x00000020,0x00000001,0x0004002b,0x0000000b,0x0000000c,0x00000000,0x00040018,0x0000000d,
+	0x00000007,0x00000004,0x00040015,0x0000000e,0x00000020,0x00000000,0x0004002b,0x0000000e,
+	0x0000000f,0x00000002,0x0004001c,0x00000010,0x0000000d,0x0000000f,0x0004001c,0x00000011,
+	0x0000000d,0x0000000f,0x0004001e,0x00000012,0x00000010,0x00000011,0x00040020,0x00000013,
+	0x00000002,0x00000012,0x0004003b,0x00000013,0x00000014,0x00000002,0x0004002b,0x0000000b,
+	0x00000015,0x00000001,0x00040020,0x00000016,0x00000001,0x0000000e,0x0004003b,0x00000016,
+	0x00000017,0x00000001,0x00040020,0x00000019,0x00000002,0x0000000d,0x00040020,0x0000001f,
+	0x00000001,0x0000000d,0x0004003b,0x0000001f,0x00000020,0x00000001,0x00040017,0x00000022,
+	0x00000006,0x00000003,0x00040020,0x00000023,0x00000001,0x00000022,0x0004003b,0x00000023,
+	0x00000024,0x00000001,0x0004002b,0x00000006,0x00000026,0x3dcccccd,0x0004002b,0x00000006,
+	0x00000028,0x3f800000,0x00040020,0x00000030,0x00000003,0x00000007,0x0004003b,0x00000030,
+	0x00000032,0x00000003,0x00040020,0x00000033,0x00000001,0x00000007,0x0004003b,0x00000033,
+	0x00000034,0x00000001,0x00050036,0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,
+	0x00000005,0x0004003d,0x0000000e,0x00000018,0x00000017,0x00060041,0x00000019,0x0000001a,
+	0x00000014,0x00000015,0x00000018,0x0004003d,0x0000000d,0x0000001b,0x0000001a,0x0004003d,
+	0x0000000e,0x0000001c,0x00000017,0x00060041,0x00000019,0x0000001d,0x00000014,0x0000000c,
+	0x0000001c,0x0004003d,0x0000000d,0x0000001e,0x0000001d,0x0004003d,0x0000000d,0x00000021,
+	0x00000020,0x0004003d,0x00000022,0x00000025,0x00000024,0x0005008e,0x00000022,0x00000027,
+	0x00000025,0x00000026,0x00050051,0x00000006,0x00000029,0x00000027,0x00000000,0x00050051,
+	0x00000006,0x0000002a,0x00000027,0x00000001,0x00050051,0x00000006,0x0000002b,0x00000027,
+	0x00000002,0x00070050,0x00000007,0x0000002c,0x00000029,0x0000002a,0x0000002b,0x00000028,
+	0x00050091,0x00000007,0x0000002d,0x00000021,0x0000002c,0x00050091,0x00000007,0x0000002e,
+	0x0000001e,0x0000002d,0x00050091,0x00000007,0x0000002f,0x0000001b,0x0000002e,0x00050041,
+	0x00000030,0x00000031,0x0000000a,0x0000000c,0x0003003e,0x00000031,0x0000002f,0x0004003d,
+	0x00000007,0x00000035,0x00000034,0x0003003e,0x00000032,0x00000035,0x000100fd,0x00010038
 };
 
 static const char colorOnlyFragmentProgramGLSL[] =
@@ -241,8 +319,8 @@ static const char colorOnlyFragmentProgramGLSL[] =
 
 static const unsigned int colorOnlyFragmentProgramSPIRV[] =
 {
-	// Overload400-PrecQual.1817 08-Feb-2017
-	0x07230203,0x00010000,0x00080001,0x0000000d,0x00000000,0x00020011,0x00000001,0x0006000b,
+	// 7.11.3057
+	0x07230203,0x00010000,0x00080007,0x0000000d,0x00000000,0x00020011,0x00000001,0x0006000b,
 	0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
 	0x0007000f,0x00000004,0x00000004,0x6e69616d,0x00000000,0x00000009,0x0000000b,0x00030010,
 	0x00000004,0x00000007,0x00030003,0x00000002,0x000001b8,0x00070004,0x415f4c47,0x655f4252,
@@ -258,6 +336,68 @@ static const unsigned int colorOnlyFragmentProgramSPIRV[] =
 	0x00000002,0x00000004,0x00000000,0x00000003,0x000200f8,0x00000005,0x0004003d,0x00000007,
 	0x0000000c,0x0000000b,0x0003003e,0x00000009,0x0000000c,0x000100fd,0x00010038
 };
+
+/*
+================================================================================
+
+ovrFramebuffer
+
+================================================================================
+*/
+
+typedef struct
+{
+	int						SwapChainLength;
+	ovrTextureSwapChain *	SwapChain;
+	VkImage *               ColorTextures;
+
+	// These two fragment density pointers are null if not supported
+	VkImage *               FragmentDensityTextures;
+	VkExtent2D *            FragmentDensityTextureSizes;
+} ovrColorSwapChain;
+
+static bool ovrColorSwapChain_Init( ovrColorSwapChain * swapChain, const VkFormat colorFormat,
+                                       const int width, const int height, bool isMultiview )
+{
+	swapChain->SwapChain = vrapi_CreateTextureSwapChain3(
+			isMultiview ? VRAPI_TEXTURE_TYPE_2D_ARRAY : VRAPI_TEXTURE_TYPE_2D,
+			colorFormat, width, height, 1, 3 );
+	swapChain->SwapChainLength = vrapi_GetTextureSwapChainLength( swapChain->SwapChain );
+
+	swapChain->ColorTextures = (VkImage *) malloc( swapChain->SwapChainLength * sizeof( VkImage ) );
+	swapChain->FragmentDensityTextures = (VkImage *) malloc( swapChain->SwapChainLength * sizeof( VkImage ) );
+	swapChain->FragmentDensityTextureSizes = (VkExtent2D *) malloc( swapChain->SwapChainLength * sizeof( VkExtent2D ) );
+
+	for ( int i = 0; i < swapChain->SwapChainLength; i++ )
+	{
+		swapChain->ColorTextures[i] = vrapi_GetTextureSwapChainBufferVulkan( swapChain->SwapChain, i );
+		if ( swapChain->FragmentDensityTextures != NULL && swapChain->FragmentDensityTextureSizes != NULL )
+		{
+			ovrResult result = vrapi_GetTextureSwapChainBufferFoveationVulkan( swapChain->SwapChain, i,
+					                                                           &swapChain->FragmentDensityTextures[i],
+					                                                           &swapChain->FragmentDensityTextureSizes[i].width,
+					                                                           &swapChain->FragmentDensityTextureSizes[i].height );
+			if ( result != ovrSuccess )
+			{
+				free( swapChain->FragmentDensityTextures );
+				free( swapChain->FragmentDensityTextureSizes );
+				swapChain->FragmentDensityTextures = NULL;
+				swapChain->FragmentDensityTextureSizes = NULL;
+			}
+		}
+	}
+
+	return true;
+}
+
+static bool ovrColorSwapChain_Destroy( ovrColorSwapChain * swapChain )
+{
+	// Don't call vrapi destroy because the images are used by the framebuffer
+	free( swapChain->ColorTextures );
+	free( swapChain->FragmentDensityTextures );
+	free( swapChain->FragmentDensityTextureSizes );
+	return true;
+}
 
 /*
 ================================================================================
@@ -290,54 +430,89 @@ static void ovrFramebuffer_Clear( ovrFrameBuffer * frameBuffer )
 	memset( &frameBuffer->Framebuffer, 0, sizeof( ovrVkFramebuffer ) );
 }
 
-static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * frameBuffer, ovrVkRenderPass * renderPass,
-	const VkFormat colorFormat, const int width, const int height, const ovrSampleCount sampleCount )
+static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * frameBuffer, ovrVkRenderPass * renderPass, ovrColorSwapChain * swapChain,
+                                   const VkFormat colorFormat, const int width, const int height, bool isMultiview )
 {
-	assert( width >= 1 && width <= (int)context->device->physicalDeviceProperties.limits.maxFramebufferWidth );
-	assert( height >= 1 && height <= (int)context->device->physicalDeviceProperties.limits.maxFramebufferHeight );
+	assert( width >= 1 && width <= (int)context->device->physicalDeviceProperties.properties.limits.maxFramebufferWidth );
+	assert( height >= 1 && height <= (int)context->device->physicalDeviceProperties.properties.limits.maxFramebufferHeight );
 
 	frameBuffer->Width = width;
 	frameBuffer->Height = height;
-	frameBuffer->SampleCount = sampleCount;
-	frameBuffer->ColorTextureSwapChain = vrapi_CreateTextureSwapChain3( VRAPI_TEXTURE_TYPE_2D, colorFormat, width, height, 1, 3 );
-	frameBuffer->TextureSwapChainLength = vrapi_GetTextureSwapChainLength( frameBuffer->ColorTextureSwapChain );
+	frameBuffer->SampleCount = renderPass->sampleCount;
+	frameBuffer->ColorTextureSwapChain = swapChain->SwapChain;
+	frameBuffer->TextureSwapChainLength = swapChain->SwapChainLength;
 
 	memset( &frameBuffer->Framebuffer, 0, sizeof( ovrVkFramebuffer ) );
 
 	frameBuffer->Framebuffer.colorTextures = (ovrVkTexture *) malloc( frameBuffer->TextureSwapChainLength * sizeof( ovrVkTexture ) );
+	if ( swapChain->FragmentDensityTextures != NULL )
+	{
+		frameBuffer->Framebuffer.fragmentDensityTextures = (ovrVkTexture *) malloc( frameBuffer->TextureSwapChainLength * sizeof( ovrVkTexture ) );
+	}
+	else
+	{
+		frameBuffer->Framebuffer.fragmentDensityTextures = NULL;
+	}
 	frameBuffer->Framebuffer.framebuffers = (VkFramebuffer *) malloc( frameBuffer->TextureSwapChainLength * sizeof( VkFramebuffer ) );
 	frameBuffer->Framebuffer.renderPass = renderPass;
 	frameBuffer->Framebuffer.width = width;
 	frameBuffer->Framebuffer.height = height;
-	frameBuffer->Framebuffer.numLayers = 1;
+	frameBuffer->Framebuffer.numLayers = isMultiview ? 2 : 1;
 	frameBuffer->Framebuffer.numBuffers = frameBuffer->TextureSwapChainLength;
 	frameBuffer->Framebuffer.currentBuffer = 0;
 	frameBuffer->Framebuffer.currentLayer = 0;
 
 	for ( int i = 0; i < frameBuffer->TextureSwapChainLength; i++ )
 	{
-		// Setup the color buffer texture.
-		const VkImage colorTexture = vrapi_GetTextureSwapChainBufferVulkan( frameBuffer->ColorTextureSwapChain, i );
-
 		// Create the ovrVkTexture from the texture swapchain.
-		ovrVkTexture * texture = &frameBuffer->Framebuffer.colorTextures[i];
+		ovrVkTexture *texture = &frameBuffer->Framebuffer.colorTextures[i];
 		texture->width = width;
 		texture->height = height;
 		texture->depth = 1;
-		texture->layerCount = 1;
+		texture->layerCount = isMultiview ? 2 : 1;
 		texture->mipCount = 1;
 		texture->sampleCount = OVR_SAMPLE_COUNT_1;
 		texture->usage = OVR_TEXTURE_USAGE_SAMPLED;
-		texture->usageFlags = OVR_TEXTURE_USAGE_COLOR_ATTACHMENT | OVR_TEXTURE_USAGE_SAMPLED | OVR_TEXTURE_USAGE_STORAGE;
-		texture->wrapMode = OVR_TEXTURE_WRAP_MODE_CLAMP_TO_BORDER;	// Uses VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK
+		texture->usageFlags = OVR_TEXTURE_USAGE_COLOR_ATTACHMENT | OVR_TEXTURE_USAGE_SAMPLED |
+		                      OVR_TEXTURE_USAGE_STORAGE;
+		texture->wrapMode = OVR_TEXTURE_WRAP_MODE_CLAMP_TO_BORDER;    // Uses VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK
 		texture->filter = OVR_TEXTURE_FILTER_LINEAR;
 		texture->maxAnisotropy = 1.0f;
 		texture->format = colorFormat;
 		texture->imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		texture->image = colorTexture;
+		texture->image = swapChain->ColorTextures[i];
 		texture->memory = VK_NULL_HANDLE;
 		texture->sampler = VK_NULL_HANDLE;
 		texture->view = VK_NULL_HANDLE;
+
+		{
+			ovrVkContext_CreateSetupCmdBuffer( context );
+
+			VkImageMemoryBarrier imageMemoryBarrier;
+			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			imageMemoryBarrier.pNext = NULL;
+			imageMemoryBarrier.srcAccessMask = 0;
+			imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			imageMemoryBarrier.image = swapChain->ColorTextures[i];
+			imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
+			imageMemoryBarrier.subresourceRange.levelCount = 1;
+			imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
+			imageMemoryBarrier.subresourceRange.layerCount = texture->layerCount;
+
+			const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			const VkDependencyFlags flags = 0;
+
+			VC( context->device->vkCmdPipelineBarrier( context->setupCommandBuffer, src_stages, dst_stages, flags, 0, NULL, 0, NULL, 1, &imageMemoryBarrier ) );
+
+
+			ovrVkContext_FlushSetupCmdBuffer( context );
+		}
 
 		// create a view
 		VkImageViewCreateInfo imageViewCreateInfo;
@@ -345,8 +520,9 @@ static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * fram
 		imageViewCreateInfo.pNext = NULL;
 		imageViewCreateInfo.flags = 0;
 		imageViewCreateInfo.image = texture->image;
-		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = colorFormat;
+		imageViewCreateInfo.viewType = isMultiview ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
+		                                           : VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.format = texture->format;
 		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
 		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
 		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -355,17 +531,93 @@ static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * fram
 		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
 		imageViewCreateInfo.subresourceRange.levelCount = 1;
 		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewCreateInfo.subresourceRange.layerCount = 1;
+		imageViewCreateInfo.subresourceRange.layerCount = texture->layerCount;
 
 		VK( context->device->vkCreateImageView( context->device->device, &imageViewCreateInfo, VK_ALLOCATOR, &texture->view ) );
 
 		ovrVkTexture_UpdateSampler( context, texture );
+
+		// Setup the foveation buffer texture if possible.
+		if ( frameBuffer->Framebuffer.fragmentDensityTextures != NULL )
+		{
+			// Create the ovrVkTexture from the texture swapchain. We don't actually need the rest of the properties here, so we don't set them.
+			ovrVkTexture *textureFragmentDensity = &frameBuffer->Framebuffer.fragmentDensityTextures[i];
+			textureFragmentDensity->width = swapChain->FragmentDensityTextureSizes[i].width;
+			textureFragmentDensity->height = swapChain->FragmentDensityTextureSizes[i].height;
+			textureFragmentDensity->depth = 1;
+			textureFragmentDensity->layerCount = isMultiview ? 2 : 1;
+			textureFragmentDensity->mipCount = 1;
+			textureFragmentDensity->sampleCount = OVR_SAMPLE_COUNT_1;
+			textureFragmentDensity->usage = OVR_TEXTURE_USAGE_FRAG_DENSITY;
+			textureFragmentDensity->wrapMode = OVR_TEXTURE_WRAP_MODE_CLAMP_TO_BORDER;    // Uses VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK
+			textureFragmentDensity->filter = OVR_TEXTURE_FILTER_LINEAR;
+			textureFragmentDensity->maxAnisotropy = 1.0f;
+			textureFragmentDensity->format = VK_FORMAT_R8G8_UNORM;
+			textureFragmentDensity->imageLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+			textureFragmentDensity->image = swapChain->FragmentDensityTextures[i];
+			textureFragmentDensity->memory = VK_NULL_HANDLE;
+			textureFragmentDensity->sampler = VK_NULL_HANDLE;
+			textureFragmentDensity->view = VK_NULL_HANDLE;
+
+			{
+				ovrVkContext_CreateSetupCmdBuffer( context );
+
+				VkImageMemoryBarrier imageMemoryBarrier;
+				imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				imageMemoryBarrier.pNext = NULL;
+				imageMemoryBarrier.srcAccessMask = 0;
+				imageMemoryBarrier.dstAccessMask = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+				imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+				imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imageMemoryBarrier.image = swapChain->FragmentDensityTextures[i];
+				imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
+				imageMemoryBarrier.subresourceRange.levelCount = 1;
+				imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
+				imageMemoryBarrier.subresourceRange.layerCount = textureFragmentDensity->layerCount;
+
+				const VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+				const VkPipelineStageFlags dst_stages = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+				const VkDependencyFlags flags = 0;
+
+				VC( context->device->vkCmdPipelineBarrier( context->setupCommandBuffer, src_stages, dst_stages, flags, 0, NULL, 0, NULL, 1, &imageMemoryBarrier ) );
+
+
+				ovrVkContext_FlushSetupCmdBuffer( context );
+			}
+
+			// create a view
+			VkImageViewCreateInfo imageViewCreateInfoFragmentDensity;
+			imageViewCreateInfoFragmentDensity.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			imageViewCreateInfoFragmentDensity.pNext = NULL;
+			imageViewCreateInfoFragmentDensity.flags = 0;
+			imageViewCreateInfoFragmentDensity.image = textureFragmentDensity->image;
+			imageViewCreateInfoFragmentDensity.viewType = isMultiview ? VK_IMAGE_VIEW_TYPE_2D_ARRAY
+			                                                          : VK_IMAGE_VIEW_TYPE_2D;
+			imageViewCreateInfoFragmentDensity.format = VK_FORMAT_R8G8_UNORM;
+			imageViewCreateInfoFragmentDensity.components.r = VK_COMPONENT_SWIZZLE_R;
+			imageViewCreateInfoFragmentDensity.components.g = VK_COMPONENT_SWIZZLE_G;
+			imageViewCreateInfoFragmentDensity.components.b = VK_COMPONENT_SWIZZLE_B;
+			imageViewCreateInfoFragmentDensity.components.a = VK_COMPONENT_SWIZZLE_A;
+			imageViewCreateInfoFragmentDensity.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			imageViewCreateInfoFragmentDensity.subresourceRange.baseMipLevel = 0;
+			imageViewCreateInfoFragmentDensity.subresourceRange.levelCount = 1;
+			imageViewCreateInfoFragmentDensity.subresourceRange.baseArrayLayer = 0;
+			imageViewCreateInfoFragmentDensity.subresourceRange.layerCount = textureFragmentDensity->layerCount;
+
+			VK( context->device->vkCreateImageView( context->device->device, &imageViewCreateInfoFragmentDensity,
+			                                        VK_ALLOCATOR, &textureFragmentDensity->view ) );
+
+			ovrVkTexture_UpdateSampler( context, textureFragmentDensity );
+		}
 	}
 
 	if ( renderPass->sampleCount > OVR_SAMPLE_COUNT_1 )
 	{
 		ovrVkTexture_Create2D( context, &frameBuffer->Framebuffer.renderTexture, (ovrVkTextureFormat)renderPass->internalColorFormat, renderPass->sampleCount,
-			width, height, 1, OVR_TEXTURE_USAGE_COLOR_ATTACHMENT );
+		                       frameBuffer->Width, frameBuffer->Height, 1, isMultiview ? 2 : 1, OVR_TEXTURE_USAGE_COLOR_ATTACHMENT );
 		ovrVkContext_CreateSetupCmdBuffer( context );
 		ovrVkTexture_ChangeUsage( context, context->setupCommandBuffer, &frameBuffer->Framebuffer.renderTexture, OVR_TEXTURE_USAGE_COLOR_ATTACHMENT );
 		ovrVkContext_FlushSetupCmdBuffer( context );
@@ -374,13 +626,14 @@ static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * fram
 	// Create the depth buffer
 	if ( renderPass->internalDepthFormat != VK_FORMAT_UNDEFINED )
 	{
-		ovrVkDepthBuffer_Create( context, &frameBuffer->Framebuffer.depthBuffer, renderPass->depthFormat, renderPass->sampleCount, width, height, 1 );
+		ovrVkDepthBuffer_Create( context, &frameBuffer->Framebuffer.depthBuffer, renderPass->depthFormat,renderPass->sampleCount,
+		                         frameBuffer->Width, frameBuffer->Height, isMultiview ? 2 : 1 );
 	}
 
 	for ( int i = 0; i < frameBuffer->TextureSwapChainLength; i++ )
 	{
 		uint32_t attachmentCount = 0;
-		VkImageView attachments[3];
+		VkImageView attachments[4];
 
 		if ( renderPass->sampleCount > OVR_SAMPLE_COUNT_1 )
 		{
@@ -392,7 +645,11 @@ static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * fram
 		}
 		if ( renderPass->internalDepthFormat != VK_FORMAT_UNDEFINED )
 		{
-			attachments[attachmentCount++] = frameBuffer->Framebuffer.depthBuffer.views[0];
+			attachments[attachmentCount++] = frameBuffer->Framebuffer.depthBuffer.view;
+		}
+		if ( frameBuffer->Framebuffer.fragmentDensityTextures != NULL && renderPass->flags & OVR_RENDERPASS_FLAG_INCLUDE_FRAG_DENSITY )
+		{
+			attachments[attachmentCount++] = frameBuffer->Framebuffer.fragmentDensityTextures[i].view;
 		}
 
 		VkFramebufferCreateInfo framebufferCreateInfo;
@@ -402,8 +659,8 @@ static bool ovrFramebuffer_Create( ovrVkContext * context, ovrFrameBuffer * fram
 		framebufferCreateInfo.renderPass = renderPass->renderPass;
 		framebufferCreateInfo.attachmentCount = attachmentCount;
 		framebufferCreateInfo.pAttachments = attachments;
-		framebufferCreateInfo.width = width;
-		framebufferCreateInfo.height = height;
+		framebufferCreateInfo.width = frameBuffer->Framebuffer.width;
+		framebufferCreateInfo.height = frameBuffer->Framebuffer.height;
 		framebufferCreateInfo.layers = 1;
 
 		VK( context->device->vkCreateFramebuffer( context->device->device, &framebufferCreateInfo, VK_ALLOCATOR, &frameBuffer->Framebuffer.framebuffers[i] ) );
@@ -424,6 +681,10 @@ static void ovrFramebuffer_Destroy( ovrVkContext * context,  ovrFrameBuffer * fr
 		{
 			ovrVkTexture_Destroy( context, &frameBuffer->Framebuffer.colorTextures[i] );
 		}
+		if ( frameBuffer->Framebuffer.fragmentDensityTextures != NULL)
+		{
+			ovrVkTexture_Destroy( context, &frameBuffer->Framebuffer.fragmentDensityTextures[i] );
+		}
 	}
 
 	if ( frameBuffer->Framebuffer.depthBuffer.image != VK_NULL_HANDLE )
@@ -437,6 +698,7 @@ static void ovrFramebuffer_Destroy( ovrVkContext * context,  ovrFrameBuffer * fr
 
 	free( frameBuffer->Framebuffer.framebuffers );
 	free( frameBuffer->Framebuffer.colorTextures );
+	free( frameBuffer->Framebuffer.fragmentDensityTextures );
 
 	vrapi_DestroyTextureSwapChain( frameBuffer->ColorTextureSwapChain );
 
@@ -462,6 +724,7 @@ typedef struct
 	ovrVkGeometry			Cube;
 	ovrVkGraphicsPipeline	Pipelines;
 	ovrVkBuffer				SceneMatrices;
+	int						NumViews;
 
 	ovrVector3f				Rotations[NUM_ROTATIONS];
 	ovrVector3f				CubePositions[NUM_INSTANCES];
@@ -476,6 +739,7 @@ static void ovrScene_Clear( ovrScene * scene )
 	memset( &scene->Cube, 0, sizeof( ovrVkGeometry ) );
 	memset( &scene->Pipelines, 0, sizeof( ovrVkGraphicsPipeline ) );
 	memset( &scene->SceneMatrices, 0, sizeof( ovrVkBuffer ) );
+	scene->NumViews = 1;
 }
 
 static bool ovrScene_IsCreated( ovrScene * scene )
@@ -493,13 +757,16 @@ static float ovrScene_RandomFloat( ovrScene * scene )
 
 static void ovrScene_Create( ovrVkContext * context, ovrScene * scene, ovrVkRenderPass * renderPass )
 {
+	const bool isMultiview = context->device->supportsMultiview;
+	scene->NumViews = ( isMultiview ) ? 2 : 1;
+
 	ovrGeometry_CreateCube( context, &scene->Cube );
 	// Create the instance transform attribute buffer.
 	ovrVkGeometry_AddInstanceAttributes( context, &scene->Cube, NUM_INSTANCES, OVR_VERTEX_ATTRIBUTE_FLAG_TRANSFORM );
 
 	ovrVkGraphicsProgram_Create( context, &scene->Program,
-								PROGRAM( colorOnlyVertexProgram ),
-								sizeof( PROGRAM( colorOnlyVertexProgram ) ),
+								isMultiview ? PROGRAM( colorOnlyMultiviewVertexProgram ) : PROGRAM( colorOnlyVertexProgram ),
+								isMultiview ? sizeof( PROGRAM( colorOnlyMultiviewVertexProgram ) ) : sizeof( PROGRAM( colorOnlyVertexProgram ) ),
 								PROGRAM( colorOnlyFragmentProgram ),
 								sizeof( PROGRAM( colorOnlyFragmentProgram ) ),
 								colorOnlyProgramParms, ARRAY_SIZE( colorOnlyProgramParms ),
@@ -537,7 +804,7 @@ static void ovrScene_Create( ovrVkContext * context, ovrScene * scene, ovrVkRend
 	ovrVkGraphicsPipeline_Create( context, &scene->Pipelines, &pipelineParms );
 
 	// Setup the scene matrices.
-	ovrVkBuffer_Create( context, &scene->SceneMatrices, OVR_BUFFER_TYPE_UNIFORM, 2 * sizeof( ovrMatrix4f ), NULL, false );
+	ovrVkBuffer_Create( context, &scene->SceneMatrices, OVR_BUFFER_TYPE_UNIFORM, 2 * scene->NumViews * sizeof( ovrMatrix4f ), NULL, false );
 
 	// Setup random rotations.
 	for ( int i = 0; i < NUM_ROTATIONS; i++ )
@@ -630,8 +897,8 @@ static void ovrScene_UpdateBuffers( ovrVkCommandBuffer * commandBuffer, ovrScene
 	// Update the scene matrices uniform buffer.
 	ovrMatrix4f * sceneMatrices = NULL;
 	ovrVkBuffer * sceneMatricesBuffer = ovrVkCommandBuffer_MapBuffer( commandBuffer, &scene->SceneMatrices, (void **)&sceneMatrices );
-	memcpy( sceneMatrices + 0, viewMatrix, sizeof( ovrMatrix4f ) );
-	memcpy( sceneMatrices + 1, projectionMatrix, sizeof( ovrMatrix4f ) );
+	memcpy( sceneMatrices + 0 * scene->NumViews, viewMatrix, scene->NumViews * sizeof( ovrMatrix4f ) );
+	memcpy( sceneMatrices + 1 * scene->NumViews, projectionMatrix, scene->NumViews * sizeof( ovrMatrix4f ) );
 	ovrVkCommandBuffer_UnmapBuffer( commandBuffer, &scene->SceneMatrices, sceneMatricesBuffer, OVR_BUFFER_UNMAP_TYPE_COPY_BACK );
 
 	ovrMatrix4f rotationMatrices[NUM_ROTATIONS];
@@ -732,38 +999,65 @@ typedef struct
 
 	ovrMatrix4f			ViewMatrix[VRAPI_FRAME_LAYER_EYE_MAX];
 	ovrMatrix4f			ProjectionMatrix[VRAPI_FRAME_LAYER_EYE_MAX];
+	int					NumEyes;
 } ovrRenderer;
 
 static void ovrRenderer_Clear( ovrRenderer * renderer )
 {
 	memset( &renderer->RenderPassSingleView, 0, sizeof( ovrVkRenderPass ) );
+
 	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 	{
 		memset( &renderer->EyeCommandBuffer[eye], 0, sizeof( ovrVkCommandBuffer ) );
 
 		ovrFramebuffer_Clear( &renderer->Framebuffer[eye] );
+	}
 
+	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
+	{
 		renderer->ViewMatrix[eye] = ovrMatrix4f_CreateIdentity();
 		renderer->ProjectionMatrix[eye] = ovrMatrix4f_CreateIdentity();
 	}
+
+	renderer->NumEyes = VRAPI_FRAME_LAYER_EYE_MAX;
 }
 
 static void ovrRenderer_Create( ovrRenderer * renderer, ovrVkContext * context, const ovrJava * java )
 {
+	bool isMultiview = context->device->supportsMultiview;
+	bool useFFR = context->device->supportsFragmentDensity;
+	renderer->NumEyes = isMultiview ? 1 : VRAPI_FRAME_LAYER_EYE_MAX;
+
+	// Get swapchain images from vrapi first so that we know what attachments to use for the renderpass
+	ovrColorSwapChain colorSwapChains[renderer->NumEyes];
+	for ( int eye = 0; eye < renderer->NumEyes; eye++ )
+	{
+		ovrColorSwapChain_Init( &colorSwapChains[eye], VK_FORMAT_R8G8B8A8_UNORM,
+								 vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH ),
+								 vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT ),
+								 isMultiview );
+		useFFR = useFFR && colorSwapChains[eye].FragmentDensityTextures != NULL;
+	}
+
 	ovrVector4f clearColor = { 0.125f, 0.0f, 0.125f, 1.0f };
+	int flags = OVR_RENDERPASS_FLAG_CLEAR_COLOR_BUFFER | OVR_RENDERPASS_FLAG_CLEAR_DEPTH_BUFFER;
+	if ( useFFR )
+	{
+		flags |= OVR_RENDERPASS_FLAG_INCLUDE_FRAG_DENSITY;
+	}
 	ovrVkRenderPass_Create( context, &renderer->RenderPassSingleView,
 							OVR_SURFACE_COLOR_FORMAT_R8G8B8A8, OVR_SURFACE_DEPTH_FORMAT_D24,
 							SAMPLE_COUNT, OVR_RENDERPASS_TYPE_INLINE,
-							OVR_RENDERPASS_FLAG_CLEAR_COLOR_BUFFER |
-							OVR_RENDERPASS_FLAG_CLEAR_DEPTH_BUFFER, &clearColor );
+							flags, &clearColor, isMultiview );
 
-	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
+	for ( int eye = 0; eye < renderer->NumEyes; eye++ )
 	{
 		ovrFramebuffer_Create( context, &renderer->Framebuffer[eye], &renderer->RenderPassSingleView,
-							VK_FORMAT_R8G8B8A8_UNORM,
-							vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH ),
-							vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT ),
-							SAMPLE_COUNT );
+		                       &colorSwapChains[eye], VK_FORMAT_R8G8B8A8_UNORM,
+		                       vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_WIDTH ),
+		                       vrapi_GetSystemPropertyInt( java, VRAPI_SYS_PROP_SUGGESTED_EYE_TEXTURE_HEIGHT ),
+		                       isMultiview );
+		ovrColorSwapChain_Destroy( &colorSwapChains[eye] );
 
 		ovrVkCommandBuffer_Create( context, &renderer->EyeCommandBuffer[eye], OVR_COMMAND_BUFFER_TYPE_PRIMARY,
 							ovrVkFramebuffer_GetBufferCount( &renderer->Framebuffer[eye].Framebuffer ) );
@@ -778,13 +1072,16 @@ static void ovrRenderer_Create( ovrRenderer * renderer, ovrVkContext * context, 
 
 static void ovrRenderer_Destroy( ovrRenderer * renderer, ovrVkContext * context )
 {
-	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
+	for ( int eye = 0; eye < renderer->NumEyes ; eye++ )
 	{
 		ovrFramebuffer_Destroy( context, &renderer->Framebuffer[eye] );
 
 		ovrVkCommandBuffer_Destroy( context, &renderer->EyeCommandBuffer[eye] );
+	}
 
-		renderer->ViewMatrix[eye] =  ovrMatrix4f_CreateIdentity();
+	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
+	{
+		renderer->ViewMatrix[eye] = ovrMatrix4f_CreateIdentity();
 		renderer->ProjectionMatrix[eye] = ovrMatrix4f_CreateIdentity();
 	}
 
@@ -813,15 +1110,7 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame(
 
 	// Render the scene.
 
-	ovrVkTexture * eyeTexture[VRAPI_FRAME_LAYER_EYE_MAX];
-	eyeTexture[0] = NULL;
-	eyeTexture[1] = NULL;
-
-	int eyeArrayLayer[VRAPI_FRAME_LAYER_EYE_MAX];
-	eyeArrayLayer[0] = 0;
-	eyeArrayLayer[1] = 1;
-
-	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
+	for ( int eye = 0; eye < renderer->NumEyes; eye++ )
 	{
 		const ovrScreenRect screenRect = ovrVkFramebuffer_GetRect( &renderer->Framebuffer[eye].Framebuffer );
 
@@ -844,7 +1133,6 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame(
 		ovrVkCommandBuffer_EndFramebuffer( &renderer->EyeCommandBuffer[eye], &renderer->Framebuffer[eye].Framebuffer, 0/*eye*/, OVR_TEXTURE_USAGE_SAMPLED );
 		ovrVkCommandBuffer_EndPrimary( &renderer->EyeCommandBuffer[eye] );
 
-		eyeTexture[eye] = ovrVkFramebuffer_GetColorTexture( &renderer->Framebuffer[eye].Framebuffer );
 		ovrVkCommandBuffer_SubmitPrimary( &renderer->EyeCommandBuffer[eye] );
 	}
 
@@ -852,8 +1140,9 @@ static ovrLayerProjection2 ovrRenderer_RenderFrame(
 	layer.HeadPose = tracking->HeadPose;
 	for ( int eye = 0; eye < VRAPI_FRAME_LAYER_EYE_MAX; eye++ )
 	{
-		layer.Textures[eye].ColorSwapChain = renderer->Framebuffer[eye].ColorTextureSwapChain;
-		layer.Textures[eye].SwapChainIndex = renderer->Framebuffer[eye].Framebuffer.currentBuffer;
+		int eyeToSample = renderer->NumEyes == 1 ? 0 : eye;
+		layer.Textures[eye].ColorSwapChain = renderer->Framebuffer[eyeToSample].ColorTextureSwapChain;
+		layer.Textures[eye].SwapChainIndex = renderer->Framebuffer[eyeToSample].Framebuffer.currentBuffer;
 		layer.Textures[eye].TexCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection( &tracking->Eye[eye].ProjectionMatrix );
 	}
 
@@ -1024,6 +1313,8 @@ static void ovrApp_HandleInput( ovrApp * app )
 			if ( result == ovrSuccess )
 			{
 				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Back;
+				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_B;
+				backButtonDownThisFrame |= trackedRemoteState.Buttons & ovrButton_Y;
 			}
 		}
 		else if ( cap.Type == ovrControllerType_Gamepad )

@@ -58,6 +58,7 @@ typedef enum ovrSuccessResult_
 {
 	ovrSuccess						= 0,
 	ovrSuccess_BoundaryInvalid		= 1001,
+	ovrSuccess_EventUnavailable		= 1002,
 } ovrSuccessResult;
 
 typedef enum ovrErrorResult_
@@ -100,6 +101,13 @@ typedef struct ovrVector4f_
 
 OVR_VRAPI_ASSERT_TYPE_SIZE( ovrVector4f, 16 );
 
+typedef struct ovrVector4s_
+{
+	int16_t	x, y, z, w;
+} ovrVector4s;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE( ovrVector4s, 8 );
+
 /// Quaternion.
 typedef struct ovrQuatf_
 {
@@ -120,7 +128,11 @@ OVR_VRAPI_ASSERT_TYPE_SIZE( ovrMatrix4f, 64 );
 typedef struct ovrPosef_
 {
 	ovrQuatf	Orientation;
-	ovrVector3f	Position;
+	union
+	{
+		ovrVector3f	Position;
+		ovrVector3f	Translation;
+	};
 } ovrPosef;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE( ovrPosef, 28 );
@@ -241,6 +253,14 @@ typedef enum ovrVideoDecoderLimit_
 	VRAPI_VIDEO_DECODER_LIMIT_4K_60FPS	= 1,
 } ovrVideoDecoderLimit;
 
+/// Emulation mode for applications developed on different devices
+/// for determining if running in emulation mode at all test against != VRAPI_DEVICE_EMULATION_MODE_NONE
+typedef enum ovrDeviceEmulationMode_
+{
+	VRAPI_DEVICE_EMULATION_MODE_NONE		= 0,
+	VRAPI_DEVICE_EMULATION_MODE_GO_ON_QUEST	= 1,
+} ovrDeviceEmulationMode;
+
 /// System configuration properties.
 typedef enum ovrSystemProperty_
 {
@@ -290,6 +310,11 @@ typedef enum ovrSystemProperty_
 	/// Returns an ovrHandedness enum indicating left or right hand.
 	VRAPI_SYS_PROP_DOMINANT_HAND							= 15,
 
+	/// Returns VRAPI_TRUE if the system supports orientation tracking.
+	VRAPI_SYS_PROP_HAS_ORIENTATION_TRACKING					= 16,
+	/// Returns VRAPI_TRUE if the system supports positional tracking.
+	VRAPI_SYS_PROP_HAS_POSITION_TRACKING					= 17,
+
 	/// Returns the number of display refresh rates supported by the system.
 	VRAPI_SYS_PROP_NUM_SUPPORTED_DISPLAY_REFRESH_RATES		= 64,
 	/// Returns an array of the supported display refresh rates.
@@ -324,6 +349,9 @@ typedef enum ovrProperty_
 	VRAPI_BLOCK_REMOTE_BUTTONS_WHEN_NOT_EMULATING_HMT	=19,//< Used to not send the remote back button java events to the apps.
 	VRAPI_EAT_NATIVE_GAMEPAD_EVENTS		= 20,				//< Used to tell the runtime not to eat gamepad events.  If this is false on a native app, the app must be listening for the events.
 	VRAPI_ACTIVE_INPUT_DEVICE_ID		= 24,		//< Used by apps to query which input device is most 'active' or primary, a -1 means no active input device
+	VRAPI_DEVICE_EMULATION_MODE			= 29,		//< Used by apps to determine if they are running in an emulation mode. Is a ovrDeviceEmulationMode value
+
+	VRAPI_DYNAMIC_FOVEATION_ENABLED = 30,  //< Used by apps to enable / disable dynamic foveation adjustments.
 } ovrProperty;
 
 
@@ -358,6 +386,7 @@ typedef enum ovrSystemStatus_
 
 	VRAPI_SYS_STATUS_RECENTER_COUNT					= 13,	//< Returns the current HMD recenter count. Defaults to 0.
 	VRAPI_SYS_STATUS_SYSTEM_UX_ACTIVE				= 14,	//< Returns VRAPI_TRUE if a system UX layer is active
+	VRAPI_SYS_STATUS_USER_RECENTER_COUNT			= 15,	//< Returns the current HMD recenter count for user initiated recenters only. Defaults to 0.
 
 	VRAPI_SYS_STATUS_FRONT_BUFFER_PROTECTED			= 128,	//< VRAPI_TRUE if the front buffer is allocated in TrustZone memory.
 	VRAPI_SYS_STATUS_FRONT_BUFFER_565				= 129,	//< VRAPI_TRUE if the front buffer is 16-bit 5:6:5
@@ -375,15 +404,16 @@ typedef enum ovrInitializeStatus_
 	VRAPI_INITIALIZE_SUCCESS				=  0,
 	VRAPI_INITIALIZE_UNKNOWN_ERROR			= -1,
 	VRAPI_INITIALIZE_PERMISSIONS_ERROR		= -2,
-	VRAPI_INITIALIZE_ALREADY_INITIALIZED	= -3
+	VRAPI_INITIALIZE_ALREADY_INITIALIZED		= -3,
+	VRAPI_INITIALIZE_SERVICE_CONNECTION_FAILED	= -4,
 } ovrInitializeStatus;
 
 /// Supported graphics APIs.
 typedef enum ovrGraphicsAPI_
 {
-	VRAPI_GRAPHICS_API_TYPE_ES		 = 0x10000,
-	VRAPI_GRAPHICS_API_OPENGL_ES_2   = ( VRAPI_GRAPHICS_API_TYPE_ES | 0x0200 ),		//< OpenGL ES 2.x context
-	VRAPI_GRAPHICS_API_OPENGL_ES_3   = ( VRAPI_GRAPHICS_API_TYPE_ES | 0x0300 ),		//< OpenGL ES 3.x context
+	VRAPI_GRAPHICS_API_TYPE_OPENGL_ES = 0x10000,
+	VRAPI_GRAPHICS_API_OPENGL_ES_2   = ( VRAPI_GRAPHICS_API_TYPE_OPENGL_ES | 0x0200 ),		//< OpenGL ES 2.x context
+	VRAPI_GRAPHICS_API_OPENGL_ES_3   = ( VRAPI_GRAPHICS_API_TYPE_OPENGL_ES | 0x0300 ),		//< OpenGL ES 3.x context
 
 	VRAPI_GRAPHICS_API_TYPE_OPENGL	 = 0x20000,
 	VRAPI_GRAPHICS_API_OPENGL_COMPAT = ( VRAPI_GRAPHICS_API_TYPE_OPENGL | 0x0100 ), //< OpenGL Compatibility Profile
@@ -417,10 +447,6 @@ OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrInitParms, 48 );
 /// \note the first two flags use the first two bytes for backwards compatibility on little endian systems.
 typedef enum ovrModeFlags_
 {
-	/// If set, warn and allow the app to continue at 30 FPS when throttling occurs.
-	/// If not set, display the level 2 error message which requires the user to undock.
-	VRAPI_MODE_FLAG_ALLOW_POWER_SAVE			= 0x000000FF,
-
 	/// When an application moves backwards on the activity stack,
 	/// the activity window it returns to is no longer flagged as fullscreen.
 	/// As a result, Android will also render the decor view, which wastes a
@@ -470,7 +496,7 @@ typedef struct ovrModeParms_
 	/// packageName, systemService, etc.
 	ovrJava				Java;
 
-	OVR_VRAPI_PADDING_32_BIT( 4 );
+	OVR_VRAPI_PADDING_32_BIT( 4 )
 
 	/// Display to use for asynchronous time warp rendering.
 	/// Using EGL this is an EGLDisplay.
@@ -521,7 +547,7 @@ typedef struct ovrRigidBodyPosef_
 	ovrVector3f		LinearVelocity;
 	ovrVector3f		AngularAcceleration;
 	ovrVector3f		LinearAcceleration;
-	OVR_VRAPI_PADDING( 4 );
+	OVR_VRAPI_PADDING( 4 )
 	double			TimeInSeconds;			//< Absolute time of this pose.
 	double			PredictionInSeconds;	//< Seconds this pose was predicted ahead.
 } ovrRigidBodyPosef;
@@ -531,11 +557,11 @@ OVR_VRAPI_ASSERT_TYPE_SIZE( ovrRigidBodyPosef, 96 );
 /// Bit flags describing the current status of sensor tracking.
 typedef enum ovrTrackingStatus_
 {
-	VRAPI_TRACKING_STATUS_ORIENTATION_TRACKED	= 1 << 0,	//< Orientation is currently tracked.
-	VRAPI_TRACKING_STATUS_POSITION_TRACKED		= 1 << 1,	//< Position is currently tracked.
-	VRAPI_TRACKING_STATUS_ORIENTATION_VALID		= 1 << 2,	//< Orientation reported is valid.
-	VRAPI_TRACKING_STATUS_POSITION_VALID		= 1 << 3,	//< Position reported is valid.
-	VRAPI_TRACKING_STATUS_HMD_CONNECTED			= 1 << 7	//< HMD is available & connected.
+	VRAPI_TRACKING_STATUS_ORIENTATION_TRACKED		= 1 << 0,	//< Orientation is currently tracked.
+	VRAPI_TRACKING_STATUS_POSITION_TRACKED			= 1 << 1,	//< Position is currently tracked.
+	VRAPI_TRACKING_STATUS_ORIENTATION_VALID			= 1 << 2,	//< Orientation reported is valid.
+	VRAPI_TRACKING_STATUS_POSITION_VALID			= 1 << 3,	//< Position reported is valid.
+	VRAPI_TRACKING_STATUS_HMD_CONNECTED				= 1 << 7	//< HMD is available & connected.
 } ovrTrackingStatus;
 
 /// Tracking state at a given absolute time.
@@ -544,15 +570,15 @@ typedef struct ovrTracking2_
 	/// Sensor status described by ovrTrackingStatus flags.
 	unsigned int		Status;
 
-	OVR_VRAPI_PADDING( 4 );
+	OVR_VRAPI_PADDING( 4 )
 
 	/// Predicted head configuration at the requested absolute time.
 	/// The pose describes the head orientation and center eye position.
 	ovrRigidBodyPosef	HeadPose;
 	struct
 	{
-		ovrMatrix4f			ProjectionMatrix;
-		ovrMatrix4f			ViewMatrix;
+		ovrMatrix4f		ProjectionMatrix;
+		ovrMatrix4f		ViewMatrix;
 	} Eye[ VRAPI_EYE_COUNT ];
 } ovrTracking2;
 
@@ -564,7 +590,7 @@ typedef struct ovrTracking_
 	/// Sensor status described by ovrTrackingStatus flags.
 	unsigned int		Status;
 
-	OVR_VRAPI_PADDING( 4 );
+	OVR_VRAPI_PADDING( 4 )
 
 	/// Predicted head configuration at the requested absolute time.
 	/// The pose describes the head orientation and center eye position.
@@ -605,16 +631,16 @@ typedef enum ovrTrackedDeviceTypeId_
 typedef struct ovrBoundaryTriggerResult_
 {
 	/// Closest point on the boundary surface.
-	ovrVector3f				closestPoint;
+	ovrVector3f				ClosestPoint;
 
 	/// Normal of the closest point on the boundary surface.
-	ovrVector3f				closestPointNormal;
+	ovrVector3f				ClosestPointNormal;
 
 	/// Distance to the closest guardian boundary surface.
-	float					closestDistance;
+	float					ClosestDistance;
 
 	/// True if the boundary system is being triggered. Note that due to fade in/out effects this may not exactly match visibility.
-	bool 					isTriggering;
+	bool 					IsTriggering;
 } ovrBoundaryTriggerResult;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE( ovrBoundaryTriggerResult, 32 );
@@ -646,8 +672,10 @@ typedef enum ovrTextureFormat_
 	VRAPI_TEXTURE_FORMAT_DEPTH_16			= 7,
 	VRAPI_TEXTURE_FORMAT_DEPTH_24			= 8,
 	VRAPI_TEXTURE_FORMAT_DEPTH_24_STENCIL_8	= 9,
+	VRAPI_TEXTURE_FORMAT_RG16				= 10,
 
 } ovrTextureFormat;
+
 
 /// Built-in convenience swapchains.
 typedef enum ovrDefaultTextureSwapChain_
@@ -724,6 +752,11 @@ typedef enum ovrFrameLayerFlags_
 	VRAPI_FRAME_LAYER_FLAG_INHIBIT_SRGB_FRAMEBUFFER								= 1 << 8,
 
 
+	/// Allow Layer to use an expensive filtering mode. Only useful for 2D layers that are high
+	/// resolution (e.g. a remote desktop layer), typically double or more the target resolution.
+	VRAPI_FRAME_LAYER_FLAG_FILTER_EXPENSIVE										= 1 << 19,
+
+
 } ovrFrameLayerFlags;
 
 /// The user's eye (left or right) that can see a layer.
@@ -792,7 +825,7 @@ typedef struct ovrFrameLayerTexture_
 	/// This is a sub-rectangle of the [(0,0)-(1,1)] texture coordinate range.
 	ovrRectf				TextureRect;
 
-	OVR_VRAPI_PADDING( 4 );
+	OVR_VRAPI_PADDING( 4 )
 
 	/// The tracking state for which ModelViewMatrix is correct.
 	/// It is ok to update the orientation for each eye, which
@@ -824,7 +857,7 @@ typedef struct ovrFrameLayer_
 	float					ColorScale;
 
 	/// padding for deprecated variable.
-	OVR_VRAPI_PADDING( 4 );
+	OVR_VRAPI_PADDING( 4 )
 
 	/// Layer blend function.
 	ovrFrameLayerBlend		SrcBlend;
@@ -832,6 +865,9 @@ typedef struct ovrFrameLayer_
 
 	/// Combination of ovrFrameLayerFlags flags.
 	int						Flags;
+
+	/// explicit padding for x86
+	OVR_VRAPI_PADDING_32_BIT( 4 )
 } ovrFrameLayer;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrFrameLayer, 432 );
@@ -860,7 +896,7 @@ typedef struct ovrFrameParms_
 {
 	ovrStructureType		Type;
 
-	OVR_VRAPI_PADDING( 4 );
+	OVR_VRAPI_PADDING( 4 )
 
 	/// Layers composited in the time warp.
 	ovrFrameLayer	 		Layers[VRAPI_FRAME_LAYER_TYPE_MAX];
@@ -916,6 +952,7 @@ typedef enum ovrLayerType2_
 	VRAPI_LAYER_TYPE_CUBE2					= 4,
 	VRAPI_LAYER_TYPE_EQUIRECT2				= 5,
 	VRAPI_LAYER_TYPE_LOADING_ICON2			= 6,
+	VRAPI_LAYER_TYPE_FISHEYE2				= 7,
 } ovrLayerType2;
 
 /// Properties shared by any type of layer.
@@ -940,6 +977,7 @@ typedef struct ovrLayerProjection2_
 {
 	/// Header.Type must be VRAPI_LAYER_TYPE_PROJECTION2.
 	ovrLayerHeader2			Header;
+	OVR_VRAPI_PADDING_32_BIT( 4 )
 
 	ovrRigidBodyPosef		HeadPose;
 
@@ -975,6 +1013,7 @@ typedef struct ovrLayerCylinder2_
 {
 	/// Header.Type must be VRAPI_LAYER_TYPE_CYLINDER2.
 	ovrLayerHeader2			Header;
+	OVR_VRAPI_PADDING_32_BIT( 4 )
 
 	ovrRigidBodyPosef		HeadPose;
 
@@ -1029,6 +1068,7 @@ typedef struct ovrLayerCube2_
 {
 	/// Header.Type must be VRAPI_LAYER_TYPE_CUBE2.
 	ovrLayerHeader2			Header;
+	OVR_VRAPI_PADDING_32_BIT( 4 )
 
 	ovrRigidBodyPosef		HeadPose;
 	ovrMatrix4f				TexCoordsFromTanAngles;
@@ -1041,6 +1081,9 @@ typedef struct ovrLayerCube2_
 		ovrTextureSwapChain * ColorSwapChain;
 		int					SwapChainIndex;
 	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
+#ifdef __i386__
+	uint32_t			Padding;
+#endif
 } ovrLayerCube2;
 
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerCube2, 232 );
@@ -1066,6 +1109,7 @@ typedef struct ovrLayerEquirect2_
 {
 	/// Header.Type must be VRAPI_LAYER_TYPE_EQUIRECT2.
 	ovrLayerHeader2			Header;
+	OVR_VRAPI_PADDING_32_BIT( 4 )
 
 	ovrRigidBodyPosef		HeadPose;
 	ovrMatrix4f				TexCoordsFromTanAngles;
@@ -1107,6 +1151,40 @@ typedef struct ovrLayerLoadingIcon2_
 OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerLoadingIcon2, 52 );
 OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerLoadingIcon2, 64 );
 
+/// An "equiangular fisheye" or "f-theta" lens can be used to capture photos or video
+/// of around 180 degrees without stitching.
+///
+/// The cameras probably aren't exactly vertical, so a transformation may need to be applied
+/// before performing the fisheye calculation.
+/// A stereo fisheye camera rig will usually have slight misalignments between the two
+/// cameras, so they need independent transformations.
+///
+/// Once in lens space, the ray is transformed into an ideal fisheye projection, where the
+/// 180 degree hemisphere is mapped to a -1 to 1 2D space.
+///
+/// From there it can be mapped into actual texture coordinates, possibly two to an image for stereo.
+///
+typedef struct ovrLayerFishEye2_
+{
+	/// Header.Type must be VRAPI_LAYER_TYPE_FISHEYE2.
+	ovrLayerHeader2	Header;
+	OVR_VRAPI_PADDING_32_BIT( 4 )
+
+	ovrRigidBodyPosef	HeadPose;
+
+	struct
+	{
+		ovrTextureSwapChain * ColorSwapChain;
+		int					SwapChainIndex;
+		ovrMatrix4f			LensFromTanAngles;			//< transforms a tanAngle ray into lens space
+		ovrRectf			TextureRect;				//< packed stereo images will need to clamp at the mid border
+		ovrMatrix4f			TextureMatrix;				//< transform from a -1 to 1 ideal fisheye to the texture
+		ovrVector4f			Distortion;					//< Not currently used.
+	} Textures[VRAPI_FRAME_LAYER_EYE_MAX];
+} ovrLayerFishEye2;
+
+OVR_VRAPI_ASSERT_TYPE_SIZE_32_BIT( ovrLayerFishEye2, 472 );
+OVR_VRAPI_ASSERT_TYPE_SIZE_64_BIT( ovrLayerFishEye2, 488 );
 
 /// Union that combines ovrLayer types in a way that allows them
 /// to be used in a polymorphic way.
@@ -1118,6 +1196,7 @@ typedef union ovrLayer_Union2_
 	ovrLayerCube2			Cube;
 	ovrLayerEquirect2		Equirect;
 	ovrLayerLoadingIcon2	LoadingIcon;
+	ovrLayerFishEye2		FishEye;
 } ovrLayer_Union2;
 
 /// Parameters for frame submission.
@@ -1147,5 +1226,75 @@ typedef enum ovrPerfThreadType_
 	VRAPI_PERF_THREAD_TYPE_RENDERER		= 1,
 } ovrPerfThreadType;
 
+
+//-----------------------------------------------------------------
+// Events
+//-----------------------------------------------------------------
+
+typedef enum ovrEventType_
+{
+	// No event. This is returned if no events are pending.
+	VRAPI_EVENT_NONE						= 0,
+	// Events were lost due to event queue overflow.
+	VRAPI_EVENT_DATA_LOST					= 1,
+	// The application's frames are visible to the user.
+	VRAPI_EVENT_VISIBILITY_GAINED			= 2,
+	// The application's frames are no longer visible to the user.
+	VRAPI_EVENT_VISIBILITY_LOST				= 3,
+	// The current activity is in the foreground and has input focus.
+	VRAPI_EVENT_FOCUS_GAINED				= 4,
+	// The current activity is in the background (but possibly still visible) and has lost input focus.
+	VRAPI_EVENT_FOCUS_LOST					= 5,
+} ovrEventType;
+
+
+typedef struct ovrEventHeader_
+{
+	ovrEventType	EventType;
+} ovrEventHeader;
+
+// Event structure for VRAPI_EVENT_DATA_LOST
+typedef struct ovrEventDataLost_
+{
+	ovrEventHeader	EventHeader;
+} ovrEventDataLost;
+
+// Event structure for VRAPI_EVENT_VISIBILITY_GAINED
+typedef struct ovrEventVisibilityGained_
+{
+	ovrEventHeader	EventHeader;
+} ovrEventVisibilityGained;
+
+// Event structure for VRAPI_EVENT_VISIBILITY_LOST
+typedef struct ovrEventVisibilityLost_
+{
+	ovrEventHeader	EventHeader;
+} ovrEventVisibilityLost;
+
+// Event structure for VRAPI_EVENT_FOCUS_GAINED
+typedef struct ovrEventFocusGained_
+{
+	ovrEventHeader	EventHeader;
+} ovrEventFocusGained;
+
+// Event structure for VRAPI_EVENT_FOCUS_LOST
+typedef struct ovrEventFocusLost_
+{
+	ovrEventHeader	EventHeader;
+} ovrEventFocusLost;
+
+
+typedef struct ovrEventDataBuffer_
+{
+	ovrEventHeader			EventHeader;
+	unsigned char			EventData[4000];
+} ovrEventDataBuffer;
+
+#define VRAPI_LARGEST_EVENT_TYPE	ovrEventDataBuffer
+
+typedef enum ovrEventSize_
+{
+	VRAPI_MAX_EVENT_SIZE	= sizeof( VRAPI_LARGEST_EVENT_TYPE )
+} ovrEventSize;
 
 #endif	// OVR_VrApi_Types_h

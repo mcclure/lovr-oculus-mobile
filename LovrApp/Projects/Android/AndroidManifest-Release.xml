@@ -3,7 +3,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 	<application>
 		<activity
-			android:name="com.oculus.gles3jni.MainActivity"
+			android:name="org.lovr.oculusmobile.MainActivity"
 			android:excludeFromRecents="true">
 			<intent-filter>
 				<!-- This filter lets the apk show up as a launchable icon. -->

@@ -4,7 +4,7 @@
 	<application
 		android:debuggable="true">
 		<activity
-			android:name="com.oculus.gles3jni.MainActivity"
+			android:name="org.lovr.oculusmobile.MainActivity"
 			android:excludeFromRecents="false">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />

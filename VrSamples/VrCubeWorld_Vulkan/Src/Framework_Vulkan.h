@@ -54,6 +54,8 @@ Common defines
 
 #define VK_ALLOCATOR					NULL
 
+#define USE_API_DUMP					0	// place vk_layer_settings.txt in the executable folder and change APIDumpFile = TRUE
+
 #define ICD_SPV_MAGIC					0x07230203
 #define PROGRAM( name )					name##SPIRV
 
@@ -62,11 +64,7 @@ Common defines
 #endif
 
 #if !defined( ALOGV )
-#if _DEBUG
 #define ALOGV(...) __android_log_print( ANDROID_LOG_VERBOSE, "Framework_Vulkan", __VA_ARGS__ )
-#else
-#define ALOGV(...)
-#endif
 #endif
 
 /*
@@ -154,6 +152,7 @@ typedef struct
 {
 	void *			loader;
 	VkInstance		instance;
+	VkBool32		validate;
 
 	// Global functions.
 	PFN_vkGetInstanceProcAddr						vkGetInstanceProcAddr;
@@ -165,7 +164,9 @@ typedef struct
 	PFN_vkDestroyInstance							vkDestroyInstance;
 	PFN_vkEnumeratePhysicalDevices					vkEnumeratePhysicalDevices;
 	PFN_vkGetPhysicalDeviceFeatures					vkGetPhysicalDeviceFeatures;
+	PFN_vkGetPhysicalDeviceFeatures2KHR				vkGetPhysicalDeviceFeatures2KHR;
 	PFN_vkGetPhysicalDeviceProperties				vkGetPhysicalDeviceProperties;
+	PFN_vkGetPhysicalDeviceProperties2KHR			vkGetPhysicalDeviceProperties2KHR;
 	PFN_vkGetPhysicalDeviceMemoryProperties			vkGetPhysicalDeviceMemoryProperties;
 	PFN_vkGetPhysicalDeviceQueueFamilyProperties	vkGetPhysicalDeviceQueueFamilyProperties;
 	PFN_vkGetPhysicalDeviceFormatProperties			vkGetPhysicalDeviceFormatProperties;
@@ -174,6 +175,11 @@ typedef struct
 	PFN_vkEnumerateDeviceLayerProperties			vkEnumerateDeviceLayerProperties;
 	PFN_vkCreateDevice								vkCreateDevice;
 	PFN_vkGetDeviceProcAddr							vkGetDeviceProcAddr;
+
+	// Debug callback.
+	PFN_vkCreateDebugReportCallbackEXT				vkCreateDebugReportCallbackEXT;
+	PFN_vkDestroyDebugReportCallbackEXT				vkDestroyDebugReportCallbackEXT;
+	VkDebugReportCallbackEXT						debugReportCallback;
 
 } ovrVkInstance;
 
@@ -197,8 +203,8 @@ typedef struct
 	uint32_t							enabledLayerCount;
 	const char *						enabledLayerNames[32];
 	VkPhysicalDevice					physicalDevice;
-	VkPhysicalDeviceFeatures			physicalDeviceFeatures;
-	VkPhysicalDeviceProperties			physicalDeviceProperties;
+	VkPhysicalDeviceFeatures2			physicalDeviceFeatures;
+	VkPhysicalDeviceProperties2			physicalDeviceProperties;
 	VkPhysicalDeviceMemoryProperties	physicalDeviceMemoryProperties;
 	uint32_t							queueFamilyCount;
 	VkQueueFamilyProperties *			queueFamilyProperties;
@@ -206,6 +212,8 @@ typedef struct
 	pthread_mutex_t						queueFamilyMutex;
 	int									workQueueFamilyIndex;
 	int									presentQueueFamilyIndex;
+	bool 								supportsMultiview;
+	bool 								supportsFragmentDensity;
 
 	// The logical device.
 	VkDevice							device;
@@ -365,8 +373,7 @@ typedef struct
 	VkImageLayout			imageLayout;
 	VkImage					image;
 	VkDeviceMemory			memory;
-	VkImageView *			views;
-	int						numViews;
+	VkImageView				view;
 } ovrVkDepthBuffer;
 
 void ovrVkDepthBuffer_Create( ovrVkContext * context, ovrVkDepthBuffer * depthBuffer,
@@ -567,7 +574,8 @@ typedef enum
 	OVR_TEXTURE_USAGE_SAMPLED			= 1 << 4,
 	OVR_TEXTURE_USAGE_STORAGE			= 1 << 5,
 	OVR_TEXTURE_USAGE_COLOR_ATTACHMENT	= 1 << 6,
-	OVR_TEXTURE_USAGE_PRESENTATION		= 1 << 7
+	OVR_TEXTURE_USAGE_PRESENTATION		= 1 << 7,
+	OVR_TEXTURE_USAGE_FRAG_DENSITY      = 1 << 8,
 } ovrVkTextureUsage;
 
 typedef unsigned int ovrVkTextureUsageFlags;
@@ -613,7 +621,7 @@ void ovrVkTexture_ChangeUsage( ovrVkContext * context, VkCommandBuffer cmdBuffer
 
 bool ovrVkTexture_Create2D( ovrVkContext * context, ovrVkTexture * texture,
 								const ovrVkTextureFormat format, const ovrSampleCount sampleCount,
-								const int width, const int height, const int mipCount,
+								const int width, const int height, const int mipCount, const int numLayers,
 								const ovrVkTextureUsageFlags usageFlags );
 
 void ovrVkTexture_Destroy( ovrVkContext * context, ovrVkTexture * texture );
@@ -779,7 +787,8 @@ typedef enum
 typedef enum
 {
 	OVR_RENDERPASS_FLAG_CLEAR_COLOR_BUFFER		= 1 << 0,
-	OVR_RENDERPASS_FLAG_CLEAR_DEPTH_BUFFER		= 1 << 1
+	OVR_RENDERPASS_FLAG_CLEAR_DEPTH_BUFFER		= 1 << 1,
+	OVR_RENDERPASS_FLAG_INCLUDE_FRAG_DENSITY    = 1 << 2,
 } ovrVkRenderPassFlags;
 
 typedef struct
@@ -791,6 +800,7 @@ typedef struct
 	ovrSampleCount				sampleCount;
 	VkFormat					internalColorFormat;
 	VkFormat					internalDepthFormat;
+	VkFormat                    internalFragmentDensityFormat;
 	VkRenderPass				renderPass;
 	ovrVector4f					clearColor;
 } ovrVkRenderPass;
@@ -798,7 +808,7 @@ typedef struct
 bool ovrVkRenderPass_Create( ovrVkContext * context, ovrVkRenderPass * renderPass,
 									const ovrSurfaceColorFormat colorFormat, const ovrSurfaceDepthFormat depthFormat,
 									const ovrSampleCount sampleCount, const ovrVkRenderPassType type, const int flags,
-									const ovrVector4f * clearColor );
+									const ovrVector4f * clearColor, bool isMultiview );
 
 void ovrVkRenderPass_Destroy( ovrVkContext * context, ovrVkRenderPass * renderPass );
 
@@ -818,6 +828,7 @@ For optimal performance a framebuffer should only be created at load time, not a
 typedef struct
 {
 	ovrVkTexture *		colorTextures;
+	ovrVkTexture *		fragmentDensityTextures;
 	ovrVkTexture		renderTexture;
 	ovrVkDepthBuffer	depthBuffer;
 	VkFramebuffer *		framebuffers;

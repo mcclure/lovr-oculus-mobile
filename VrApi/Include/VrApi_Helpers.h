@@ -509,7 +509,6 @@ static inline ovrModeParms vrapi_DefaultModeParms( const ovrJava * java )
 	memset( &parms, 0, sizeof( parms ) );
 
 	parms.Type = VRAPI_STRUCTURE_TYPE_MODE_PARMS;
-	parms.Flags |= VRAPI_MODE_FLAG_ALLOW_POWER_SAVE;
 	parms.Flags |= VRAPI_MODE_FLAG_RESET_WINDOW_FULLSCREEN;
 	parms.Java = *java;
 
@@ -538,6 +537,7 @@ static inline ovrPerformanceParms vrapi_DefaultPerformanceParms()
 	parms.RenderThreadTid = 0;
 	return parms;
 }
+
 
 typedef enum
 {
@@ -849,6 +849,40 @@ static inline ovrLayerLoadingIcon2 vrapi_DefaultLayerLoadingIcon2()
 	return layer;
 }
 
+static inline ovrLayerFishEye2 vrapi_DefaultLayerFishEye2()
+{
+	ovrLayerFishEye2 layer = {};
+
+	const ovrMatrix4f projectionMatrix = ovrMatrix4f_CreateProjectionFov( 90.0f, 90.0f, 0.0f, 0.0f, 0.1f, 0.0f );
+	const ovrMatrix4f texCoordsFromTanAngles = ovrMatrix4f_TanAngleMatrixFromProjection( &projectionMatrix );
+
+	layer.Header.Type = VRAPI_LAYER_TYPE_FISHEYE2;
+	layer.Header.Flags  = 0;
+	layer.Header.ColorScale.x = 1.0f;
+	layer.Header.ColorScale.y = 1.0f;
+	layer.Header.ColorScale.z = 1.0f;
+	layer.Header.ColorScale.w = 1.0f;
+	layer.Header.SrcBlend = VRAPI_FRAME_LAYER_BLEND_ONE;
+	layer.Header.DstBlend = VRAPI_FRAME_LAYER_BLEND_ZERO;
+	layer.Header.Reserved = NULL;
+
+	layer.HeadPose.Pose.Orientation.w = 1.0f;
+
+	for ( int i = 0; i < VRAPI_FRAME_LAYER_EYE_MAX; i++ )
+	{
+		layer.Textures[i].LensFromTanAngles = texCoordsFromTanAngles;
+		layer.Textures[i].TextureRect.x = 0.0f;
+		layer.Textures[i].TextureRect.y = 0.0f;
+		layer.Textures[i].TextureRect.width = 1.0f;
+		layer.Textures[i].TextureRect.height = 1.0f;
+		layer.Textures[i].TextureMatrix.M[0][0] = 1.0f;
+		layer.Textures[i].TextureMatrix.M[1][1] = 1.0f;
+		layer.Textures[i].TextureMatrix.M[2][2] = 1.0f;
+		layer.Textures[i].TextureMatrix.M[3][3] = 1.0f;
+	}
+
+	return layer;
+}
 
 //-----------------------------------------------------------------
 // Eye view matrix helper functions.
@@ -856,9 +890,9 @@ static inline ovrLayerLoadingIcon2 vrapi_DefaultLayerLoadingIcon2()
 
 static inline float vrapi_GetInterpupillaryDistance( const ovrTracking2 * tracking2 )
 {
-	const ovrMatrix4f leftView = tracking2->Eye[0].ViewMatrix;
-	const ovrMatrix4f rightView = tracking2->Eye[1].ViewMatrix;
-	const ovrVector3f delta = { rightView.M[0][3] - leftView.M[0][3], rightView.M[1][3] - leftView.M[1][3], rightView.M[2][3] - leftView.M[2][3] };
+	const ovrMatrix4f leftPose = ovrMatrix4f_Inverse( &tracking2->Eye[0].ViewMatrix );   // convert to world
+	const ovrMatrix4f rightPose = ovrMatrix4f_Inverse( &tracking2->Eye[1].ViewMatrix );
+	const ovrVector3f delta = { rightPose.M[0][3] - leftPose.M[0][3], rightPose.M[1][3] - leftPose.M[1][3], rightPose.M[2][3] - leftPose.M[2][3] };
 	return sqrtf( delta.x * delta.x + delta.y * delta.y + delta.z * delta.z );
 }
 
@@ -878,16 +912,6 @@ static inline ovrMatrix4f vrapi_GetViewMatrixFromPose( const ovrPosef * pose )
 {
 	const ovrMatrix4f transform = vrapi_GetTransformFromPose( pose );
 	return ovrMatrix4f_Inverse( &transform );
-}
-
-/// Utility function to get the eye view matrix based on the center eye view matrix and the IPD.
-static inline ovrMatrix4f vrapi_GetEyeViewMatrix(	const ovrMatrix4f * centerEyeViewMatrix,
-													const float interpupillaryDistance,
-													const int eye )
-{
-	const float eyeOffset = ( eye ? -0.5f : 0.5f ) * interpupillaryDistance;
-	const ovrMatrix4f eyeOffsetMatrix = ovrMatrix4f_CreateTranslation( eyeOffset, 0.0f, 0.0f );
-	return ovrMatrix4f_Multiply( &eyeOffsetMatrix, centerEyeViewMatrix );
 }
 
 #endif	// OVR_VrApi_Helpers_h

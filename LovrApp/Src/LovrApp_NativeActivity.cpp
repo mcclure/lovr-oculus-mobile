@@ -3,7 +3,7 @@
 Filename	:	LovrApp_NativeActivity.c
 Content		:	Based on "VrCubeWorld_NativeActivity.c" from Oculus SDK
                 This sample uses the Android NativeActivity class. This sample does
-				not use the application framework and also does not use LibOVRKernel.
+				not use the application framework.
 				This sample only uses the VrApi.
 Created		:	March, 2015
 Authors		:	J.M.P. van Waveren
@@ -116,8 +116,6 @@ typedef void (GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(G
 #include "VrApi_Helpers.h"
 #include "VrApi_SystemUtils.h"
 #include "VrApi_Input.h"
-
-#define LOG_TAG "LovrActivity"
 
 static const int CPU_LEVEL			= 2;
 static const int GPU_LEVEL			= 3;
@@ -1201,7 +1199,6 @@ typedef struct
 	ovrRenderer			Renderer;
 #endif
 	bool				UseMultiview;
-	
 } ovrApp;
 
 static void ovrApp_Clear( ovrApp * app )

@@ -631,7 +631,7 @@ OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_RecenterPose( ovrMobile * ovr 
 /// applied without app intervention.
 OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT ovrPosef  vrapi_GetTrackingTransform( ovrMobile * ovr, ovrTrackingTransform whichTransform ) );
 
-/// Sets the transform used convert between tracking coordinates and a canonical
+/// Sets the transform used to convert between tracking coordinates and a canonical
 /// application-defined space.
 /// Only the yaw component of the orientation is used.
 OVR_VRAPI_DEPRECATED( OVR_VRAPI_EXPORT void vrapi_SetTrackingTransform( ovrMobile * ovr, ovrPosef pose ) );
@@ -736,7 +736,13 @@ OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateTextureSwapChain( ovrTextureT
 /// the default size of the image buffers.
 /// Note that the image producer may override the buffer size, in which case the default values provided
 /// here will not be used (ie both video decompression or camera preview override the size automatically).
+///
+/// If isProtected is true, the surface swapchain will be created as a protected surface, ie for supporting
+/// secure video playback.
+///
+/// NOTE: These paths are not currently supported under Vulkan.
 OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateAndroidSurfaceSwapChain( int width, int height );
+OVR_VRAPI_EXPORT ovrTextureSwapChain * vrapi_CreateAndroidSurfaceSwapChain2( int width, int height, bool isProtected );
 
 
 /// Destroy the given texture swap chain.
@@ -753,9 +759,11 @@ OVR_VRAPI_EXPORT unsigned int vrapi_GetTextureSwapChainHandle( ovrTextureSwapCha
 /// Get the Android Surface object associated with the swap chain.
 OVR_VRAPI_EXPORT jobject vrapi_GetTextureSwapChainAndroidSurface( ovrTextureSwapChain * chain );
 
+
 //-----------------------------------------------------------------
 // Frame Submission
 //-----------------------------------------------------------------
+
 
 /// Accepts new eye images plus poses that will be used for future warps.
 /// The parms are copied, and are not referenced after the function returns.
@@ -813,10 +821,25 @@ OVR_VRAPI_EXPORT ovrResult vrapi_SetExtraLatencyMode( ovrMobile * ovr, const ovr
 /// Set the Display Refresh Rate.
 /// Returns ovrSuccess or an ovrError code.
 /// Returns 'ovrError_InvalidParameter' if requested refresh rate is not supported by the device.
-/// Returns 'ovrError_InvalidOperation' if setting the display refresh rate was not successful (such as when the device is in low power mode).
+/// Returns 'ovrError_InvalidOperation' if the display refresh rate request was not allowed (such as when the device is in low power mode).
 OVR_VRAPI_EXPORT ovrResult vrapi_SetDisplayRefreshRate( ovrMobile * ovr, const float refreshRate );
 
+//-----------------------------------------------------------------
+// Events
+//-----------------------------------------------------------------
 
+/// Returns VrApi state information to the application.
+/// The application should read from the VrApi event queue with regularity.
+///
+/// The caller must pass a pointer to memory that is at least the size of the largest event
+/// structure, VRAPI_LARGEST_EVENT_TYPE. On return, the structure is filled in with the current
+/// event's data. All event structures start with the ovrEventHeader, which contains the
+/// type of the event. Based on this type, the caller can cast the passed ovrEventHeader
+/// pointer to the appropriate event type.
+///
+/// Returns ovrSuccess if no error occured.
+/// If no events are pending the event header EventType will be VRAPI_EVENT_NONE.
+OVR_VRAPI_EXPORT ovrResult vrapi_PollEvent( ovrEventHeader * event );
 
 
 #if defined( __cplusplus )

@@ -18,6 +18,9 @@ android {
     // be unique on a system.  If you don't change it, a new app
     // will replace an older one.
     applicationId "org.lovr." + project.archivesBaseName
+    minSdkVersion 23
+    targetSdkVersion 25
+    compileSdkVersion 26
 
     // override app plugin abiFilters for both 32 and 64-bit support
     externalNativeBuild {
@@ -27,7 +30,7 @@ android {
         ndkBuild {
                 abiFilters 'arm64-v8a'
         }
-    } 
+    }
   }
 
   sourceSets {
@@ -68,5 +71,10 @@ android {
       addPathFrom('../../local_assets')
       addPathFrom('../../local_assets.txt')
     }
+  }
+
+  // This linter option is only useful for Google Play
+  lintOptions{
+      disable 'ExpiredTargetSdkVersion'
   }
 }

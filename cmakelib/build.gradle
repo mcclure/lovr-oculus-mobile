@@ -1,12 +1,12 @@
 apply plugin: 'com.android.library'
 
 android {
-  compileSdkVersion 26
-  buildToolsVersion '27.0.3'
+	compileSdkVersion 26
+	buildToolsVersion '27.0.3'
 
-  defaultConfig {
+	defaultConfig {
 		minSdkVersion 23
-		targetSdkVersion 23
+		targetSdkVersion 25
 
 	    externalNativeBuild {
 	        ndk {
@@ -28,5 +28,10 @@ android {
 		cmake {
 			path "lovr/CMakeLists.txt"
 		}
+	}
+
+	// This linter option is only useful for Google Play
+	lintOptions{
+		disable 'ExpiredTargetSdkVersion'
 	}
 }
