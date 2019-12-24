@@ -1361,6 +1361,16 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				updateData.controllerCount++;
 			}
 		}
+		else if ( cap.Type == ovrControllerType_Hand )
+		{
+			ovrInputTrackedRemoteCapabilities remoteCaps;
+			remoteCaps.Header = cap;
+			result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCaps.Header );
+			if (result == ovrSuccess) {
+				controller.hand = (BridgeLovrHand)(remoteCaps.ControllerCapabilities & BRIDGE_LOVR_HAND_CAPMASK);
+			}
+			controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_TRACKING);
+		}
 		else if ( cap.Type == ovrControllerType_TrackedRemote )
 		{
 			ovrInputStateTrackedRemote trackedRemoteState;
@@ -1380,7 +1390,11 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				remoteCaps.Header = cap;
 				result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCaps.Header );
 				if (result == ovrSuccess) {
-					controller.hand = (BridgeLovrHand)remoteCaps.ControllerCapabilities;
+					controller.hand = (BridgeLovrHand)(remoteCaps.ControllerCapabilities & BRIDGE_LOVR_HAND_CAPMASK);
+				}
+				controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_HANDSET);
+				if (currentDevice == BRIDGE_LOVR_DEVICE_QUEST) { // FIXME: Is this assumption safe?
+					controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_RIFTY);
 				}
 
 				// Determine best supported vibration mode
@@ -1397,17 +1411,16 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				vibrateFunctionInitController(remoteCaps.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID,
 					vibrateMode, remoteCaps.HapticSamplesMax, remoteCaps.HapticSampleDurationMS);
 
-				controller.handset = true;
-				controller.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
-				controller.buttonTouch = (BridgeLovrTouch)(unsigned int)trackedRemoteState.Touches;
+				controller.handset.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
+				controller.handset.buttonTouch = (BridgeLovrTouch)(unsigned int)trackedRemoteState.Touches;
 				if (currentDevice == BRIDGE_LOVR_DEVICE_QUEST) {
-					controller.trackpad.x = trackedRemoteState.Joystick.x;
-					controller.trackpad.y = trackedRemoteState.Joystick.y;
-					controller.trigger = trackedRemoteState.IndexTrigger;
-					controller.grip = trackedRemoteState.GripTrigger;
+					controller.handset.trackpad.x = trackedRemoteState.Joystick.x;
+					controller.handset.trackpad.y = trackedRemoteState.Joystick.y;
+					controller.handset.trigger = trackedRemoteState.IndexTrigger;
+					controller.handset.grip = trackedRemoteState.GripTrigger;
 				} else {
-					controller.trackpad.x = trackedRemoteState.TrackpadPosition.x;
-					controller.trackpad.y = trackedRemoteState.TrackpadPosition.y;
+					controller.handset.trackpad.x = trackedRemoteState.TrackpadPosition.x;
+					controller.handset.trackpad.y = trackedRemoteState.TrackpadPosition.y;
 				}
 				BridgeLovrUnpack(hmtTracking.HeadPose, controller.pose, controller.movement.velocity, controller.movement.acceleration);
 
