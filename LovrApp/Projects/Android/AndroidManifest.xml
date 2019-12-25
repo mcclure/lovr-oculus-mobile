@@ -9,6 +9,9 @@
 	<uses-feature android:glEsVersion="0x00030001" android:required="true"/>
 	<!-- Tell the system this app works in either 3dof or 6dof mode -->
 	<uses-feature android:name="android.hardware.vr.headtracking" android:required="false" />
+	<!-- Tell the system this app can handle tracked remotes and hands -->
+	<uses-feature android:name="oculus.software.handtracking" android:required="false" />
+	<uses-permission android:name="oculus.permission.handtracking" />
 	<!-- Network access needed for OVRMonitor -->
 	<uses-permission android:name="android.permission.INTERNET" />
 	<!-- Volume Control -->
