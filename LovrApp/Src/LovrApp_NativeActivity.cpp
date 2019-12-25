@@ -153,14 +153,18 @@ typedef struct
 
 OpenGLExtensions_t glExtensions;
 
+void BridgeLovrUnpackPose(ovrPosef &Pose, BridgeLovrPose &OutPose) {
+	OutPose.x = Pose.Position.x;
+	OutPose.y = Pose.Position.y;
+	OutPose.z = Pose.Position.z;
+	OutPose.q[0] = Pose.Orientation.x;
+	OutPose.q[1] = Pose.Orientation.y;
+	OutPose.q[2] = Pose.Orientation.z;
+	OutPose.q[3] = Pose.Orientation.w;
+}
+
 void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeLovrAngularVector &Velocity, BridgeLovrAngularVector &Acceleration) {
-	Pose.x = HeadPose.Pose.Position.x;
-	Pose.y = HeadPose.Pose.Position.y;
-	Pose.z = HeadPose.Pose.Position.z;
-	Pose.q[0] = HeadPose.Pose.Orientation.x;
-	Pose.q[1] = HeadPose.Pose.Orientation.y;
-	Pose.q[2] = HeadPose.Pose.Orientation.z;
-	Pose.q[3] = HeadPose.Pose.Orientation.w;
+	BridgeLovrUnpackPose(HeadPose.Pose, Pose);
 
 	Velocity.x = HeadPose.LinearVelocity.x;
 	Velocity.y = HeadPose.LinearVelocity.y;
@@ -1327,6 +1331,40 @@ static void ovrApp_HandleVrModeChanges( ovrApp * app )
 	}
 }
 
+static const char * ovrHandBoneNames[ovrHandBone_Max] =
+{
+	"WristRoot",
+	"ForearmStub",
+	"Thumb0",
+	"Thumb1",
+	"Thumb2",
+	"Thumb3",
+	"Index1",
+	"Index2",
+	"Index3",
+	"Middle1",
+	"Middle2",
+	"Middle3",
+	"Ring1",
+	"Ring2",
+	"Ring3",
+	"Pinky0",
+	"Pinky1",
+	"Pinky2",
+	"Pinky3",
+	"ThumbTip",
+	"IndexTip",
+	"MiddleTip",
+	"RingTip",
+	"PinkyTip"
+};
+
+static BridgeLovrStringList handTrackingBonesStruct = {ovrHandBone_Max, ovrHandBoneNames};
+
+static BridgeLovrPose handTrackingPoses[ovrHandBone_Max];
+
+static BridgeLovrPoseList handTrackingPosesStruct = {ovrHandBone_Max, handTrackingPoses};
+
 // TODO: Should unpack input based on device capabilities. Current code unpacks Go controller specifically
 static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, double predictedDisplayTime )
 {
@@ -1363,6 +1401,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 		}
 		else if ( cap.Type == ovrControllerType_Hand )
 		{
+			ovrResult r;
 			ovrInputTrackedRemoteCapabilities remoteCaps;
 			remoteCaps.Header = cap;
 			result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCaps.Header );
@@ -1370,6 +1409,46 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				controller.hand = (BridgeLovrHand)(remoteCaps.ControllerCapabilities & BRIDGE_LOVR_HAND_CAPMASK);
 			}
 			controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_TRACKING);
+
+			controller.tracking.live = false;
+
+#if 0
+			// Uncomment if at some point we start caring about oculus's gesture system
+			ovrInputStateHand InputStateHand;
+			r = vrapi_GetCurrentInputState( ovr, cap.DeviceID, &InputStateHand.Header );
+			if ( r == ovrSuccess )
+			{
+			}
+#endif
+
+			ovrHandPose RealHandPose;
+			RealHandPose.Header.Version = ovrHandVersion_1;
+			r = vrapi_GetHandPose( app->Ovr, cap.DeviceID, predictedDisplayTime, &(RealHandPose.Header) );
+			if ( r == ovrSuccess )
+			{
+				BridgeLovrUnpackPose(RealHandPose.RootPose, controller.pose);
+				memset(&controller.movement, 0, sizeof(controller.movement)); // TODO
+
+				controller.tracking.live = true;
+				controller.tracking.confidence = float(RealHandPose.HandConfidence) / float(ovrConfidence_HIGH);
+				controller.tracking.handScale = RealHandPose.HandScale;
+				controller.tracking.bones = &handTrackingBonesStruct;
+				controller.tracking.poses = &handTrackingPosesStruct;
+
+				ovrHandSkeleton skeleton;
+				skeleton.Header.Version = ovrHandVersion_1;
+				if ( vrapi_GetHandSkeleton(	app->Ovr, (remoteCaps.ControllerCapabilities|ovrControllerCaps_LeftHand)?VRAPI_HAND_LEFT:VRAPI_HAND_RIGHT, &skeleton.Header ) == ovrSuccess )
+				{
+					int bones = std::min<uint32_t>(skeleton.NumBones, ovrHandBone_Max);
+					controller.tracking.poses->members = bones;
+					for(int c = 0; c < bones; c++)
+						BridgeLovrUnpackPose(skeleton.BonePoses[c], handTrackingPoses[c]);
+				}
+				else
+				{
+					controller.tracking.poses->members = 0;
+				}
+			}
 		}
 		else if ( cap.Type == ovrControllerType_TrackedRemote )
 		{
