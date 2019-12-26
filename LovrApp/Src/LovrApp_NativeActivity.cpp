@@ -116,6 +116,7 @@ typedef void (GL_APIENTRY* PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(G
 #include "VrApi_Helpers.h"
 #include "VrApi_SystemUtils.h"
 #include "VrApi_Input.h"
+#include "OVR_HandModel.h"
 
 static const int CPU_LEVEL			= 2;
 static const int GPU_LEVEL			= 3;
@@ -155,7 +156,7 @@ typedef struct
 
 OpenGLExtensions_t glExtensions;
 
-void BridgeLovrUnpackPose(ovrPosef &Pose, BridgeLovrPose &OutPose) {
+void BridgeLovrUnpackPose(const ovrPosef &Pose, BridgeLovrPose &OutPose) {
 	OutPose.x = Pose.Position.x;
 	OutPose.y = Pose.Position.y;
 	OutPose.z = Pose.Position.z;
@@ -165,7 +166,7 @@ void BridgeLovrUnpackPose(ovrPosef &Pose, BridgeLovrPose &OutPose) {
 	OutPose.q[3] = Pose.Orientation.w;
 }
 
-void BridgeLovrUnpack(ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeLovrAngularVector &Velocity, BridgeLovrAngularVector &Acceleration) {
+void BridgeLovrUnpack(const ovrRigidBodyPosef &HeadPose, BridgeLovrPose &Pose, BridgeLovrAngularVector &Velocity, BridgeLovrAngularVector &Acceleration) {
 	BridgeLovrUnpackPose(HeadPose.Pose, Pose);
 
 	Velocity.x = HeadPose.LinearVelocity.x;
@@ -1363,9 +1364,16 @@ static const char * ovrHandBoneNames[ovrHandBone_Max] =
 
 static BridgeLovrStringList handTrackingBonesStruct = {ovrHandBone_Max, ovrHandBoneNames};
 
-static BridgeLovrPose handTrackingPoses[ovrHandBone_Max];
+typedef struct {
+	bool init;
 
-static BridgeLovrPoseList handTrackingPosesStruct = {ovrHandBone_Max, handTrackingPoses};
+	OVRFW::ovrHandModel *handModel;
+
+	BridgeLovrPose handTrackingPoses[ovrHandBone_Max];
+	BridgeLovrPoseList handTrackingPosesStruct = {0, handTrackingPoses};
+} HandTrackData;
+
+static HandTrackData handTrackData[2];
 
 // TODO: Should unpack input based on device capabilities. Current code unpacks Go controller specifically
 static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, double predictedDisplayTime )
@@ -1412,6 +1420,9 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 			}
 			controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_TRACKING);
 
+			bool left = remoteCaps.ControllerCapabilities|ovrControllerCaps_LeftHand;
+			HandTrackData &handTrack = handTrackData[!left];
+
 			controller.tracking.live = false;
 
 #if 0
@@ -1422,6 +1433,18 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 			{
 			}
 #endif
+
+			if (!handTrack.init) {
+				handTrack.handModel = new OVRFW::ovrHandModel();
+
+				ovrHandSkeleton skeleton;
+				skeleton.Header.Version = ovrHandVersion_1;
+				if ( vrapi_GetHandSkeleton(	app->Ovr, left?VRAPI_HAND_LEFT:VRAPI_HAND_RIGHT, &skeleton.Header ) == ovrSuccess )
+				{
+					handTrack.handModel->Init( skeleton );
+					handTrack.init = true;
+				}
+			}
 
 			ovrHandPose RealHandPose;
 			RealHandPose.Header.Version = ovrHandVersion_1;
@@ -1434,21 +1457,17 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				controller.tracking.live = true;
 				controller.tracking.confidence = float(RealHandPose.HandConfidence) / float(ovrConfidence_HIGH);
 				controller.tracking.handScale = RealHandPose.HandScale;
-				controller.tracking.bones = &handTrackingBonesStruct;
-				controller.tracking.poses = &handTrackingPosesStruct;
+				if (handTrack.init) {
+					controller.tracking.bones = &handTrackingBonesStruct;
+					controller.tracking.poses = &handTrack.handTrackingPosesStruct;
 
-				ovrHandSkeleton skeleton;
-				skeleton.Header.Version = ovrHandVersion_1;
-				if ( vrapi_GetHandSkeleton(	app->Ovr, (remoteCaps.ControllerCapabilities|ovrControllerCaps_LeftHand)?VRAPI_HAND_LEFT:VRAPI_HAND_RIGHT, &skeleton.Header ) == ovrSuccess )
-				{
-					int bones = std::min<uint32_t>(skeleton.NumBones, ovrHandBone_Max);
+					handTrack.handModel->Update( RealHandPose );
+					const std::vector< OVR::Posef > & poses = handTrack.handModel->GetSkeleton().GetWorldSpacePoses();
+
+					int bones = std::min<uint32_t>(poses.size(), ovrHandBone_Max);
 					controller.tracking.poses->members = bones;
 					for(int c = 0; c < bones; c++)
-						BridgeLovrUnpackPose(skeleton.BonePoses[c], handTrackingPoses[c]);
-				}
-				else
-				{
-					controller.tracking.poses->members = 0;
+						BridgeLovrUnpackPose(poses[c], handTrack.handTrackingPoses[c]);
 				}
 			}
 		}

@@ -18,7 +18,8 @@ Copyright   :   Copyright (c) Facebook Technologies, LLC and its affiliates. All
 #include "VrApi_Input.h"
 #include "OVR_Skeleton.h"
 
-#include "Model/ModelFile.h"
+// Mod for lovr-oculus-mobile: Don't include this. OVR_HandModel.cpp doesn't even use it
+//#include "Model/ModelFile.h"
 
 namespace OVRFW {
 

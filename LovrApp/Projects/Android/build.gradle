@@ -66,10 +66,15 @@ android {
             throw new InvalidUserDataException(pathFilePath + " points to \"" + truePath
               + "\", but this is a file and not a directory")
           assets.srcDirs += [truePath] // Add user-speicfied path to srcDirs
+          return true
         }
+        return false
       }
-      addPathFrom('../../local_assets')
-      addPathFrom('../../local_assets.txt')
+      def override = false
+      override = override || addPathFrom('../../local_assets')
+      override = override || addPathFrom('../../local_assets.txt')
+      if (!override)
+        assets.srcDirs += ['../../../cmakelib/lovr/game/lua']
     }
   }
 

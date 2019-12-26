@@ -22,11 +22,15 @@ include $(PREBUILT_SHARED_LIBRARY)
 #--------------------------------------------------------
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES += ../../../cmakelib
+LOCAL_C_INCLUDES += ../../../cmakelib \
+  					$(LOCAL_PATH)/../../../../1stParty/OVR/Include \
+  					$(LOCAL_PATH)/../../../../VrSamples/VrHands/Src
 
 LOCAL_MODULE			:= lovractivity
 LOCAL_CFLAGS			:= -Werror
-LOCAL_SRC_FILES			:= ../../../Src/LovrApp_NativeActivity.cpp
+LOCAL_SRC_FILES			:= ../../../Src/LovrApp_NativeActivity.cpp \
+						   ../../../../VrSamples/VrHands/Src/OVR_Skeleton.cpp \
+						   ../../../../VrSamples/VrHands/Src/OVR_HandModel.cpp
 LOCAL_LDLIBS			:= -llog -landroid -lGLESv3 -lEGL		# include default libraries
 
 LOCAL_LDFLAGS			:= -u ANativeActivity_onCreate
