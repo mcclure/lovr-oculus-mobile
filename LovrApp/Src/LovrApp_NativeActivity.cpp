@@ -76,8 +76,8 @@ std::string ovr_GetPackageCodePath(JNIEnv * jni, jobject activityObject)
 }
 
 extern "C" {
-
 #include "lovr/src/modules/headset/oculus_mobile_bridge.h"
+}
 
 static BridgeLovrDevice currentDevice;
 
@@ -122,6 +122,8 @@ static const int GPU_LEVEL			= 3;
 static const int NUM_MULTI_SAMPLES	= 4;
 
 #define MULTI_THREADED			0
+
+extern "C" {
 
 /*
 ================================================================================
