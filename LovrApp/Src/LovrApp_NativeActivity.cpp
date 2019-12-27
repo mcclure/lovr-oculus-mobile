@@ -1370,7 +1370,7 @@ typedef struct {
 	OVRFW::ovrHandModel *handModel;
 
 	BridgeLovrPose handTrackingPoses[ovrHandBone_Max];
-	BridgeLovrPoseList handTrackingPosesStruct = {0, handTrackingPoses};
+	BridgeLovrPoseList handTrackingPosesStruct;
 } HandTrackData;
 
 static HandTrackData handTrackData[2];
@@ -1411,64 +1411,69 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 		}
 		else if ( cap.Type == ovrControllerType_Hand )
 		{
-			ovrResult r;
-			ovrInputTrackedRemoteCapabilities remoteCaps;
-			remoteCaps.Header = cap;
-			result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCaps.Header );
+			ovrInputHandCapabilities handCap;
+			handCap.Header = cap;
+			result = vrapi_GetInputDeviceCapabilities( app->Ovr, &handCap.Header );
+
 			if (result == ovrSuccess) {
-				controller.hand = (BridgeLovrHand)(remoteCaps.ControllerCapabilities & BRIDGE_LOVR_HAND_CAPMASK);
-			}
-			controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_TRACKING);
+				controller.hand = (BridgeLovrHand)(
+					(handCap.HandCapabilities & BRIDGE_LOVR_HAND_HANDMASK)
+				| BRIDGE_LOVR_HAND_TRACKING);
 
-			bool left = remoteCaps.ControllerCapabilities|ovrControllerCaps_LeftHand;
-			HandTrackData &handTrack = handTrackData[!left];
+				bool left = handCap.HandCapabilities&ovrControllerCaps_LeftHand;
+				HandTrackData &handTrack = handTrackData[!left];
 
-			controller.tracking.live = false;
+				controller.tracking.live = false;
 
 #if 0
-			// Uncomment if at some point we start caring about oculus's gesture system
-			ovrInputStateHand InputStateHand;
-			r = vrapi_GetCurrentInputState( ovr, cap.DeviceID, &InputStateHand.Header );
-			if ( r == ovrSuccess )
-			{
-			}
-#endif
-
-			if (!handTrack.init) {
-				handTrack.handModel = new OVRFW::ovrHandModel();
-
-				ovrHandSkeleton skeleton;
-				skeleton.Header.Version = ovrHandVersion_1;
-				if ( vrapi_GetHandSkeleton(	app->Ovr, left?VRAPI_HAND_LEFT:VRAPI_HAND_RIGHT, &skeleton.Header ) == ovrSuccess )
+				// Uncomment if at some point we start caring about oculus's gesture system
+				ovrInputStateHand InputStateHand;
+				handState.Header.ControllerType = handCap.Header.Type;
+				result = vrapi_GetCurrentInputState( ovr, cap.DeviceID, &InputStateHand.Header );
+				if ( result == ovrSuccess )
 				{
-					handTrack.handModel->Init( skeleton );
-					handTrack.init = true;
 				}
-			}
-
-			ovrHandPose RealHandPose;
-			RealHandPose.Header.Version = ovrHandVersion_1;
-			r = vrapi_GetHandPose( app->Ovr, cap.DeviceID, predictedDisplayTime, &(RealHandPose.Header) );
-			if ( r == ovrSuccess )
-			{
-				BridgeLovrUnpackPose(RealHandPose.RootPose, controller.pose);
-				memset(&controller.movement, 0, sizeof(controller.movement)); // TODO
-
-				controller.tracking.live = true;
-				controller.tracking.confidence = float(RealHandPose.HandConfidence) / float(ovrConfidence_HIGH);
-				controller.tracking.handScale = RealHandPose.HandScale;
-				if (handTrack.init) {
-					controller.tracking.bones = &handTrackingBonesStruct;
-					controller.tracking.poses = &handTrack.handTrackingPosesStruct;
-
-					handTrack.handModel->Update( RealHandPose );
-					const std::vector< OVR::Posef > & poses = handTrack.handModel->GetSkeleton().GetWorldSpacePoses();
-
-					int bones = std::min<uint32_t>(poses.size(), ovrHandBone_Max);
-					controller.tracking.poses->members = bones;
-					for(int c = 0; c < bones; c++)
-						BridgeLovrUnpackPose(poses[c], handTrack.handTrackingPoses[c]);
+#endif
+				
+				if (!handTrack.init) {
+					ovrHandSkeleton skeleton;
+					skeleton.Header.Version = ovrHandVersion_1;
+					if ( vrapi_GetHandSkeleton(	app->Ovr, left?VRAPI_HAND_LEFT:VRAPI_HAND_RIGHT, &skeleton.Header ) == ovrSuccess )
+					{
+						handTrack.handModel = new OVRFW::ovrHandModel();
+						handTrack.handModel->Init( skeleton );
+						handTrack.init = true;
+					}
 				}
+
+				ovrHandPose RealHandPose;
+				RealHandPose.Header.Version = ovrHandVersion_1;
+				result = vrapi_GetHandPose( app->Ovr, cap.DeviceID, predictedDisplayTime, &(RealHandPose.Header) );
+				if ( result == ovrSuccess )
+				{
+					BridgeLovrUnpackPose(RealHandPose.RootPose, controller.pose);
+					memset(&controller.movement, 0, sizeof(controller.movement)); // TODO
+
+					controller.tracking.live = true;
+					controller.tracking.confidence = float(RealHandPose.HandConfidence) / float(ovrConfidence_HIGH);
+					controller.tracking.handScale = RealHandPose.HandScale;
+
+					if (handTrack.init) {
+						controller.tracking.bones = &handTrackingBonesStruct;
+						controller.tracking.poses = &handTrack.handTrackingPosesStruct;
+
+						handTrack.handModel->Update( RealHandPose );
+						const std::vector< OVR::Posef > & poses = handTrack.handModel->GetSkeleton().GetWorldSpacePoses();
+						int bones = std::min<uint32_t>(poses.size(), ovrHandBone_Max);
+
+						controller.tracking.poses->members = bones;
+						controller.tracking.poses->poses = handTrack.handTrackingPoses;
+						for(int c = 0; c < bones; c++) {
+							BridgeLovrUnpackPose(poses[c], handTrack.handTrackingPoses[c]);
+						}
+					}
+				}
+				updateData.controllerCount++;
 			}
 		}
 		else if ( cap.Type == ovrControllerType_TrackedRemote )
@@ -1486,11 +1491,11 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 			{
 				memset(&controller, 0, sizeof(controller));
 
-				ovrInputTrackedRemoteCapabilities remoteCaps;
-				remoteCaps.Header = cap;
-				result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCaps.Header );
+				ovrInputTrackedRemoteCapabilities remoteCap;
+				remoteCap.Header = cap;
+				result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCap.Header );
 				if (result == ovrSuccess) {
-					controller.hand = (BridgeLovrHand)(remoteCaps.ControllerCapabilities & BRIDGE_LOVR_HAND_CAPMASK);
+					controller.hand = (BridgeLovrHand)((remoteCap.ControllerCapabilities << BRIDGE_LOVR_HAND_CAPSHIFT) & BRIDGE_LOVR_HAND_HANDMASK);
 				}
 				controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_HANDSET);
 				if (currentDevice == BRIDGE_LOVR_DEVICE_QUEST) { // FIXME: Is this assumption safe?
@@ -1499,17 +1504,17 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 
 				// Determine best supported vibration mode
 				VibrateMode vibrateMode;
-				if (remoteCaps.ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration) {
+				if (remoteCap.ControllerCapabilities & ovrControllerCaps_HasBufferedHapticVibration) {
 					vibrateMode = VIBRATE_BUFFERED;
-				} else if (remoteCaps.ControllerCapabilities & ovrControllerCaps_HasSimpleHapticVibration) {
+				} else if (remoteCap.ControllerCapabilities & ovrControllerCaps_HasSimpleHapticVibration) {
 					vibrateMode = VIBRATE_SIMPLE;
 				} else {
 					vibrateMode = VIBRATE_NONE;
 				}
 
 				// FIXME: Will get very confused if a controller is ever not left or right hand
-				vibrateFunctionInitController(remoteCaps.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID,
-					vibrateMode, remoteCaps.HapticSamplesMax, remoteCaps.HapticSampleDurationMS);
+				vibrateFunctionInitController(remoteCap.ControllerCapabilities & ovrControllerCaps_RightHand ? 1 : 0, cap.DeviceID,
+					vibrateMode, remoteCap.HapticSamplesMax, remoteCap.HapticSampleDurationMS);
 
 				controller.handset.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
 				controller.handset.buttonTouch = (BridgeLovrTouch)(unsigned int)trackedRemoteState.Touches;
