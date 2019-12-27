@@ -1420,7 +1420,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 					(handCap.HandCapabilities & BRIDGE_LOVR_HAND_HANDMASK)
 				| BRIDGE_LOVR_HAND_TRACKING);
 
-				bool left = handCap.HandCapabilities&ovrControllerCaps_LeftHand;
+				bool left = handCap.HandCapabilities&ovrHandCaps_LeftHand;
 				HandTrackData &handTrack = handTrackData[!left];
 
 				controller.tracking.live = false;
@@ -1434,7 +1434,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				{
 				}
 #endif
-				
+
 				if (!handTrack.init) {
 					ovrHandSkeleton skeleton;
 					skeleton.Header.Version = ovrHandVersion_1;
