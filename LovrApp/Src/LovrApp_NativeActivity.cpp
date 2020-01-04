@@ -1334,6 +1334,7 @@ static void ovrApp_HandleVrModeChanges( ovrApp * app )
 	}
 }
 
+// From OVR_HandModel.cpp
 static const char * ovrHandBoneNames[ovrHandBone_Max] =
 {
 	"WristRoot",
