@@ -1190,6 +1190,7 @@ typedef struct {
 
 	BridgeLovrPose handTrackingPoses[ovrHandBone_Max];
 	BridgeLovrPoseList handTrackingPosesStruct;
+	BridgeLovrFloatList handTrackingConfidenceStruct;
 } HandTrackData;
 
 static HandTrackData handTrackData[2];
@@ -1261,6 +1262,13 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 					{
 						handTrack.handModel = new OVRFW::ovrHandModel();
 						handTrack.handModel->Init( skeleton );
+
+						handTrack.handTrackingConfidenceStruct.members = ovrHandFinger_Max;
+						handTrack.handTrackingConfidenceStruct.numbers = (float *)malloc(sizeof(float)*ovrHandFinger_Max);
+
+						handTrackingBonesStruct.members = ovrHandBone_Max; // This assignment will occur twice, and that's ok
+						handTrackingBonesStruct.strings = ovrHandBoneNames;
+
 						handTrack.init = true;
 					}
 				}
@@ -1280,6 +1288,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 					if (handTrack.init) {
 						controller.tracking.bones = &handTrackingBonesStruct;
 						controller.tracking.poses = &handTrack.handTrackingPosesStruct;
+						controller.tracking.fingerConfidence = &handTrack.handTrackingConfidenceStruct;
 
 						handTrack.handModel->Update( RealHandPose );
 						const std::vector< OVR::Posef > & poses = handTrack.handModel->GetSkeleton().GetWorldSpacePoses();
@@ -1289,6 +1298,9 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 						controller.tracking.poses->poses = handTrack.handTrackingPoses;
 						for(int c = 0; c < bones; c++) {
 							BridgeLovrUnpackPose(poses[c], handTrack.handTrackingPoses[c]);
+						}
+						for(int c = 0; c < ovrHandFinger_Max; c++) {
+							handTrack.handTrackingConfidenceStruct.numbers[c] = float(RealHandPose.FingerConfidences[c]) / float(ovrConfidence_HIGH);
 						}
 					}
 				}
@@ -1314,8 +1326,9 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				remoteCap.Header = cap;
 				result = vrapi_GetInputDeviceCapabilities( app->Ovr, &remoteCap.Header );
 				if (result == ovrSuccess) {
-					controller.hand = (BridgeLovrHand)((remoteCap.ControllerCapabilities << BRIDGE_LOVR_HAND_CAPSHIFT) & BRIDGE_LOVR_HAND_HANDMASK);
+					controller.hand = (BridgeLovrHand)((remoteCap.ControllerCapabilities >> BRIDGE_LOVR_HAND_CAPSHIFT) & BRIDGE_LOVR_HAND_HANDMASK);
 				}
+
 				controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_HANDSET);
 				if (currentDevice == BRIDGE_LOVR_DEVICE_QUEST) { // FIXME: Is this assumption safe?
 					controller.hand = (BridgeLovrHand)(controller.hand | BRIDGE_LOVR_HAND_RIFTY);
