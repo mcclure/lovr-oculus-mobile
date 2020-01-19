@@ -20,3 +20,4 @@
 /cmakelib/.externalNativeBuild
 /cmakelib/build
 /cmakelib/.gradle
+local.properties
