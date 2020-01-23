@@ -2,7 +2,7 @@ This is a repository for building LovrApp, a standalone Android app which is bas
 
 # Usage
 
-Most users do not need to build LovrApp themselves. For running your own Lua files you can sideload the LovrTest app, which you can find on the "Releases" section of this github repo, or [this page with instructions](https://mcclure.github.io/mermaid-lovr).
+Most users do not need to build LovrApp themselves. For running your own Lua files you can sideload the LovrTest app, which you can find on the "Releases" section of this github repo, or [this page with instructions](https://lovr.org/docs/Getting_Started_(Android)).
 
 ## To build (all platforms):
 
@@ -10,7 +10,7 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
 * Install Android Studio
 
-* Open Android Studio, go into Preferences, search in the box for "SDK" (or from the "Welcome to Android Studio" box, choose "Configure"->"SDK Manager"). Use the "Android SDK" pane and the "SDK Platforms" tab to download Android API level 23. Next, navigate to the "SDK Tools" tab of the same pane, and check "CMake" and "NDK (Side by side)". Hit "Apply". Now quit Android Studio (we'll be doing the next part at the command line).
+* Open Android Studio, go into Preferences, search in the box for "SDK" (or from the "Welcome to Android Studio" box, choose "Configure"->"SDK Manager"). Use the "Android SDK" pane and the "SDK Platforms" tab to download Android API level 23. Next, navigate to the "SDK Tools" tab of the same pane and check "Show Package Details". Under "NDK (Side by Side)" select "20.0.5594570", and under "CMake" check "3.6.4111459" or whatever's newest. Hit "Apply". Now quit Android Studio (we'll be doing the next part at the command line).
 
 * Follow the additional platform steps below:
 
@@ -20,23 +20,24 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
       (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
 
-* You need to build the gradle script in `cmakelib`, then run the installDebug target of the gradle script in `LovrApp/Projects/Android`. You can do this with the `gradlew` script in the root, but it will need the Android tools in `PATH` and the sdk install location in `ANDROID_HOME`. You can just run this at the Bash prompt from the repository root to do all of this:
-
-      (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
 
 ### To build (Windows)
 
-```
-set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
-set JAVA_HOME=C:\Program Files\Android\Android Studio\jre
-set PATH=%PATH%;%CD%
-set ANDROID_NDK_HOME=%LOCALAPPDATA%\Android\Sdk\ndk\21.0.6113669
-gradlew
+* Run the following from a cmd.exe window:
 
-pushd cmakelib
-gradlew build
-popd
-```
+    set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
+    set JAVA_HOME=C:\Program Files\Android\Android Studio\jre
+    set PATH=%PATH%;%CD%
+    set ANDROID_NDK_HOME=%LOCALAPPDATA%\Android\Sdk\ndk\21.0.6113669
+    gradlew
+
+    pushd cmakelib
+    gradlew build
+    popd
+
+    pushd LovrApp/Projects/Android
+    gradlew installDebug
+    popd
 
 ### To build (additional notes)
 
@@ -53,9 +54,7 @@ popd
 * To see all the things gradlew can do in a particular directory run it with "tasks" as the argument.
 * The reason for the long `(export PATH`/ANDROID_HOME line is to get the java and android tools into scope for that line. It would also work to modify the env vars in your bashrc. But you *do* have to set the environment variables somehow or else you could run the wrong version of Java and get confusing errors like "Could not determine java version from '13'". 
 
-Help would be appreciated if you know how to do any of the following: Make the build work in Android Studio, or make the build work in a single gradle pass without having to invoke `gradlew` three times.
-
-
+Help would be appreciated if you know how to do any of the following: Make the build work in Android Studio, or make the build work in a single gradle pass without having to invoke `gradlew` twice.
 
 ## Adding game code:
 
