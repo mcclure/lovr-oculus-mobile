@@ -29,18 +29,17 @@ Most users do not need to build LovrApp themselves. For running your own Lua fil
 
 * Run the following from a cmd.exe window:
 
-    set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
-    set JAVA_HOME=C:\Program Files\Android\Android Studio\jre
-    set PATH=%PATH%;%CD%
-    gradlew
+        set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
+        set JAVA_HOME=C:\Program Files\Android\Android Studio\jre
+        set PATH=%PATH%;%CD%
 
-    pushd cmakelib
-    gradlew build
-    popd
+        pushd cmakelib
+        gradlew build
+        popd
 
-    pushd LovrApp/Projects/Android
-    gradlew installDebug
-    popd
+        pushd LovrApp/Projects/Android
+        gradlew installDebug
+        popd
 
 ### To build (additional notes)
 
