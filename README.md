@@ -2,31 +2,47 @@ This is a repository for building LovrApp, a standalone Android app which is bas
 
 # Usage
 
-Most users do not need to build LovrApp themselves. For running your own Lua files you can sideload the LovrTest app, which you can find on the "Releases" section of this github repo, or [this page with instructions](https://mcclure.github.io/mermaid-lovr).
+Most users do not need to build LovrApp themselves. For running your own Lua files you can sideload the LovrTest app, which you can find on the "Releases" section of this github repo, or [this page with instructions](https://lovr.org/docs/Getting_Started_(Android)).
 
-## To build (Mac instructions):
+## To build (all platforms):
 
 * The submodule cmakelib/lovr has submodules. If you did not initially clone this repo with --recurse-submodules, you will need to run `(cd cmakelib/lovr && git submodule init && git submodule update)` before doing anything else.
 
 * Install Android Studio
 
-* Open Android Studio, go into Preferences, search in the box for "SDK". Use the "Android SDK" pane and the "SDK Platforms" tab to download Android API level 21. Next, install the NDK from the "SDK Tools" tab of the same pane. Now quit Android Studio (in my testing it is broken and will break your project).
+* Open Android Studio, go into Preferences, search in the box for "SDK" (or from the "Welcome to Android Studio" box, choose "Configure"->"SDK Manager"). Use the "Android SDK" pane and the "SDK Platforms" tab to download Android API level 23. Next, navigate to the "SDK Tools" tab of the same pane and "Show Package Details" and uncheck "Hide obsolete packages". At the bottom select "NDK (Obsolete)", and under "CMake" check "3.6.4111459" or whatever's newest. Hit "Apply". Now quit Android Studio (we'll be doing the next part at the command line).
 
-* Run:
+* Follow the additional platform steps below:
 
-      PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH adb devices
-
-      ...to get the ID number for the device.  (If you do not see your device in the list, see "notes" below.)
-
-* Plug the id number from adb into [https://dashboard.oculus.com/tools/osig-generator/]
-
-* Copy the file downloaded from osig-generator into `LovrApp/assets`
+### To build (Macintosh)
 
 * You need to build the gradle script in `cmakelib`, then run the installDebug target of the gradle script in `LovrApp/Projects/Android`. You can do this with the `gradlew` script in the root, but it will need the Android tools in `PATH` and the sdk install location in `ANDROID_HOME`. You can just run this at the Bash prompt from the repository root to do all of this:
 
       (export PATH="/Applications/Android Studio.app/Contents/jre/jdk/Contents/Home/bin":~/Library/Android/sdk/platform-tools:$PATH ANDROID_HOME=~/Library/Android/sdk GRADLE=`pwd`/gradlew; (cd cmakelib && $GRADLE build) && (cd LovrApp/Projects/Android && $GRADLE installDebug)) && say "Done"
 
-Notes:
+
+### To build (Windows)
+
+* Unfortunately this is the only way I can get the build to work on Windows right now: Edit cmakelib/lovr/CMakeLists.txt and change LOVR_USE_LUAJIT and LOVR_ENABLE_AUDIO near the top from ON to OFF. This will make things run slightly slower and also disable audio.
+
+* Follow the instructions under "creating a signing key" below in this README. (This is done automatically on Mac, but not on Windows.)
+
+* Run the following from a cmd.exe window:
+
+        set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
+        set JAVA_HOME=C:\Program Files\Android\Android Studio\jre
+        set PATH=%PATH%;%CD%
+
+        pushd cmakelib
+        gradlew build
+        popd
+
+        pushd LovrApp/Projects/Android
+        gradlew installDebug
+        popd
+
+### To build (additional notes)
+
 * You have to have turned on developer mode on your headset before deploying.
 * You also have to enable USB debugging for the device.  For the Oculus Go, you can do this by plugging in the device, putting it on, and using the controller to accept the "Allow USB Debugging" popup.
 * If you get a message about "signatures do not match the previously installed version", run this and try again:
@@ -40,7 +56,7 @@ Notes:
 * To see all the things gradlew can do in a particular directory run it with "tasks" as the argument.
 * The reason for the long `(export PATH`/ANDROID_HOME line is to get the java and android tools into scope for that line. It would also work to modify the env vars in your bashrc. But you *do* have to set the environment variables somehow or else you could run the wrong version of Java and get confusing errors like "Could not determine java version from '13'". 
 
-Help would be appreciated if you know how to do any of the following: Make the build work in Android Studio; make the build work in Windows; make the build work in a single gradle pass without having to invoke `gradlew` three times.
+Help would be appreciated if you know how to do any of the following: Make the build work in Android Studio, build on Windows with audio, or make the build work in a single gradle pass without having to invoke `gradlew` twice.
 
 ## Adding game code:
 
@@ -84,15 +100,15 @@ The build scripts in this repo create release builds for Quest. As of this writi
 
 Next, edit `LovrApp/Projects/Android/AndroidManifest.xml`. **Delete** this line:
 
-	<uses-feature
-			android:name="android.hardware.vr.headtracking"
-			android:version="1"
-			android:required="false"
-			/>
+  <uses-feature
+      android:name="android.hardware.vr.headtracking"
+      android:version="1"
+      android:required="false"
+      />
 
 ## If you want to run on Samsung Gear VR
 
-The build scripts in this repo are set up for Oculus Go and Quest. If you want to ship on Samsung Gear you may want to search all gradle files for instances of:
+The build scripts in this repo are set up for Oculus Go and Quest. If you want to ship on Samsung Gear there are additional steps. You must set up an "osig" file as described on the Oculus website. You also may want to search all gradle files for instances of:
 
     abiFilters 'arm64-v8a'
 
@@ -151,7 +167,7 @@ This repository is based on the Oculus Mobile SDK, which Oculus has made availab
 
 LovrApp (the additional glue built on top) is by Andi McClure <<andi.m.mcclure@gmail.com>> and is made available under the license below.
 
-> Copyright 2018 Andi McClure
+> Copyright 2020 Andi McClure
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 >
