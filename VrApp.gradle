@@ -111,6 +111,7 @@ class VrAppPlugin implements Plugin<Project> {
 
 	  compileSdkVersion 26
 	  buildToolsVersion '29.0.2'
+    ndkVersion "21.0.6113669"
 
 	  defaultConfig {
 		  minSdkVersion 23
