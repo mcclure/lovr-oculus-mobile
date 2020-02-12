@@ -25,6 +25,8 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES += ../../../cmakelib \
   					$(LOCAL_PATH)/../../../../1stParty/OVR/Include \
   					$(LOCAL_PATH)/../../../../VrSamples/VrHands/Src
+LOCAL_C_INCLUDES += ../../../cmakelib/lovr/src
+LOCAL_C_INCLUDES += ../../../cmakelib/lovr/src/modules
 
 LOCAL_MODULE			:= lovractivity
 LOCAL_CFLAGS			:= -Werror
