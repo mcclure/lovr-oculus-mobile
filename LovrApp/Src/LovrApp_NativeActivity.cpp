@@ -1192,6 +1192,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 
 			if ( result == ovrSuccess )
 			{
+				uint32_t lastButtons = controller.buttonDown;
 				memset(&controller, 0, sizeof(controller));
 
 				ovrInputTrackedRemoteCapabilities remoteCaps;
@@ -1218,6 +1219,7 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 				controller.handset = true;
 				controller.buttonDown = (BridgeLovrButton)(unsigned int)trackedRemoteState.Buttons;
 				controller.buttonTouch = (BridgeLovrTouch)(unsigned int)trackedRemoteState.Touches;
+				controller.buttonChanged = (BridgeLovrButton) (controller.buttonDown ^ lastButtons);
 				if (currentDevice == BRIDGE_LOVR_DEVICE_QUEST) {
 					controller.trackpad.x = trackedRemoteState.Joystick.x;
 					controller.trackpad.y = trackedRemoteState.Joystick.y;
