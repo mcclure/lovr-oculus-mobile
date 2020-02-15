@@ -1284,6 +1284,8 @@ static void ovrApp_HandleInput( ovrApp * app, BridgeLovrUpdateData &updateData, 
 					controller.tracking.live = true;
 					controller.tracking.confidence = float(RealHandPose.HandConfidence) / float(ovrConfidence_HIGH);
 					controller.tracking.handScale = RealHandPose.HandScale;
+					memcpy(controller.tracking.boneRotations, RealHandPose.BoneRotations, ovrHandBone_MaxSkinnable * 4 * sizeof(float));
+					controller.tracking.boneCount = ovrHandBone_MaxSkinnable;
 
 					if (handTrack.init) {
 						controller.tracking.bones = &handTrackingBonesStruct;
@@ -1519,6 +1521,10 @@ void android_main( struct android_app * app )
 	app->userData = &appState;
 	app->onAppCmd = app_handle_cmd;
 
+	// These need to last through the duration of the program, since the ModelData objects point into
+	// these structs.  Dynamic allocation could be used or a copy could be made to change this.
+	ovrHandMesh meshes[2];
+
 	const double startTime = GetTimeInSeconds();
 
 	while ( app->destroyRequested == 0 )
@@ -1615,10 +1621,165 @@ void android_main( struct android_app * app )
 			bridgeData.vibrateFunction = vibrateFunction;
 			vibrateFunctionInit(appState.Ovr, bridgeData.zeroDisplayTime);
 
+			// Swapchain
 			ovrTextureSwapChain* swapchain = appState.Renderer.FrameBuffer[0].ColorTextureSwapChain;
 			bridgeData.textureCount = vrapi_GetTextureSwapChainLength(swapchain);
 			for (uint32_t i = 0; i < bridgeData.textureCount; i++) {
 				bridgeData.textureHandles[i] = vrapi_GetTextureSwapChainHandle(swapchain, i);
+			}
+
+			// Hand Models
+			for (uint32_t i = 0; i < 2; i++) {
+				ovrHandedness hand = i == 0 ? VRAPI_HAND_LEFT : VRAPI_HAND_RIGHT;
+
+				ovrHandSkeleton skeleton;
+				skeleton.Header.Version = ovrHandVersion_1;
+				if (vrapi_GetHandSkeleton(appState.Ovr, hand, &skeleton.Header) != ovrSuccess) {
+					bridgeData.handModels[i] = NULL;
+					continue;
+				}
+
+				ovrHandMesh* mesh = &meshes[i];
+				mesh->Header.Version = ovrHandVersion_1;
+				if (vrapi_GetHandMesh(appState.Ovr, hand, &mesh->Header) != ovrSuccess) {
+					bridgeData.handModels[i] = NULL;
+					continue;
+				}
+
+				// These are handed off to the bridge, and are freed in bridgeLovrClose
+				ModelData* model = lovrAlloc(ModelData);
+				bridgeData.handModels[i] = model;
+
+				model->bufferCount = 6;
+				model->attributeCount = 6;
+				model->primitiveCount = 1;
+				model->skinCount = 1;
+				model->jointCount = ovrHandBone_MaxSkinnable;
+				model->childCount = ovrHandBone_MaxSkinnable;
+				model->nodeCount = 1 + model->jointCount;
+				lovrModelDataAllocate(model);
+
+				model->buffers[0] = (ModelBuffer) {
+					.data = (char*) mesh->VertexPositions,
+					.size = sizeof(mesh->VertexPositions),
+					.stride = sizeof(mesh->VertexPositions[0])
+				};
+
+				model->buffers[1] = (ModelBuffer) {
+					.data = (char*) mesh->VertexNormals,
+					.size = sizeof(mesh->VertexNormals),
+					.stride = sizeof(mesh->VertexNormals[0])
+				};
+
+				model->buffers[2] = (ModelBuffer) {
+					.data = (char*) mesh->VertexUV0,
+					.size = sizeof(mesh->VertexUV0),
+					.stride = sizeof(mesh->VertexUV0[0])
+				};
+
+				model->buffers[3] = (ModelBuffer) {
+					.data = (char*) mesh->BlendIndices,
+					.size = sizeof(mesh->BlendIndices),
+					.stride = sizeof(mesh->BlendIndices[0])
+				};
+
+				model->buffers[4] = (ModelBuffer) {
+					.data = (char*) mesh->BlendWeights,
+					.size = sizeof(mesh->BlendWeights),
+					.stride = sizeof(mesh->BlendWeights[0])
+				};
+
+				model->buffers[5] = (ModelBuffer) {
+					.data = (char*) mesh->Indices,
+					.size = sizeof(mesh->Indices),
+					.stride = sizeof(mesh->Indices[0])
+				};
+
+				model->attributes[0] = (ModelAttribute) { .buffer = 0, .type = F32, .components = 3 };
+				model->attributes[1] = (ModelAttribute) { .buffer = 1, .type = F32, .components = 3 };
+				model->attributes[2] = (ModelAttribute) { .buffer = 2, .type = F32, .components = 2 };
+				model->attributes[3] = (ModelAttribute) { .buffer = 3, .type = I16, .components = 4 };
+				model->attributes[4] = (ModelAttribute) { .buffer = 4, .type = F32, .components = 4 };
+				model->attributes[5] = (ModelAttribute) { .buffer = 5, .type = U16, .count = mesh->NumIndices };
+
+				model->primitives[0] = (ModelPrimitive) {
+					.mode = DRAW_TRIANGLES,
+					.attributes = {
+						[ATTR_POSITION] = &model->attributes[0],
+						[ATTR_NORMAL] = &model->attributes[1],
+						[ATTR_TEXCOORD] = &model->attributes[2],
+						[ATTR_BONES] = &model->attributes[3],
+						[ATTR_WEIGHTS] = &model->attributes[4]
+					},
+					.indices = &model->attributes[5],
+					.material = ~0u
+				};
+
+				// The nodes in the Model correspond directly to the joints in the skin, for convenience
+				ovrMatrix4f globalTransforms[32];
+				uint32_t* children = model->children;
+				model->skins[0].joints = model->joints;
+				model->skins[0].jointCount = model->jointCount;
+				model->skins[0].inverseBindMatrices = (float*) malloc(model->jointCount * 16 * sizeof(float));
+				for (uint32_t i = 0; i < model->jointCount; i++) {
+					ovrVector3f* position = &skeleton.BonePoses[i].Position;
+					ovrQuatf* orientation = &skeleton.BonePoses[i].Orientation;
+
+					model->nodes[i] = (ModelNode) {
+						.matrix = false,
+						.translation = { position->x, position->y, position->z },
+						.rotation = { orientation->x, orientation->y, orientation->z, orientation->w },
+						.scale = { 1.f, 1.f, 1.f },
+						.skin = ~0u
+					};
+
+					model->joints[i] = i;
+
+					// Turn the bone's pose into a matrix
+					ovrMatrix4f translation = ovrMatrix4f_CreateTranslation(position->x, position->y, position->z);
+					ovrMatrix4f rotation = ovrMatrix4f_CreateFromQuaternion(orientation);
+					ovrMatrix4f localPose = ovrMatrix4f_Multiply(&translation, &rotation);
+
+					// Get the global transform of the bone by multiplying by the parent's global transform
+					// This relies on the bones being ordered in hierarchical order
+					ovrMatrix4f parentTransform = ovrMatrix4f_CreateIdentity();
+					if (skeleton.BoneParentIndices[i] >= 0) {
+						parentTransform = globalTransforms[skeleton.BoneParentIndices[i]];
+					}
+					globalTransforms[i] = ovrMatrix4f_Multiply(&parentTransform, &localPose);
+
+					// The inverse of the global transform is the bone's inverse bind pose
+					// We also need to transpose it because the Oculus matrices are row-major
+					ovrMatrix4f inverseBindPose = ovrMatrix4f_Inverse(&globalTransforms[i]);
+					ovrMatrix4f inverseBindPoseColumnMajor = ovrMatrix4f_Transpose(&inverseBindPose);
+					memcpy(model->skins[0].inverseBindMatrices + 16 * i, &inverseBindPoseColumnMajor.M[0][0], 16 * sizeof(float));
+
+					// Add child bones by looking for any bones that have a parent of the current bone.
+					// This is somewhat slow, we use the fact that bones are sorted to reduce the work a bit.
+					model->nodes[i].childCount = 0;
+					model->nodes[i].children = children;
+					for (uint32_t j = i + 1; j < model->jointCount && j < skeleton.NumBones; j++) {
+						if (skeleton.BoneParentIndices[j] == i) {
+							model->nodes[i].children[model->nodes[i].childCount++] = j;
+							children++;
+						}
+					}
+				}
+
+				// The root node with the mesh is added as the last node
+				model->rootNode = model->jointCount;
+				model->nodes[model->rootNode] = (ModelNode) {
+					.matrix = true,
+					.transform = { 1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1 },
+					.primitiveIndex = 0,
+					.primitiveCount = 1,
+					.childCount = 1,
+					.children = children,
+					.skin = 0
+				};
+
+				// The root node has the root bone as a child so that the bones are part of the tree
+				*children = 0;
 			}
 
 			bridgeLovrInit(&bridgeData);
