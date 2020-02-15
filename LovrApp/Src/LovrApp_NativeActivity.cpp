@@ -1525,6 +1525,14 @@ void android_main( struct android_app * app )
 
 		updateData.displayTime = predictedDisplayTime;
 
+		// Boundary
+		ovrPosef boundsPose;
+		ovrVector3f boundsScale;
+		if (vrapi_GetBoundaryOrientedBoundingBox(appState.Ovr, &boundsPose, &boundsScale) == ovrSuccess) {
+			updateData.boundsWidth = boundsScale.x * 2.f;
+			updateData.boundsDepth = boundsScale.z * 2.f;
+		}
+
 		ovrApp_HandleInput( &appState, updateData, predictedDisplayTime );
 
 		// Render eye images and setup the primary layer using ovrTracking2.

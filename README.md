@@ -156,7 +156,6 @@ Known limitations and planned improvement for LovrApp and Lovr for Oculus Mobile
 - Avatar SDK support (to display controller model) should be added
 - "Focus" events should be issued on pause and resume
 - lovr.conf MSAA setting is ignored
-- The play bounds feature is not supported, but could be
 - Display masks are not supported, but could be
 - Microphones are not supported, but could be
 - It would be nice to have Windows build instructions above
