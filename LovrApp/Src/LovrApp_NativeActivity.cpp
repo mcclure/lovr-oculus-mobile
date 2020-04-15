@@ -77,7 +77,7 @@ std::string ovr_GetPackageCodePath(JNIEnv * jni, jobject activityObject)
 
 extern "C" {
 
-#include "lovr/src/modules/headset/oculus_mobile_bridge.h"
+#include "headset/oculus_mobile_bridge.h"
 
 static BridgeLovrDevice currentDevice;
 
